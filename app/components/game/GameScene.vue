@@ -360,6 +360,11 @@ let gatherT = 0
 let gatheringKey: string | null = null
 /** Tile we last said something about, so arrival messages play once per visit. */
 let notedKey: string | null = null
+/** The "pouch full" message has been shown for the current full pouch. */
+let fullNoticed = false
+watch(() => hive.pouchFull, (full) => {
+  if (!full) fullNoticed = false
+})
 
 function updateGathering(dt: number, rm: boolean, idle: boolean) {
   const tile = world.byKey.get(hexKey(game.pos))
@@ -369,7 +374,9 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
   if (here && src) {
     const left = hive.tileAmount(here)
     if (hive.pouchFull) {
-      if (notedKey !== here.key) {
+      // Say it once per full pouch, not on every tile flown over.
+      if (!fullNoticed) {
+        fullNoticed = true
         notedKey = here.key
         game.toast('Your pouch is full. Fly home (H) to unload.')
         game.announce('Your pouch is full. Fly home to unload.')
@@ -387,6 +394,7 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
         gatherT = 0
         hive.gather(here)
         if (hive.pouchFull) {
+          fullNoticed = true
           game.toast('Pouch full! Fly home (H) to unload.')
           game.announce(`Pouch full with ${hive.pouchTotal}. Fly home to unload.`)
         }

@@ -54,8 +54,8 @@ export const useSettings = defineStore('settings', {
     showPad: systemIsTouch(),
     flightSpeed: 'normal',
     zoom: 1.2,
-    musicVolume: 0.5,
-    sfxVolume: 0.7,
+    musicVolume: 0.4,
+    sfxVolume: 0.6,
   }),
   getters: {
     /** Seconds to fly one hex. */
