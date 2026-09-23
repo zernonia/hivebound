@@ -254,24 +254,33 @@ const camTarget = worldPos(game.pos)
 const beePos = worldPos(game.pos).add(new THREE.Vector3(0, HOVER_ALT, 0))
 bee.root.position.copy(beePos)
 
-interface Hop { from: THREE.Vector3, to: THREE.Vector3, t: number, dur: number, lift: number }
-let hop: Hop | null = null
-let squash = 0
+
+/*
+ * Flight model: an invisible "carrot" glides tile-to-tile along the route at constant
+ * speed, and the bee chases it with critically-damped smoothing. That gives continuous,
+ * curving flight through corners instead of discrete hops. The bee climbs to cruise
+ * altitude while travelling and settles back to a hover when it stops.
+ */
+const CRUISE_ALT = 1.05
+interface Segment { from: THREE.Vector3, to: THREE.Vector3, len: number, t: number }
+let seg: Segment | null = null
+const carrot = worldPos(game.pos)
+let fly = 0 // 0 = hovering, 1 = cruising
+let linger = 0 // keeps cruise altitude briefly between queued hops
+let groundY = carrot.y
 let yaw = 0
+let bank = 0
+let pitch = 0
 let time = 0
 const tmpV = new THREE.Vector3()
 const camOffset = new THREE.Vector3()
+const prevPos = new THREE.Vector3()
 
-function yawFor(from: THREE.Vector3, to: THREE.Vector3) {
-  return Math.atan2(to.x - from.x, to.z - from.z)
-}
-function startHop() {
+function startSegment() {
   const next = game.beginHop()
   if (!next) return
-  const to = worldPos(next).add(new THREE.Vector3(0, HOVER_ALT, 0))
-  const from = bee.root.position.clone()
-  const dh = Math.abs(to.y - from.y)
-  hop = { from, to, t: 0, dur: settings.hopDuration, lift: (settings.reducedMotion ? 0.12 : 0.34) + dh * 0.6 }
+  const to = worldPos(next)
+  seg = { from: carrot.clone(), to, len: Math.max(0.001, Math.hypot(to.x - carrot.x, to.z - carrot.z)), t: 0 }
 }
 
 function tryHeldStep() {
@@ -290,69 +299,90 @@ const shortestAngle = (a: number, b: number) => {
 
 const { onBeforeRender } = useLoop()
 onBeforeRender(({ delta }) => {
-  const dt = Math.min(delta, 1 / 20)
+  const dt = Math.max(1e-4, Math.min(delta, 1 / 20))
   time += dt
   const rm = settings.reducedMotion
+  // World units per second (one hex centre-to-centre is ~1.73 units).
+  const speed = 1.732 / (settings.hopDuration * 1.1)
 
-  // --- movement ---
-  if (!hop) {
+  // --- advance the carrot along the route ---
+  if (!seg) {
     if (!game.queue.length) tryHeldStep()
-    if (game.queue.length) startHop()
+    if (game.queue.length) startSegment()
   }
-  let targetYaw = yaw
-  if (hop) {
-    hop.t = Math.min(1, hop.t + dt / hop.dur)
-    const t = hop.t
-    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // easeInOutQuad
-    bee.root.position.lerpVectors(hop.from, hop.to, e)
-    bee.root.position.y += Math.sin(Math.PI * t) * hop.lift
-    targetYaw = yawFor(hop.from, hop.to)
-    if (t >= 1) {
-      hop = null
-      squash = rm ? 0 : 1
+  if (seg) {
+    seg.t += (dt * speed) / seg.len
+    if (seg.t >= 1) {
+      carrot.copy(seg.to)
+      seg = null
+      linger = 0.25
       game.arrive()
-      // Chain straight into the next hop for continuous travel.
+      // Chain straight into the next leg for continuous flight.
       if (!game.queue.length) tryHeldStep()
-      if (game.queue.length) startHop()
+      if (game.queue.length) startSegment()
+    }
+    else {
+      carrot.lerpVectors(seg.from, seg.to, seg.t)
     }
   }
-  else if (!game.queue.length) {
-    // Idle: face the camera-ish direction of last travel, gentle bob.
+  else {
+    // Idle: stay anchored to the logical position (also handles load / reset).
     const home = worldPos(game.pos)
-    // If the position changed without a hop (load / reset), glide or snap there.
-    const dist = Math.hypot(home.x - bee.root.position.x, home.z - bee.root.position.z)
-    if (dist > 4) bee.root.position.set(home.x, bee.root.position.y, home.z)
-    else if (dist > 0.001) {
-      const k = 1 - Math.exp(-dt * 10)
-      bee.root.position.x += (home.x - bee.root.position.x) * k
-      bee.root.position.z += (home.z - bee.root.position.z) * k
+    if (Math.hypot(home.x - carrot.x, home.z - carrot.z) > 0.001) {
+      if (Math.hypot(home.x - bee.root.position.x, home.z - bee.root.position.z) > 4) {
+        bee.root.position.x = home.x
+        bee.root.position.z = home.z
+      }
+      carrot.copy(home)
     }
-    bee.root.position.y = home.y + HOVER_ALT + (rm ? 0 : Math.sin(time * 2.4) * 0.05)
   }
+  linger = Math.max(0, linger - dt)
+  const travelling = !!seg || game.queue.length > 0 || linger > 0
 
-  // --- facing ---
-  yaw += shortestAngle(yaw, targetYaw) * (1 - Math.exp(-dt * (rm ? 30 : 14)))
+  // --- chase the carrot (smooth curves through corners) ---
+  prevPos.copy(bee.root.position)
+  const follow = 1 - Math.exp(-dt * (rm ? 14 : 7))
+  bee.root.position.x += (carrot.x - bee.root.position.x) * follow
+  bee.root.position.z += (carrot.z - bee.root.position.z) * follow
+
+  // --- altitude: follow the terrain softly, climb when cruising ---
+  const under = world.byKey.get(hexKey(worldToHex(bee.root.position.x, bee.root.position.z)))
+  groundY += ((under?.height ?? groundY) - groundY) * (1 - Math.exp(-dt * 6))
+  fly += ((travelling ? 1 : 0) - fly) * (1 - Math.exp(-dt * (travelling ? 5 : 3)))
+  const bob = rm ? 0 : Math.sin(time * (travelling ? 7 : 2.4)) * (travelling ? 0.03 : 0.05)
+  bee.root.position.y = groundY + THREE.MathUtils.lerp(HOVER_ALT, CRUISE_ALT, fly) + bob
+
+  // --- facing, banking and pitch from velocity ---
+  const vx = (bee.root.position.x - prevPos.x) / dt
+  const vz = (bee.root.position.z - prevPos.z) / dt
+  const v = Math.hypot(vx, vz)
+  let yawRate = 0
+  if (v > 0.35) {
+    const dYaw = shortestAngle(yaw, Math.atan2(vx, vz)) * (1 - Math.exp(-dt * (rm ? 20 : 10)))
+    yaw += dYaw
+    yawRate = dYaw / dt
+  }
   bee.root.rotation.y = yaw
-
-  // --- body squash / lean ---
-  squash = Math.max(0, squash - dt * 5)
-  const s = Math.sin(squash * Math.PI) * 0.16
-  bee.body.scale.set(1 + s, 1 - s, 1 + s * 0.5)
-  bee.body.rotation.x = hop && !rm ? 0.22 * Math.sin(Math.PI * hop.t) : 0
+  const speedNorm = Math.min(1, v / speed)
+  const targetBank = rm ? 0 : THREE.MathUtils.clamp(-yawRate * 0.12, -0.55, 0.55)
+  bank += (targetBank - bank) * (1 - Math.exp(-dt * 6))
+  pitch += ((rm ? 0.08 : 0.28) * speedNorm - pitch) * (1 - Math.exp(-dt * 6))
+  bee.body.rotation.set(pitch, 0, bank)
+  bee.body.scale.set(1, 1, 1)
 
   // --- wings & antennae ---
-  const flapSpeed = rm ? 10 : hop ? 38 : 26
-  const flapAmp = rm ? 0.18 : hop ? 0.55 : 0.4
+  const flapSpeed = rm ? 12 : THREE.MathUtils.lerp(26, 44, fly)
+  const flapAmp = rm ? 0.2 : THREE.MathUtils.lerp(0.4, 0.6, fly)
   const f = Math.sin(time * flapSpeed) * flapAmp + 0.25
   bee.wingR.rotation.z = f
   bee.wingL.rotation.z = -f
-  bee.antennae.rotation.x = rm ? 0 : Math.sin(time * 3) * 0.08
+  bee.antennae.rotation.x = rm ? 0 : -0.25 * speedNorm + Math.sin(time * 3) * 0.08
 
   // --- blob shadow ---
-  const ground = hop ? THREE.MathUtils.lerp(hop.from.y, hop.to.y, hop.t) - HOVER_ALT : worldPos(game.pos).y
+  const ground = groundY
   blob.position.set(bee.root.position.x, ground + 0.02, bee.root.position.z)
   const alt = bee.root.position.y - ground
-  blob.scale.setScalar(THREE.MathUtils.clamp(1.2 - alt * 0.5, 0.5, 1))
+  blob.scale.setScalar(THREE.MathUtils.clamp(1.25 - alt * 0.45, 0.45, 1))
 
   // --- camera follow ---
   const cam = camRef.value
