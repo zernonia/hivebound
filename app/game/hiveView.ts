@@ -4,7 +4,7 @@ import { type BuildingModel, buildBuilding } from './buildings'
 import { cushionHexGeometry, hexRingGeometry } from './geometry'
 import { type Hex, hexDistance, hexKey, hexToWorld } from '~/utils/hex'
 import { BUILDINGS, type BuildingId, RESOURCE_INFO, type Resource } from '~/utils/resources'
-import type { CellState } from '~/stores/hive'
+import { type CellState, HIVE_DOOR } from '~/stores/hive'
 
 /*
  * Inside the home hive: a honeycomb floor of cells around the Queen, a back wall of comb
@@ -42,6 +42,8 @@ export class HiveView {
   readonly group = new THREE.Group()
   /** Where the bee comes in and goes out, just past the front edge of the comb. */
   readonly entrance = new THREE.Vector3(0, 0.55, 5.4)
+  /** The doorway spot on the floor, selectable to leave. */
+  readonly door = new THREE.Vector3(0, CELL_TOP, 4.75)
   private cells = new Map<string, CellView>()
   private pickables: THREE.Object3D[] = []
   private selectRing: THREE.Mesh
@@ -175,8 +177,20 @@ export class HiveView {
     const glow = new THREE.Mesh(new THREE.CircleGeometry(0.9, 32), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(pool), transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }))
     glow.rotation.x = -Math.PI / 2
     glow.scale.set(1.4, 0.8, 1)
-    glow.position.set(this.entrance.x, 0.02, this.entrance.z - 0.6)
+    glow.position.set(this.door.x, 0.02, this.door.z)
     this.group.add(glow)
+
+    // --- the doorway: a little wax arch you can select to leave ---
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 12, 32, Math.PI), new THREE.MeshStandardMaterial({ color: '#ffd98a', roughness: 0.5, emissive: new THREE.Color('#ffb640'), emissiveIntensity: 0.2 }))
+    arch.position.set(this.door.x, 0.02, this.door.z + 0.25)
+    arch.castShadow = true
+    const doorPad = new THREE.Mesh(new THREE.CircleGeometry(0.7, 24), new THREE.MeshBasicMaterial({ visible: false }))
+    doorPad.rotation.x = -Math.PI / 2
+    doorPad.position.set(this.door.x, 0.05, this.door.z)
+    arch.userData.cellKey = HIVE_DOOR
+    doorPad.userData.cellKey = HIVE_DOOR
+    this.group.add(arch, doorPad)
+    this.pickables.push(arch, doorPad)
 
     // --- warm light ---
     const lamp = new THREE.PointLight('#ffc36b', 28, 22, 1.6)
@@ -204,13 +218,18 @@ export class HiveView {
 
   /** The spot the bee hovers at when visiting a cell: just in front of it, towards the camera. */
   hoverSpot(key: string | null, out = new THREE.Vector3()) {
+    if (key === HIVE_DOOR) return out.copy(this.door).add(tmpV.set(0.45, 0.85, -0.1))
     const c = key ? this.cells.get(key) : undefined
     if (!c) return out.set(0, 1.1, 2.4)
     return out.copy(c.pos).add(tmpV.set(0.45, 1.0, 0.7))
   }
 
-  cellPosition(key: string) {
-    return this.cells.get(key)?.pos
+  /** Where the floating action prompt sits for a cell (above its tray jar) or the doorway. */
+  promptAnchor(key: string | null, out = new THREE.Vector3()) {
+    if (key === HIVE_DOOR) return out.copy(this.door).add(tmpV.set(0, 1.25, 0))
+    const c = key ? this.cells.get(key) : undefined
+    if (!c) return null
+    return out.copy(c.pos).add(tmpV.set(0, 1.75, 0))
   }
 
   /** Returns the cell key under a raycast, if any. */
@@ -225,15 +244,20 @@ export class HiveView {
   }
 
   select(key: string | null) {
-    const c = key ? this.cells.get(key) : undefined
-    this.selectRing.visible = !!c
-    if (c) this.selectRing.position.copy(c.pos).add(tmpV.set(0, 0.02, 0))
+    this.placeRing(this.selectRing, key, 0.02)
   }
 
   hover(key: string | null) {
-    const c = key ? this.cells.get(key) : undefined
-    this.hoverRing.visible = !!c
-    if (c) this.hoverRing.position.copy(c.pos).add(tmpV.set(0, 0.025, 0))
+    this.placeRing(this.hoverRing, key, 0.025)
+  }
+
+  private placeRing(ring: THREE.Mesh, key: string | null, lift: number) {
+    const isDoor = key === HIVE_DOOR
+    const c = key && !isDoor ? this.cells.get(key) : undefined
+    ring.visible = isDoor || !!c
+    if (isDoor) ring.position.copy(this.door).add(tmpV.set(0, lift - CELL_TOP + 0.03, 0))
+    else if (c) ring.position.copy(c.pos).add(tmpV.set(0, lift, 0))
+    ring.scale.setScalar(isDoor ? 0.7 : 1)
   }
 
   /** Brings cell visuals in line with hive state: lids, buildings, trays, progress. */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type CellStatus, HIVE_CELLS, QUEEN_CELL, useHive } from '~/stores/hive'
+import { type CellStatus, HIVE_CELLS, HIVE_DOOR, QUEEN_CELL, useHive } from '~/stores/hive'
 import { useGame } from '~/stores/game'
 import { hexKey } from '~/utils/hex'
 import {
@@ -91,7 +91,6 @@ function build(id: BuildingId) {
       <button class="chip-btn" @click="game.leaveHive()">
         <UiIcon name="arrow" class="out" />
         <span>Leave</span>
-        <span class="kbd hide-touch" aria-hidden="true">I</span>
       </button>
     </header>
 
@@ -141,9 +140,33 @@ function build(id: BuildingId) {
           <span v-if="c.output" class="badge" aria-hidden="true">{{ c.output }}</span>
           <span v-else-if="c.status.kind === 'working'" class="dot" aria-hidden="true" />
         </button>
+        <button
+          class="cell door"
+          :class="{ sel: hive.selected === HIVE_DOOR }"
+          :style="{ transform: `translate(0px, ${S * Math.sqrt(3) * 3}px)` }"
+          :aria-pressed="hive.selected === HIVE_DOOR"
+          aria-label="Doorway, the way out"
+          @click="hive.selected = HIVE_DOOR"
+        >
+          <span class="hexbg door-bg" aria-hidden="true">
+            <UiIcon name="arrow" class="glyph out" />
+          </span>
+        </button>
       </div>
+      <p class="hint hide-touch">
+        Move with <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span>, act with <span class="kbd">F</span>
+      </p>
 
-      <div v-if="sel" class="detail" aria-live="polite">
+      <div v-if="hive.selected === HIVE_DOOR" class="detail" aria-live="polite">
+        <h3>Doorway</h3>
+        <p class="blurb">
+          The way back out to the meadow.
+        </p>
+        <button class="chip-btn primary" @click="game.leaveHive()">
+          <span class="kbd hide-touch" aria-hidden="true">F</span> Leave hive
+        </button>
+      </div>
+      <div v-else-if="sel" class="detail" aria-live="polite">
         <!-- Queen -->
         <template v-if="sel.key === QUEEN_CELL">
           <h3>The Queen</h3>
@@ -166,7 +189,7 @@ function build(id: BuildingId) {
               <span v-for="c in costList(UNLOCK_CELL_COST)" :key="c.r" class="cost" :class="{ short: !c.ok }"><ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ RESOURCE_INFO[c.r].name }}</span></span>
             </p>
             <button class="chip-btn primary" :disabled="!hive.has(UNLOCK_CELL_COST)" @click="hive.unlock(sel.key)">
-              Unseal
+              <span class="kbd hide-touch" aria-hidden="true">F</span> Unseal
             </button>
             <p v-if="!hive.has(UNLOCK_CELL_COST)" class="note">
               {{ missingText(UNLOCK_CELL_COST) }}. Wax comes from the Wax Works.
@@ -234,7 +257,7 @@ function build(id: BuildingId) {
             <div class="tray">
               <span>Tray: <strong>{{ sel.output }}</strong> / {{ TRAY_CAP }}</span>
               <button class="chip-btn primary" :disabled="!sel.output" @click="hive.collect(sel.key)">
-                Collect
+                <span class="kbd hide-touch" aria-hidden="true">F</span> Collect
               </button>
             </div>
           </template>
@@ -365,8 +388,21 @@ h3 {
 /* Honeycomb map of the cells */
 .comb {
   position: relative;
-  height: 250px;
-  margin: 4px 0 10px;
+  height: 330px;
+  margin: 0;
+}
+/* The comb is centred a little high so the doorway fits underneath. */
+.comb .cell {
+  top: calc(50% - 23px - 38px);
+}
+.door-bg {
+  background: #fff1c2;
+}
+.hint {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
 }
 .cell {
   position: absolute;
@@ -552,7 +588,7 @@ h3 {
     padding: 12px 14px;
   }
   .comb {
-    height: 230px;
+    height: 320px;
   }
 }
 </style>

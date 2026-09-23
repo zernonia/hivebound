@@ -22,21 +22,25 @@ const game = useGame()
   overflow: hidden;
   z-index: 40;
 }
-/* A circle whose huge shadow is the coloured wipe; scaling the circle down closes the iris. */
+/*
+ * A see-through circle whose huge shadow is the coloured wipe. Shrinking the circle's size
+ * (not scaling it, which would shrink the shadow too) closes the iris over the screen.
+ */
 .hole {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 260vmax;
-  height: 260vmax;
-  margin: -130vmax 0 0 -130vmax;
+  /* Just larger than the screen's diagonal, so the wipe starts moving straight away. */
+  width: 150vmax;
+  height: 150vmax;
   border-radius: 50%;
-  box-shadow: 0 0 0 200vmax #f0a238, inset 0 0 6vmax 2vmax rgba(240, 162, 56, 0.9);
-  transform: scale(1);
-  transition: transform 420ms cubic-bezier(0.55, 0, 0.35, 1);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 200vmax #f0a238, inset 0 0 3vmax 1vmax rgba(240, 162, 56, 0.85);
+  transition: width 420ms cubic-bezier(0.55, 0, 0.35, 1), height 420ms cubic-bezier(0.55, 0, 0.35, 1);
 }
 .closed .hole {
-  transform: scale(0);
+  width: 0;
+  height: 0;
 }
 /* Opening eases out, so the new scene blooms into view. */
 .iris:not(.closed) .hole {

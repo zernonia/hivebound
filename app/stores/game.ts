@@ -13,9 +13,9 @@ import {
   hexesInRange,
   neighbor,
 } from '~/utils/hex'
-import { useHive } from './hive'
+import { HIVE_DOOR, STARTER_CELL, useHive } from './hive'
 import { useSettings } from './settings'
-import { RESOURCE_INFO, tileSource } from '~/utils/resources'
+import { RESOURCE_INFO, UNLOCK_CELL_COST, tileSource } from '~/utils/resources'
 import { DOORSTEP, POI_BY_ID, type PoiId, REVEAL_RADIUS, TERRAIN_LABEL, type Terrain, useWorldData } from '~/utils/world'
 
 export type JournalIcon = 'hive' | 'poi' | 'terrain'
@@ -30,6 +30,8 @@ export interface JournalEntry {
   day: number
   unread: boolean
 }
+
+export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal'
 
 export interface Toast {
   id: number
@@ -112,6 +114,25 @@ export const useGame = defineStore('game', {
     },
     day(s) {
       return 1 + Math.floor(s.steps / 60)
+    },
+    /**
+     * The one thing F (or the floating prompt) does right now, if anything:
+     * go in at the doorstep; inside, collect / unseal the selected cell or leave by the door.
+     */
+    primaryAction(s): { id: ActionId, label: string } | null {
+      if (s.transition) return null
+      if (s.scene === 'world') {
+        const home = s.pos.q === DOORSTEP.q && s.pos.r === DOORSTEP.r && !s.queue.length
+        return home ? { id: 'enter', label: 'Enter hive' } : null
+      }
+      const hive = useHive()
+      const key = hive.selected
+      if (!key) return null
+      if (key === HIVE_DOOR) return { id: 'leave', label: 'Leave hive' }
+      const output = hive.cells[key]?.output ?? 0
+      if (output > 0) return { id: 'collect', label: `Collect ${output}` }
+      if (hive.canUnlock(key) && hive.has(UNLOCK_CELL_COST)) return { id: 'unseal', label: 'Unseal' }
+      return null
     },
     /** The final destination of the current route, if any. */
     destination(s): Hex | null {
@@ -285,6 +306,19 @@ export const useGame = defineStore('game', {
       return true
     },
 
+    /** Runs the current primary action (F key / prompt button). */
+    doAction() {
+      const a = this.primaryAction
+      if (!a) return false
+      const hive = useHive()
+      switch (a.id) {
+        case 'enter': return this.enterHive()
+        case 'leave': return this.leaveHive()
+        case 'collect': return hive.collect(hive.selected!) > 0
+        case 'unseal': return hive.unlock(hive.selected!)
+      }
+    },
+
     leaveHive() {
       if (this.scene !== 'hive' || this.transition) return false
       this.transition = 'exit'
@@ -297,6 +331,7 @@ export const useGame = defineStore('game', {
       this.scene = this.transition === 'enter' ? 'hive' : 'world'
       if (this.scene === 'hive') {
         const hive = useHive()
+        if (!hive.selected || hive.selected === HIVE_DOOR) hive.selected = STARTER_CELL
         hive.tick()
         if (hive.first('inside')) {
           this.addJournal({

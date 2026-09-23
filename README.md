@@ -25,7 +25,8 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Look around (narrated) | `L` | Look button |
 | Journal | `J` | Journal button |
 | Fly home | `H` | Home button |
-| Enter / leave the hive | `I` | Enter hive / Leave buttons, or tap the hive |
+| Action: enter the hive, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
+| Inside the hive: pick a cell | Movement keys | Tap a cell or the cell map |
 | Minimap size | `M` | Expand button |
 | Zoom | `+` / `−` | Scroll, pinch, +/− buttons |
 | Settings | `Esc` / `O` | Gear button |
@@ -71,7 +72,8 @@ app/
 
 ### Gathering and the hive
 - **Gather** by stopping on a resource tile: meadow gives nectar, flower patches pollen, water water, forest resin (bigger landmarks hold more). The bee hovers and gathers one unit at a time into its pouch. Tiles regrow over time.
-- **Unload** by reaching the doorstep; **go inside** with `I` or the Enter hive button (the bee flies in through the skep door; an iris wipe hides the scene swap).
+- **Unload** by reaching the doorstep; **go inside** with `F` (or tap the floating prompt / the hive). The bee flies in through the skep door; an iris wipe hides the scene swap.
+- **One action key:** `F` does whatever the floating prompt over the tile says: enter the hive, collect a building's tray, unseal a cell, or leave through the doorway.
 - **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with wax. Upgrades: bigger pouch, stronger wings, quicker gathering.
 - Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
 - Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.

@@ -56,14 +56,20 @@ function onKeyDown(e: KeyboardEvent) {
   // Nothing steers the bee while it's flying through the hive door.
   if (game.transition) return
 
-  if (e.code === 'KeyI') {
-    if (game.scene === 'hive') game.leaveHive()
-    else game.enterHive()
+  // F: the contextual action shown in the floating prompt (enter, collect, unseal, leave).
+  if (e.code === 'KeyF') {
+    if (!e.repeat) game.doAction()
     return
   }
   if (game.scene === 'hive') {
-    // Inside, the panel is the controls; keep the global shortcuts that still make sense.
-    if (e.code === 'KeyJ') game.journalOpen = true
+    // Inside, movement keys walk the selection round the comb.
+    const dir = MOVE_KEYS[e.code]
+    if (dir) {
+      e.preventDefault()
+      if (dir === 'W' || dir === 'E') hive.moveSelectionSideways(dir)
+      else hive.moveSelection(dir)
+    }
+    else if (e.code === 'KeyJ') game.journalOpen = true
     else if (e.code === 'Escape' || e.code === 'KeyO') game.settingsOpen = true
     return
   }

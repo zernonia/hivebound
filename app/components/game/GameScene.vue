@@ -611,6 +611,23 @@ function updateViewShift(cam: THREE.PerspectiveCamera, dt: number) {
   }
 }
 
+/** Keeps the floating action prompt over the tile (outside) or the selected cell (inside). */
+const promptAnchor = new THREE.Vector3()
+let promptEl: HTMLElement | null = null
+function updatePrompt(cam: THREE.PerspectiveCamera) {
+  promptEl ??= document.getElementById('action-prompt')
+  if (!promptEl || !game.primaryAction) return
+  let ok = true
+  if (game.scene === 'hive') ok = !!hiveView.promptAnchor(hive.selected, promptAnchor)
+  else worldPos(game.pos, promptAnchor).add(tmpV.set(0, 1.55, 0))
+  if (!ok) return
+  promptAnchor.project(cam)
+  const el = renderer.domElement
+  const x = (promptAnchor.x * 0.5 + 0.5) * el.clientWidth
+  const y = (-promptAnchor.y * 0.5 + 0.5) * el.clientHeight
+  promptEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
+}
+
 /* ------------------------------------------------------------------ */
 /* Frame loop                                                         */
 /* ------------------------------------------------------------------ */
@@ -692,6 +709,7 @@ onBeforeRender(({ delta }) => {
     cam.position.lerp(desired, 1 - Math.exp(-dt * (rm ? 14 : 6)))
     cam.lookAt(camTarget.x, camTarget.y + 0.2, camTarget.z)
     updateViewShift(cam, dt)
+    updatePrompt(cam)
   }
 
   // --- light follows the action ---

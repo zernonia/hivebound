@@ -64,6 +64,9 @@ function lookAround() {
       <Minimap v-if="settings.showMinimap" />
     </div>
 
+    <!-- Contextual action, floating over its tile -->
+    <ActionPrompt />
+
     <!-- Inside the hive -->
     <HivePanel v-if="inHive && !game.transition" />
 
@@ -85,11 +88,6 @@ function lookAround() {
           <UiIcon name="home" />
           <span>Home</span>
           <span class="kbd hide-touch" aria-hidden="true">H</span>
-        </button>
-        <button class="chip-btn" aria-label="Enter the hive" @click="game.enterHive()">
-          <UiIcon name="arrow" />
-          <span>Enter hive</span>
-          <span class="kbd hide-touch" aria-hidden="true">I</span>
         </button>
       </template>
       <button class="chip-btn" aria-label="Settings" @click="game.settingsOpen = true">

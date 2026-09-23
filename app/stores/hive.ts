@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { type Hex, hexKey, hexesInRange, hexDistance, parseKey } from '~/utils/hex'
+import { type Direction, type Hex, hexKey, hexesInRange, hexDistance, neighbor, parseKey } from '~/utils/hex'
 import {
   ALL_RESOURCES,
   type Amounts,
@@ -30,7 +30,10 @@ export const HIVE_RADIUS = 2
 export const HIVE_CELLS: Hex[] = hexesInRange(HIVE_CENTER, HIVE_RADIUS)
 export const QUEEN_CELL = hexKey(HIVE_CENTER)
 /** The press you start with. */
-const STARTER_CELL = hexKey({ q: 1, r: 0 })
+export const STARTER_CELL = hexKey({ q: 1, r: 0 })
+/** The way out: a selectable spot just past the front cell of the comb. */
+export const HIVE_DOOR = 'door'
+const DOOR_FRONT_CELL = hexKey({ q: 0, r: HIVE_RADIUS })
 const STARTER_UNLOCKED = HIVE_CELLS.filter(h => hexDistance(h, HIVE_CENTER) === 1).map(hexKey)
 
 export interface CellState {
@@ -86,6 +89,8 @@ export const useHive = defineStore('hive', {
     selected: STARTER_CELL as string | null,
     /** Bumps whenever something in the hive changes, for views that redraw. */
     rev: 0,
+    /** Alternates up/down when stepping sideways, so ← / → travel in a straight line. */
+    lateralFlip: false,
   }),
 
   getters: {
@@ -162,6 +167,31 @@ export const useHive = defineStore('hive', {
       if (this.firsts.includes(id)) return false
       this.firsts.push(id)
       return true
+    },
+
+    /* ---------------- selection ---------------- */
+    /** Moves the selection to the neighbouring cell (or the doorway) in a hex direction. */
+    moveSelection(dir: Direction) {
+      const from = this.selected ?? STARTER_CELL
+      if (from === HIVE_DOOR) {
+        if (dir === 'N' || dir === 'NE' || dir === 'NW') this.selected = DOOR_FRONT_CELL
+        return this.selected !== HIVE_DOOR
+      }
+      if (from === DOOR_FRONT_CELL && dir === 'S') {
+        this.selected = HIVE_DOOR
+        return true
+      }
+      const next = neighbor(parseKey(from), dir)
+      if (hexDistance(next, HIVE_CENTER) > HIVE_RADIUS) return false
+      this.selected = hexKey(next)
+      return true
+    },
+
+    /** ← / →: alternate between the two diagonals on that side so the selection goes straight. */
+    moveSelectionSideways(side: 'W' | 'E') {
+      const [up, down] = side === 'W' ? (['NW', 'SW'] as const) : (['NE', 'SE'] as const)
+      if (this.moveSelection(this.lateralFlip ? down : up)) this.lateralFlip = !this.lateralFlip
+      else this.moveSelection(this.lateralFlip ? up : down)
     },
 
     /* ---------------- helpers ---------------- */
