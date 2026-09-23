@@ -1,30 +1,80 @@
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
-/** Horizontal stripe texture wrapped around the body (front → back). */
+/*
+ * A chunky, toy-like bee: one soft rounded block for the body with painted stripes,
+ * a flat face carrying big glossy eyes, stubby block legs and flat wings on top.
+ * Blocky silhouette, smooth edges.
+ */
+
+const YELLOW = '#ffcf3f'
+const BROWN = '#4a2f1d'
+
+// Body block (x = width, y = height, z = length; the face is on +Z).
+const W = 0.54
+const H = 0.46
+const D = 0.62
+const R = 0.1
+
+/**
+ * Stripe texture indexed by v = position along the body (0 = tail, 1 = face).
+ * Bands have a few pixels of blend so they read as painted rather than cut.
+ */
 function stripeTexture() {
+  const size = 256
   const c = document.createElement('canvas')
-  c.width = 32
-  c.height = 256
+  c.width = 8
+  c.height = size
   const ctx = c.getContext('2d')!
-  ctx.fillStyle = '#ffd24d'
-  ctx.fillRect(0, 0, 32, 256)
-  const brown = '#5b3a24'
-  const band = (from: number, to: number) => {
-    // Soft edges so stripes look painted rather than cut.
-    const g = ctx.createLinearGradient(0, from * 256, 0, to * 256)
-    g.addColorStop(0, 'rgba(91,58,36,0)')
-    g.addColorStop(0.18, brown)
-    g.addColorStop(0.82, brown)
-    g.addColorStop(1, 'rgba(91,58,36,0)')
+  ctx.fillStyle = YELLOW
+  ctx.fillRect(0, 0, 8, size)
+  ctx.fillStyle = BROWN
+  // [from, to] in v. The front ~45% stays yellow so the face is clean.
+  for (const [a, b] of [[0.1, 0.24], [0.38, 0.52]] as const) {
+    const y0 = (1 - b) * size
+    const y1 = (1 - a) * size
+    const g = ctx.createLinearGradient(0, y0, 0, y1)
+    const e = 2 / (y1 - y0)
+    g.addColorStop(0, `${BROWN}00`)
+    g.addColorStop(e, BROWN)
+    g.addColorStop(1 - e, BROWN)
+    g.addColorStop(1, `${BROWN}00`)
     ctx.fillStyle = g
-    ctx.fillRect(0, from * 256, 32, (to - from) * 256)
+    ctx.fillRect(0, y0, 8, y1 - y0)
   }
-  band(0.4, 0.55)
-  band(0.64, 0.79)
-  band(0.88, 1.0)
   const t = new THREE.CanvasTexture(c)
   t.colorSpace = THREE.SRGBColorSpace
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
   return t
+}
+
+/** Re-map UVs so v runs tail → face on every side of the block; stripes then wrap as rings. */
+function uvAlongZ(geo: THREE.BufferGeometry, depth: number) {
+  const pos = geo.attributes.position!
+  const uv = new Float32Array(pos.count * 2)
+  for (let i = 0; i < pos.count; i++) {
+    uv[i * 2] = 0.5
+    uv[i * 2 + 1] = THREE.MathUtils.clamp(pos.getZ(i) / depth + 0.5, 0, 1)
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
+  return geo
+}
+
+/** Flat rounded rectangle in the XY plane, centred on the origin. */
+function roundedRect(w: number, h: number, r: number, segments = 6) {
+  const s = new THREE.Shape()
+  const x = -w / 2
+  const y = -h / 2
+  s.moveTo(x + r, y)
+  s.lineTo(x + w - r, y)
+  s.quadraticCurveTo(x + w, y, x + w, y + r)
+  s.lineTo(x + w, y + h - r)
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  s.lineTo(x + r, y + h)
+  s.quadraticCurveTo(x, y + h, x, y + h - r)
+  s.lineTo(x, y + r)
+  s.quadraticCurveTo(x, y, x + r, y)
+  return new THREE.ShapeGeometry(s, segments)
 }
 
 export interface BeeRig {
@@ -34,6 +84,8 @@ export interface BeeRig {
   wingL: THREE.Group
   wingR: THREE.Group
   antennae: THREE.Group
+  /** One group per eye, scaled on Y to blink. */
+  eyes: THREE.Group[]
 }
 
 export function buildBee(): BeeRig {
@@ -42,14 +94,14 @@ export function buildBee(): BeeRig {
   const body = new THREE.Group()
   root.add(body)
 
-  const yellow = new THREE.MeshStandardMaterial({ color: '#ffd24d', roughness: 0.55 })
-  const dark = new THREE.MeshStandardMaterial({ color: '#3a2618', roughness: 0.35 })
+  const dark = new THREE.MeshStandardMaterial({ color: BROWN, roughness: 0.5 })
+  const eyeMat = new THREE.MeshStandardMaterial({ color: '#1f140d', roughness: 0.18, metalness: 0.05 })
   const shine = new THREE.MeshBasicMaterial({ color: '#ffffff' })
-  const blush = new THREE.MeshBasicMaterial({ color: '#ff9fb2', transparent: true, opacity: 0.8 })
+  const blush = new THREE.MeshBasicMaterial({ color: '#ff9fb2', transparent: true, opacity: 0.75, depthWrite: false })
   const wingMat = new THREE.MeshPhysicalMaterial({
     color: '#e8f6ff',
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.6,
     roughness: 0.15,
     side: THREE.DoubleSide,
     depthWrite: false,
@@ -57,86 +109,96 @@ export function buildBee(): BeeRig {
     emissiveIntensity: 0.25,
   })
 
-  // Abdomen: sphere with poles along Z so the stripe texture wraps as rings.
-  const abdomenGeo = new THREE.SphereGeometry(0.27, 40, 28)
-  abdomenGeo.rotateX(Math.PI / 2)
-  const abdomen = new THREE.Mesh(abdomenGeo, new THREE.MeshStandardMaterial({ map: stripeTexture(), roughness: 0.55 }))
-  abdomen.scale.set(1, 0.95, 1.22)
-  abdomen.position.set(0, 0, -0.08)
-  abdomen.castShadow = true
-  body.add(abdomen)
+  // --- body block ---
+  const torso = new THREE.Mesh(
+    uvAlongZ(new RoundedBoxGeometry(W, H, D, 5, R), D),
+    new THREE.MeshStandardMaterial({ map: stripeTexture(), roughness: 0.55 }),
+  )
+  torso.castShadow = true
+  body.add(torso)
+  const front = D / 2
 
-  // Stinger.
-  const sting = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.1, 10), dark)
-  sting.rotation.x = -Math.PI / 2
-  sting.position.set(0, -0.01, -0.43)
-  body.add(sting)
-
-  // Head.
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 36, 26), yellow)
-  head.position.set(0, 0.07, 0.25)
-  head.castShadow = true
-  body.add(head)
-
-  // Big shiny eyes.
+  // --- face: big rounded-square eyes with two catchlights, blush, small smile ---
+  const eyeW = 0.15
+  const eyeH = 0.18
+  const eyeGeo = new RoundedBoxGeometry(eyeW, eyeH, 0.03, 3, 0.04)
+  const bigShine = roundedRect(0.055, 0.06, 0.02)
+  const smallShine = roundedRect(0.026, 0.026, 0.01)
+  const eyes: THREE.Group[] = []
   for (const side of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.058, 20, 16), dark)
-    eye.scale.set(1, 1.2, 0.6)
-    eye.position.set(side * 0.085, 0.1, 0.44)
+    const eye = new THREE.Group()
+    eye.position.set(side * 0.105, 0.035, front)
+    const ball = new THREE.Mesh(eyeGeo, eyeMat)
+    eye.add(ball)
+    const hi = new THREE.Mesh(bigShine, shine)
+    hi.position.set(side * 0.028, 0.042, 0.0155)
+    eye.add(hi)
+    const lo = new THREE.Mesh(smallShine, shine)
+    lo.position.set(-side * 0.035, -0.05, 0.0155)
+    eye.add(lo)
     body.add(eye)
-    const hi = new THREE.Mesh(new THREE.SphereGeometry(0.019, 10, 8), shine)
-    hi.position.set(side * 0.085 + 0.018, 0.128, 0.472)
-    body.add(hi)
-    const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.04, 16), blush)
-    cheek.position.set(side * 0.148, 0.02, 0.41)
-    cheek.rotation.y = side * 0.55
+    eyes.push(eye)
+
+    const cheek = new THREE.Mesh(roundedRect(0.06, 0.036, 0.018), blush)
+    cheek.position.set(side * 0.165, -0.085, front + 0.002)
     body.add(cheek)
   }
-
-  // Little smile.
-  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.008, 8, 16, Math.PI), dark)
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.026, 0.008, 8, 16, Math.PI), dark)
   smile.rotation.z = Math.PI
-  smile.position.set(0, 0.03, 0.463)
+  smile.position.set(0, -0.075, front + 0.002)
   body.add(smile)
 
-  // Antennae.
+  // --- antennae: straight stalks with block tips, leaning forward ---
   const antennae = new THREE.Group()
-  antennae.position.set(0, 0.24, 0.3)
+  antennae.position.set(0, H / 2 - 0.01, front - 0.1)
+  const stalkGeo = new RoundedBoxGeometry(0.035, 0.16, 0.035, 2, 0.012)
+  stalkGeo.translate(0, 0.08, 0)
+  const tipGeo = new RoundedBoxGeometry(0.07, 0.07, 0.07, 3, 0.022)
   for (const side of [-1, 1]) {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(side * 0.05, 0, 0),
-      new THREE.Vector3(side * 0.09, 0.1, 0.05),
-      new THREE.Vector3(side * 0.14, 0.17, 0.02),
-    ])
-    const stalk = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.012, 6), dark)
-    antennae.add(stalk)
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 10), dark)
-    tip.position.set(side * 0.14, 0.17, 0.02)
-    antennae.add(tip)
+    const a = new THREE.Group()
+    a.position.set(side * 0.09, 0, 0)
+    a.rotation.set(0.5, 0, side * -0.18)
+    a.add(new THREE.Mesh(stalkGeo, dark))
+    const tip = new THREE.Mesh(tipGeo, dark)
+    tip.position.y = 0.17
+    a.add(tip)
+    antennae.add(a)
   }
   body.add(antennae)
 
-  // Wings: rounded teardrops pivoting at the shoulder.
-  const wingShape = new THREE.Shape()
-  wingShape.moveTo(0, 0)
-  wingShape.bezierCurveTo(0.08, 0.02, 0.3, 0.1, 0.3, 0.2)
-  wingShape.bezierCurveTo(0.3, 0.3, 0.12, 0.3, 0.04, 0.16)
-  wingShape.bezierCurveTo(0.0, 0.1, 0.0, 0.04, 0, 0)
-  const wingGeo = new THREE.ShapeGeometry(wingShape, 16)
-  wingGeo.rotateX(-Math.PI / 2) // lie flat, extending along +x and -z
+  // --- stinger ---
+  const sting = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.1, 4), dark)
+  sting.rotation.set(-Math.PI / 2, Math.PI / 4, 0)
+  sting.position.set(0, -0.05, -front - 0.04)
+  body.add(sting)
+
+  // --- stubby block legs (three pairs) ---
+  const legGeo = new RoundedBoxGeometry(0.05, 0.09, 0.05, 2, 0.018)
+  for (const z of [0.14, 0, -0.14]) {
+    for (const side of [-1, 1]) {
+      const leg = new THREE.Mesh(legGeo, dark)
+      leg.position.set(side * 0.13, -H / 2 - 0.03, z)
+      body.add(leg)
+    }
+  }
+
+  // --- wings: flat rounded panels on the back, pivoting at the top edge ---
+  // Extends along +x from the pivot, lying flat; swept slightly back.
+  const wingGeo = roundedRect(0.36, 0.24, 0.1, 8)
+  wingGeo.translate(0.18, 0.04, 0) // after rotateX, +y becomes -z (towards the tail)
+  wingGeo.rotateX(-Math.PI / 2)
   const makeWing = (side: number) => {
     const pivot = new THREE.Group()
-    pivot.position.set(side * 0.06, 0.22, 0.02)
+    pivot.position.set(side * 0.1, H / 2 + 0.005, -0.04)
     const w = new THREE.Mesh(wingGeo, wingMat)
     w.scale.set(side, 1, 1)
-    w.rotation.y = side * 0.15
+    w.rotation.y = side * 0.2
     w.renderOrder = 2
     pivot.add(w)
-    // small second wing behind
     const w2 = new THREE.Mesh(wingGeo, wingMat)
     w2.scale.set(side * 0.7, 1, 0.7)
-    w2.position.z = -0.08
-    w2.rotation.y = side * -0.25
+    w2.position.set(0, -0.004, -0.1)
+    w2.rotation.y = side * 0.5
     w2.renderOrder = 2
     pivot.add(w2)
     body.add(pivot)
@@ -145,13 +207,5 @@ export function buildBee(): BeeRig {
   const wingL = makeWing(-1)
   const wingR = makeWing(1)
 
-  // Tiny feet.
-  for (const [x, z] of [[-0.09, 0.08], [0.09, 0.08], [-0.1, -0.08], [0.1, -0.08]] as const) {
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), dark)
-    foot.scale.set(1, 0.8, 1.3)
-    foot.position.set(x, -0.25, z)
-    body.add(foot)
-  }
-
-  return { root, body, wingL, wingR, antennae }
+  return { root, body, wingL, wingR, antennae, eyes }
 }

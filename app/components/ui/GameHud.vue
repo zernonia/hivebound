@@ -25,7 +25,7 @@ function lookAround() {
         {{ place }}
       </p>
       <p class="sub">
-        Day {{ game.day }} · {{ game.steps }} hops
+        Day {{ game.day }} · {{ game.steps }} {{ game.steps === 1 ? 'hex' : 'hexes' }} flown
       </p>
     </header>
 

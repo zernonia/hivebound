@@ -101,15 +101,19 @@ function onKeyUp(e: KeyboardEvent) {
   if (move) held.release(move)
 }
 
+const saveNow = () => game.save()
+
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('blur', held.clear)
+  window.addEventListener('pagehide', saveNow)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('blur', held.clear)
+  window.removeEventListener('pagehide', saveNow)
 })
 
 // Stop held movement when a panel opens.

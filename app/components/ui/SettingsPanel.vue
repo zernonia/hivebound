@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
-import { type HopSpeed, type TextScale, useSettings } from '~/stores/settings'
+import { type FlightSpeed, type TextScale, useSettings } from '~/stores/settings'
 
 const game = useGame()
 const settings = useSettings()
@@ -20,7 +20,7 @@ const textSizes: { v: TextScale, label: string }[] = [
   { v: 1.2, label: 'Large' },
   { v: 1.4, label: 'Huge' },
 ]
-const speeds: { v: HopSpeed, label: string }[] = [
+const speeds: { v: FlightSpeed, label: string }[] = [
   { v: 'relaxed', label: 'Relaxed' },
   { v: 'normal', label: 'Normal' },
   { v: 'brisk', label: 'Brisk' },
@@ -75,8 +75,8 @@ function reset() {
       <fieldset class="seg">
         <legend>Flying speed</legend>
         <div class="seg-row">
-          <label v-for="s in speeds" :key="s.v" :class="{ on: settings.hopSpeed === s.v }">
-            <input v-model="settings.hopSpeed" type="radio" name="hopSpeed" :value="s.v" class="sr-only">
+          <label v-for="s in speeds" :key="s.v" :class="{ on: settings.flightSpeed === s.v }">
+            <input v-model="settings.flightSpeed" type="radio" name="flightSpeed" :value="s.v" class="sr-only">
             {{ s.label }}
           </label>
         </div>
