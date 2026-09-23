@@ -1,0 +1,169 @@
+:root {
+  --text-scale: 1;
+  --font-ui: 'Fredoka', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  --font-hand: 'Patrick Hand', 'Fredoka', ui-rounded, cursive;
+
+  --ink: #5b3a24;
+  --ink-soft: #8a6a52;
+  --paper: #fffaf0;
+  --paper-2: #fff3dc;
+  --line: #f0dcc0;
+  --honey: #ffb627;
+  --honey-deep: #e89400;
+  --leaf: #7fbf7a;
+  --sky-top: #ffe7c2;
+  --sky-bottom: #cfe8ff;
+  --shadow: 0 10px 30px -12px rgba(120, 80, 40, 0.35), 0 2px 6px rgba(120, 80, 40, 0.12);
+  --radius: 22px;
+  --focus: 0 0 0 3px var(--paper), 0 0 0 6px var(--honey-deep);
+  --panel-bg: rgba(255, 250, 240, 0.92);
+  --panel-border: 2px solid rgba(240, 220, 192, 0.9);
+  --ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur: 220ms;
+}
+
+/* High contrast: stronger ink, opaque panels, clear borders. */
+html.hc {
+  --ink: #1f130a;
+  --ink-soft: #3d2a1c;
+  --line: #3d2a1c;
+  --panel-bg: #ffffff;
+  --panel-border: 3px solid #1f130a;
+  --honey-deep: #9a5a00;
+  --focus: 0 0 0 3px #ffffff, 0 0 0 7px #000000;
+}
+
+/* Reduced motion: no transitions or springy easing anywhere in the UI. */
+html.rm *,
+html.rm *::before,
+html.rm *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family: var(--font-ui);
+  font-size: calc(16px * var(--text-scale));
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  box-shadow: var(--focus) !important;
+  border-radius: 14px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 0.95em;
+  border: var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+  font-weight: 600;
+  transition: transform var(--dur) var(--ease), background var(--dur);
+}
+
+.chip-btn:hover {
+  transform: translateY(-2px);
+  background: #fff;
+}
+
+.chip-btn:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.chip-btn svg {
+  width: 1.35em;
+  height: 1.35em;
+  flex: none;
+}
+
+.kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0.05em 0.4em;
+  border-radius: 7px;
+  background: var(--paper-2);
+  border: 1.5px solid var(--line);
+  border-bottom-width: 3px;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ff7a8a;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+}
+
+@media (hover: none) {
+  .hide-touch {
+    display: none !important;
+  }
+}
