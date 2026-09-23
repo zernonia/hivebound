@@ -70,7 +70,7 @@ export const useGame = defineStore('game', {
   state: () => ({
     pos: { ...DOORSTEP } as Hex,
     facing: 'S' as Direction,
-    /** Hexes still to hop through, in order. */
+    /** Hexes still to fly through, in order. */
     queue: [] as Hex[],
     moving: false,
     /** Revealed tile keys. Kept non-reactive; `revealTick` signals changes. */
@@ -211,18 +211,18 @@ export const useGame = defineStore('game', {
       }
       const path = findPath(from, target, h => this.isWalkable(h))
       if (!path.length) return false
-      // If mid-hop, keep the hop in progress and replace the rest.
+      // If mid-flight, keep the leg in progress and replace the rest.
       this.queue = this.moving && this.queue.length ? [this.queue[0]!, ...path] : path
       if (this.settingsNarration()) {
         const d = hexDistance(this.pos, target)
-        this.announce(`Flying ${compassWord(this.pos, target)}, ${d} ${d === 1 ? 'hop' : 'hops'} to ${this.describeTile(target)}.`)
+        this.announce(`Flying ${compassWord(this.pos, target)}, ${d} ${d === 1 ? 'hex' : 'hexes'} to ${this.describeTile(target)}.`)
       }
       return true
     },
 
-    /** Single hop in a hex direction (keyboard / gamepad). */
+    /** Fly one hex in a direction (keyboard / gamepad). */
     step(dir: Direction) {
-      // Only buffer one extra hop so held keys don't overshoot.
+      // Only buffer one extra hex so held keys don't overshoot.
       if (this.queue.length > 1) return false
       const from = this.queue.length ? this.queue[0]! : this.pos
       const next = neighbor(from, dir)
@@ -248,8 +248,8 @@ export const useGame = defineStore('game', {
       this.queue = this.moving ? this.queue.slice(0, 1) : []
     },
 
-    /** Called by the scene when a hop starts. */
-    beginHop() {
+    /** Called by the scene when a leg (one hex of flight) starts. */
+    beginLeg() {
       const next = this.queue[0]
       if (!next) return null
       const dir = directionBetween(this.pos, next)
@@ -258,7 +258,7 @@ export const useGame = defineStore('game', {
       return next
     },
 
-    /** Called by the scene when a hop lands. */
+    /** Called by the scene when a leg reaches its hex. */
     arrive() {
       const next = this.queue.shift()
       if (!next) {
@@ -278,6 +278,8 @@ export const useGame = defineStore('game', {
         if (this.settingsNarration()) this.announce(this.describeHere())
         this.save()
       }
+      // Long routes still checkpoint now and then, so closing the tab mid-flight loses little.
+      else if (this.steps % 5 === 0) this.save()
     },
 
     visitPoi(id: PoiId) {
@@ -352,7 +354,7 @@ export const useGame = defineStore('game', {
         const d = hexDistance(this.pos, p.hex)
         if (d < best) {
           best = d
-          hint = ` Something interesting, ${POI_BY_ID[p.id].name}, is ${d} hops ${compassWord(this.pos, p.hex)}.`
+          hint = ` Something interesting, ${POI_BY_ID[p.id].name}, is ${d} ${d === 1 ? 'hex' : 'hexes'} ${compassWord(this.pos, p.hex)}.`
         }
       }
       return `You are at ${here}. Around you, ${around.join('; ')}.${hint}`

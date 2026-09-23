@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as THREE from 'three'
 import { useLoop, useTres } from '@tresjs/core'
-import { buildBee } from '~/game/bee'
+import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
 import { WorldView } from '~/game/worldView'
 import { type Hex, findPath, hexKey, hexToWorld, worldToHex } from '~/utils/hex'
@@ -24,10 +24,12 @@ worldView.setReducedMotion(settings.reducedMotion)
 worldView.syncDiscovered(game.discovered, [])
 worldView.setVisitedPois(game.visitedPois)
 
-const bee = buildBee()
+// `?bee=queen` / `?bee=nocturnal` previews a variant; anything else is the honey bee.
+const beeParam = new URLSearchParams(window.location.search).get('bee')
+const bee = buildBeeVariant(isBeeVariantId(beeParam) ? beeParam : 'honey')
 const HOVER_ALT = 0.55
 
-// Soft blob shadow under the bee: reads better than a real shadow while hopping.
+// Soft blob shadow under the bee: reads better than a real shadow while flying.
 const blob = new THREE.Mesh(
   new THREE.PlaneGeometry(0.9, 0.9).rotateX(-Math.PI / 2),
   new THREE.MeshBasicMaterial({ map: blobShadowTexture(), transparent: true, depthWrite: false }),
@@ -200,6 +202,12 @@ function onPointerMove(ev: PointerEvent) {
 }
 
 function onPointerUp(ev: PointerEvent) {
+  if (ev.type === 'pointercancel') {
+    // The browser took the gesture (scroll, system swipe): never treat it as a tap.
+    pointers.delete(ev.pointerId)
+    if (pointers.size < 2) pinchStart = 0
+    return
+  }
   const wasPinch = pointers.size > 1
   pointers.delete(ev.pointerId)
   if (pointers.size < 2) pinchStart = 0
@@ -258,7 +266,7 @@ bee.root.position.copy(beePos)
 /*
  * Flight model: an invisible "carrot" glides tile-to-tile along the route at constant
  * speed, and the bee chases it with critically-damped smoothing. That gives continuous,
- * curving flight through corners instead of discrete hops. The bee climbs to cruise
+ * curving flight through corners instead of discrete jumps. The bee climbs to cruise
  * altitude while travelling and settles back to a hover when it stops.
  */
 const CRUISE_ALT = 1.05
@@ -266,18 +274,19 @@ interface Segment { from: THREE.Vector3, to: THREE.Vector3, len: number, t: numb
 let seg: Segment | null = null
 const carrot = worldPos(game.pos)
 let fly = 0 // 0 = hovering, 1 = cruising
-let linger = 0 // keeps cruise altitude briefly between queued hops
+let linger = 0 // keeps cruise altitude briefly between queued legs
 let groundY = carrot.y
 let yaw = 0
 let bank = 0
 let pitch = 0
 let time = 0
+let blinkIn = 2 + Math.random() * 3
 const tmpV = new THREE.Vector3()
 const camOffset = new THREE.Vector3()
 const prevPos = new THREE.Vector3()
 
 function startSegment() {
-  const next = game.beginHop()
+  const next = game.beginLeg()
   if (!next) return
   const to = worldPos(next)
   seg = { from: carrot.clone(), to, len: Math.max(0.001, Math.hypot(to.x - carrot.x, to.z - carrot.z)), t: 0 }
@@ -303,7 +312,7 @@ onBeforeRender(({ delta }) => {
   time += dt
   const rm = settings.reducedMotion
   // World units per second (one hex centre-to-centre is ~1.73 units).
-  const speed = 1.732 / (settings.hopDuration * 1.1)
+  const speed = 1.732 / (settings.secondsPerHex * 1.1)
 
   // --- advance the carrot along the route ---
   if (!seg) {
@@ -377,6 +386,12 @@ onBeforeRender(({ delta }) => {
   bee.wingR.rotation.z = f
   bee.wingL.rotation.z = -f
   bee.antennae.rotation.x = rm ? 0 : -0.25 * speedNorm + Math.sin(time * 3) * 0.08
+
+  // --- blink every few seconds (a quick squash of the eyes, then open again) ---
+  blinkIn -= dt
+  const lid = blinkIn < 0.14 ? Math.max(0.08, Math.abs(blinkIn - 0.07) / 0.07) : 1
+  if (blinkIn <= 0) blinkIn = 2.5 + Math.random() * 3.5
+  for (const eye of bee.eyes) eye.scale.y = lid
 
   // --- blob shadow ---
   const ground = groundY

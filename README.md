@@ -1,6 +1,6 @@
 # Hivebound 🐝
 
-A cozy, relaxing bee exploration game for the browser. Hop hex to hex across a soft diorama meadow, uncover the map, and fill your journal.
+A cozy, relaxing bee exploration game for the browser. Fly hex to hex across a soft diorama meadow, uncover the map, and fill your journal.
 
 This is the **feel-first scaffold**: art direction, movement, camera, minimap, journal and accessibility. Combat, catching, breeding and the quest line come later.
 
@@ -29,7 +29,7 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Zoom | `+` / `−` | Scroll, pinch, +/− buttons |
 | Settings | `Esc` / `O` | Gear button |
 
-Hold a movement key to keep hopping.
+Hold a movement key to keep flying.
 
 ## Project layout
 
@@ -38,13 +38,15 @@ app/
   pages/index.vue            Game page: keyboard input, <html> a11y classes, layout
   components/game/
     GameCanvas.vue           <TresCanvas> config (tone mapping, shadows, DPR)
-    GameScene.vue            Camera rig, lights, pointer input, hop animation loop
+    GameScene.vue            Camera rig, lights, pointer input, flight model + animation loop
   components/ui/             HUD, Minimap, JournalPanel, SettingsPanel, MovePad,
                              Announcer (screen-reader live region), UiDialog, icons
   game/                      Plain three.js builders (no Vue)
     worldView.ts             Instanced tiles + props, fog-of-war reveal animation
     props.ts                 Tuft/flower/tree/cloud kinds, hive, point-of-interest set pieces
-    bee.ts                   Procedural chubby bee rig (wings, antennae, stripes)
+    bee.ts                   Procedural bee: `BeeLook` presets + accessory anchors
+    beeVariants.ts           Named variants (honey, queen, nocturnal); preview with ?bee=queen
+    accessories.ts           Accessories that attach to the bee's anchors (crown…)
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
     game.ts                  Position, route queue, discovery, journal, narration, save/load
@@ -57,8 +59,9 @@ app/
 ```
 
 ### How movement works
-- `game.queue` holds the hexes still to fly through. Taps call `travelTo()` (BFS path) and keys call `step()`, which buffers at most one extra hop so held keys don't overshoot.
-- `GameScene` pulls from the queue each frame and animates an arc hop. On landing it calls `game.arrive()`, which reveals fog (radius 2), triggers journal entries and saves.
+- `game.queue` holds the hexes still to fly through. Taps call `travelTo()` (BFS path) and keys call `step()`, which buffers at most one extra hex so held keys don't overshoot.
+- `GameScene` runs a smooth flight model: an invisible "carrot" glides along the route at a constant speed and the bee chases it with exponential smoothing, so it curves through corners instead of stopping at each hex. It climbs from hover to cruise altitude while travelling, follows the terrain height, banks into turns and pitches with speed (bank and bob are off with reduced motion).
+- Each time the carrot reaches a hex, `game.arrive()` reveals fog (radius 2), triggers journal entries and saves. When the queue empties, a held key or pad button queues the next hex, so flight continues without a pause.
 - The world is deterministic (`WORLD_SEED`), so saves only store position, discovered tiles and the journal.
 
 ## Accessibility built in
@@ -70,7 +73,7 @@ app/
 
 ## Next steps
 - Swap procedural props for Blender GLBs (same instancing approach; keep materials soft and slightly rough)
-- Audio: ambient loop, buzz on hop, discovery chime (with volume setting)
+- Audio: ambient loop, buzz while flying, discovery chime (with volume setting)
 - Chapter 1 quest line and NPC critters, feeding into the journal
 - Catching and the Beedex, which extends the journal's "Places" tab
 

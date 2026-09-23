@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
 export type TextScale = 1 | 1.2 | 1.4
-export type HopSpeed = 'relaxed' | 'normal' | 'brisk'
+export type FlightSpeed = 'relaxed' | 'normal' | 'brisk'
 
 export interface SettingsState {
   reducedMotion: boolean
@@ -14,7 +14,7 @@ export interface SettingsState {
   showHints: boolean
   /** On-screen hex movement pad (defaults on for touch screens). */
   showPad: boolean
-  hopSpeed: HopSpeed
+  flightSpeed: FlightSpeed
   zoom: number
 }
 
@@ -49,13 +49,13 @@ export const useSettings = defineStore('settings', {
     largeMinimap: false,
     showHints: true,
     showPad: systemIsTouch(),
-    hopSpeed: 'normal',
+    flightSpeed: 'normal',
     zoom: 1.2,
   }),
   getters: {
-    /** Seconds per single hex hop. */
-    hopDuration(s): number {
-      const base = { relaxed: 0.42, normal: 0.3, brisk: 0.2 }[s.hopSpeed]
+    /** Seconds to fly one hex. */
+    secondsPerHex(s): number {
+      const base = { relaxed: 0.42, normal: 0.3, brisk: 0.2 }[s.flightSpeed]
       return s.reducedMotion ? Math.min(base, 0.22) : base
     },
   },
@@ -63,7 +63,12 @@ export const useSettings = defineStore('settings', {
     load() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY)
-        if (raw) this.$patch(JSON.parse(raw) as Partial<SettingsState>)
+        if (!raw) return
+        const data = JSON.parse(raw) as Partial<SettingsState> & { hopSpeed?: FlightSpeed }
+        // Saves from before the flight rewrite called this setting `hopSpeed`.
+        if (data.hopSpeed && !data.flightSpeed) data.flightSpeed = data.hopSpeed
+        delete data.hopSpeed
+        this.$patch(data)
       }
       catch { /* storage unavailable: keep defaults */ }
     },
