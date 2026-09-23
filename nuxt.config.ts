@@ -27,6 +27,9 @@ export default defineNuxtConfig({
   routeRules: {
     '/': { ssr: false },
   },
+  // Always emit a plain static site, even inside Cloudflare's CI (which would otherwise
+  // auto-select the cloudflare-module preset and override wrangler.jsonc).
+  nitro: { preset: 'static' },
   tres: { devtools: true },
   typescript: { strict: true },
 })
