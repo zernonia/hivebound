@@ -101,6 +101,13 @@ One-time setup: in the Cloudflare dashboard, go to **Workers & Pages → Create 
 - Build command: `npx nuxt generate`
 - Deploy command: `npx wrangler deploy`
 
-Every push to `main` then deploys to production automatically. Pushes to other branches get preview URLs.
+Every push to `main` then deploys to production automatically.
+
+**Branch previews:** `wrangler.jsonc` sets `preview_urls` and a `previews` block, so non-production branches can get a [Worker Preview](https://developers.cloudflare.com/workers/previews/). In the dashboard (Worker → **Settings → Build**):
+
+- **Branch control:** tick **Enable Preview Builds**.
+- **Preview command:** `npx wrangler preview`. A Worker connected to Builds before Worker Previews existed shows a **Set up Worker Previews** banner there; use it to switch (a one-time, irreversible switch).
+
+Each pull request then gets a comment with a stable Preview URL for its branch.
 
 Manual deploy: `npm run deploy`.

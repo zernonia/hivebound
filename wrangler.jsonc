@@ -2,6 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hivebound",
   "compatibility_date": "2026-09-01",
+  // Branch builds get a Preview URL (Workers Builds runs `npx wrangler preview` for non-production branches).
+  "preview_urls": true,
+  // Previews share production's (empty) settings; add preview-only vars or bindings here later.
+  "previews": {},
   // Static build from `nuxt generate`; the game is fully client-side.
   "assets": {
     "directory": ".output/public",
