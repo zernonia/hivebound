@@ -25,6 +25,7 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Look around (narrated) | `L` | Look button |
 | Journal | `J` | Journal button |
 | Fly home | `H` | Home button |
+| Enter / leave the hive | `I` | Enter hive / Leave buttons, or tap the hive |
 | Minimap size | `M` | Expand button |
 | Zoom | `+` / `−` | Scroll, pinch, +/− buttons |
 | Settings | `Esc` / `O` | Gear button |
@@ -47,13 +48,17 @@ app/
     bee.ts                   Procedural bee: `BeeLook` presets + accessory anchors
     beeVariants.ts           Named variants (honey, queen, nocturnal); preview with ?bee=queen
     accessories.ts           Accessories that attach to the bee's anchors (crown…)
+    hiveView.ts              Inside the hive: comb cells, Queen, walls, motes, trays
+    buildings.ts             Hive building models (press, kitchen, wax works, larder)
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
     game.ts                  Position, route queue, discovery, journal, narration, save/load
     settings.ts              Accessibility & comfort settings (persisted)
+    hive.ts                  Pouch, store, tile supplies, buildings, upgrades, offline catch-up
   utils/
     hex.ts                   Axial flat-top hex math, BFS pathfinding
     world.ts                 Seeded world generation, terrain, points of interest + journal text
+    resources.ts             Resources, which tiles yield them, buildings, recipes, upgrades
     palette.ts               Default + colour-vision-friendly palettes
     noise.ts                 Seeded RNG + value noise
 ```
@@ -64,6 +69,13 @@ app/
 - Each time the carrot reaches a hex, `game.arrive()` reveals fog (radius 2), triggers journal entries and saves. When the queue empties, a held key or pad button queues the next hex, so flight continues without a pause.
 - The world is deterministic (`WORLD_SEED`), so saves only store position, discovered tiles and the journal.
 
+### Gathering and the hive
+- **Gather** by stopping on a resource tile: meadow gives nectar, flower patches pollen, water water, forest resin (bigger landmarks hold more). The bee hovers and gathers one unit at a time into its pouch. Tiles regrow over time.
+- **Unload** by reaching the doorstep; **go inside** with `I` or the Enter hive button (the bee flies in through the skep door; an iris wipe hides the scene swap).
+- **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with wax. Upgrades: bigger pouch, stronger wings, quicker gathering.
+- Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
+- Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.
+
 ## Accessibility built in
 - **Reduce motion** (follows the OS setting by default): no bob, squash, pop-ins or springy UI, and a calmer camera.
 - **High contrast** (follows `prefers-contrast`), **text size** (100 / 120 / 140%), and a **colour-vision-friendly palette**. Terrain and minimap markers differ by shape and brightness as well as hue.
@@ -73,7 +85,8 @@ app/
 
 ## Next steps
 - Swap procedural props for Blender GLBs (same instancing approach; keep materials soft and slightly rough)
-- Audio: ambient loop, buzz while flying, discovery chime (with volume setting)
+- Audio: ambient loop, buzz while flying, gathering hum, discovery chime (with volume setting)
+- Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
 - Catching and the Beedex, which extends the journal's "Places" tab
 
