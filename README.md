@@ -45,6 +45,8 @@ app/
     worldView.ts             Instanced tiles + props, fog-of-war reveal animation
     props.ts                 Tuft/flower/tree/cloud kinds, hive, point-of-interest set pieces
     bee.ts                   Procedural bee: `BeeLook` presets + accessory anchors
+    beeVariants.ts           Named variants (honey, queen, nocturnal); preview with ?bee=queen
+    accessories.ts           Accessories that attach to the bee's anchors (crown…)
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
     game.ts                  Position, route queue, discovery, journal, narration, save/load

@@ -28,6 +28,9 @@ export interface BeeLook {
     legs: string
     /** Cheek blush, or null for none. */
     blush: string | null
+    /** Antenna tip colour and glow (0 = matte, like the stalks). Defaults to the antenna colour. */
+    antennaTip?: string
+    antennaGlow?: number
   }
   /** Stripe bands as [from, to] along the body: 0 = tail end, 1 = face. */
   stripes: [number, number][]
@@ -304,10 +307,17 @@ export function buildBee(look: BeeLook = HONEY_BEE): BeeRig {
   const antennae = new THREE.Group()
   antennae.position.set(0, H / 2 - 0.03, D / 2 - 0.12)
   const tipGeo = new THREE.SphereGeometry(0.028, 14, 10)
+  const tipColor = look.colors.antennaTip ?? look.colors.antenna
+  const tipMat = new THREE.MeshStandardMaterial({
+    color: tipColor,
+    roughness: 0.5,
+    emissive: new THREE.Color(tipColor),
+    emissiveIntensity: look.colors.antennaGlow ?? 0,
+  })
   for (const side of [-1, 1]) {
     const tip = new THREE.Vector3(side * 0.14, 0.16, 0.08)
     const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(side * 0.07, 0, 0), new THREE.Vector3(side * 0.08, 0.13, 0.02), tip)
-    const ball = new THREE.Mesh(tipGeo, antennaMat)
+    const ball = new THREE.Mesh(tipGeo, tipMat)
     ball.position.copy(tip)
     antennae.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.012, 8), antennaMat), ball)
   }

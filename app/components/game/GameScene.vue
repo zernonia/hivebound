@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as THREE from 'three'
 import { useLoop, useTres } from '@tresjs/core'
-import { buildBee } from '~/game/bee'
+import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
 import { WorldView } from '~/game/worldView'
 import { type Hex, findPath, hexKey, hexToWorld, worldToHex } from '~/utils/hex'
@@ -24,7 +24,9 @@ worldView.setReducedMotion(settings.reducedMotion)
 worldView.syncDiscovered(game.discovered, [])
 worldView.setVisitedPois(game.visitedPois)
 
-const bee = buildBee()
+// `?bee=queen` / `?bee=nocturnal` previews a variant; anything else is the honey bee.
+const beeParam = new URLSearchParams(window.location.search).get('bee')
+const bee = buildBeeVariant(isBeeVariantId(beeParam) ? beeParam : 'honey')
 const HOVER_ALT = 0.55
 
 // Soft blob shadow under the bee: reads better than a real shadow while flying.
