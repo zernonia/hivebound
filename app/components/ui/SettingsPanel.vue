@@ -4,6 +4,7 @@ import { type FlightSpeed, type TextScale, useSettings } from '~/stores/settings
 
 const game = useGame()
 const settings = useSettings()
+const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
 
 type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints'
 const toggles: { key: BoolKey, label: string, hint: string }[] = [
@@ -83,6 +84,22 @@ function reset() {
       </fieldset>
     </section>
 
+    <section aria-labelledby="s-sound">
+      <h3 id="s-sound">
+        Sound
+      </h3>
+      <div class="slider">
+        <label for="vol-music">Music</label>
+        <input id="vol-music" v-model.number="settings.musicVolume" type="range" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.musicVolume)">
+        <span class="val" aria-hidden="true">{{ pct(settings.musicVolume) }}</span>
+      </div>
+      <div class="slider">
+        <label for="vol-sfx">Sound effects</label>
+        <input id="vol-sfx" v-model.number="settings.sfxVolume" type="range" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.sfxVolume)">
+        <span class="val" aria-hidden="true">{{ pct(settings.sfxVolume) }}</span>
+      </div>
+    </section>
+
     <section aria-labelledby="s-keys" class="keys">
       <h3 id="s-keys">
         Controls
@@ -92,6 +109,7 @@ function reset() {
         <div><dt>Look around</dt><dd><span class="kbd">L</span></dd></div>
         <div><dt>Journal</dt><dd><span class="kbd">J</span></dd></div>
         <div><dt>Fly home</dt><dd><span class="kbd">H</span></dd></div>
+        <div><dt>Action (enter hive, collect…)</dt><dd><span class="kbd">F</span></dd></div>
         <div><dt>Map size</dt><dd><span class="kbd">M</span></dd></div>
         <div><dt>Zoom</dt><dd><span class="kbd">+</span> <span class="kbd">−</span> · scroll · pinch</dd></div>
         <div><dt>Stop</dt><dd><span class="kbd">Space</span></dd></div>
@@ -246,5 +264,23 @@ h3 {
 .reset.armed {
   background: #ffe3e0;
   border-style: solid;
+}
+.slider {
+  display: grid;
+  grid-template-columns: 8.5em 1fr 3em;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+}
+.slider input[type='range'] {
+  width: 100%;
+  height: 32px;
+  accent-color: var(--honey-deep);
+}
+.slider .val {
+  text-align: right;
+  color: var(--ink-soft);
+  font-weight: 500;
 }
 </style>

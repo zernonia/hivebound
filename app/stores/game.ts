@@ -16,7 +16,7 @@ import {
 import { HIVE_DOOR, STARTER_CELL, useHive } from './hive'
 import { useSettings } from './settings'
 import { RESOURCE_INFO, UNLOCK_CELL_COST, tileSource } from '~/utils/resources'
-import { DOORSTEP, POI_BY_ID, type PoiId, REVEAL_RADIUS, TERRAIN_LABEL, type Terrain, useWorldData } from '~/utils/world'
+import { DOORSTEP, HOME, POI_BY_ID, type PoiId, REVEAL_RADIUS, TERRAIN_LABEL, type Terrain, useWorldData } from '~/utils/world'
 
 export type JournalIcon = 'hive' | 'poi' | 'terrain'
 
@@ -122,8 +122,8 @@ export const useGame = defineStore('game', {
     primaryAction(s): { id: ActionId, label: string } | null {
       if (s.transition) return null
       if (s.scene === 'world') {
-        const home = s.pos.q === DOORSTEP.q && s.pos.r === DOORSTEP.r && !s.queue.length
-        return home ? { id: 'enter', label: 'Enter hive' } : null
+        const beside = hexDistance(s.pos, HOME) === 1 && !s.queue.length
+        return beside ? { id: 'enter', label: 'Enter hive' } : null
       }
       const hive = useHive()
       const key = hive.selected
@@ -288,20 +288,44 @@ export const useGame = defineStore('game', {
     },
 
     // ---------- the hive ----------
-    atDoorstep() {
-      return this.pos.q === DOORSTEP.q && this.pos.r === DOORSTEP.r && !this.queue.length
+    /** On one of the six tiles round the hive, not flying anywhere. */
+    besideHive() {
+      return hexDistance(this.pos, HOME) === 1 && !this.queue.length
+    },
+
+    /** The walkable tile next to the hive that's the shortest flight from `from`. */
+    nearestHiveSide(start?: Hex): Hex {
+      const from = start ?? this.pos
+      const sides = DIRECTION_LIST.map(d => neighbor(HOME, d)).filter(h => this.isWalkable(h))
+      let best = DOORSTEP
+      let bestLen = Infinity
+      for (const h of sides) {
+        const len = hexDistance(from, h) === 0 ? 0 : findPath(from, h, t => this.isWalkable(t)).length || Infinity
+        if (len < bestLen) {
+          bestLen = len
+          best = h
+        }
+      }
+      return best
+    },
+
+    /** Home button / H: fly to whichever side of the hive is closest. */
+    flyHome() {
+      if (this.scene !== 'world') return false
+      const side = this.nearestHiveSide(this.moving && this.queue.length ? this.queue[0]! : this.pos)
+      return this.travelTo(side)
     },
 
     /** Flies home if needed, then goes inside. */
     enterHive() {
       if (this.scene !== 'world' || this.transition) return false
-      if (this.atDoorstep()) {
+      if (this.besideHive()) {
         useHive().deposit()
         this.transition = 'enter'
         this.announce('Flying into the Home Hive.')
         return true
       }
-      if (!this.travelTo(DOORSTEP)) return false
+      if (!this.travelTo(this.nearestHiveSide(this.moving && this.queue.length ? this.queue[0]! : this.pos))) return false
       this.enterOnArrival = true
       return true
     },
@@ -376,12 +400,13 @@ export const useGame = defineStore('game', {
         if (tile.poi && !this.visitedPois.includes(tile.poi)) this.visitPoi(tile.poi)
         else if (!this.seenTerrain.includes(tile.terrain)) this.firstTerrain(tile.terrain)
       }
-      if (next.q === DOORSTEP.q && next.r === DOORSTEP.r) useHive().deposit()
+      const besideHome = hexDistance(next, HOME) === 1
+      if (besideHome) useHive().deposit()
       if (!this.queue.length) {
         this.moving = false
         if (this.enterOnArrival) {
           this.enterOnArrival = false
-          if (next.q === DOORSTEP.q && next.r === DOORSTEP.r) {
+          if (besideHome) {
             this.save()
             this.enterHive()
             return

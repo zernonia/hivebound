@@ -37,6 +37,8 @@ Hold a movement key to keep flying.
 
 ```
 app/
+  audio/engine.ts            Synthesised music + sound effects (Web Audio, no audio files)
+  composables/useGameAudio.ts   Turns game events into sounds; volume + scene mood
   pages/index.vue            Game page: keyboard input, <html> a11y classes, layout
   components/game/
     GameCanvas.vue           <TresCanvas> config (tone mapping, shadows, DPR)
@@ -50,6 +52,7 @@ app/
     beeVariants.ts           Named variants (honey, queen, nocturnal); preview with ?bee=queen
     accessories.ts           Accessories that attach to the bee's anchors (crown…)
     hiveView.ts              Inside the hive: comb cells, Queen, walls, motes, trays
+    resourceMarkers.ts       Floating badges over nearby tiles showing what can be gathered
     buildings.ts             Hive building models (press, kitchen, wax works, larder)
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
@@ -70,13 +73,21 @@ app/
 - Each time the carrot reaches a hex, `game.arrive()` reveals fog (radius 2), triggers journal entries and saves. When the queue empties, a held key or pad button queues the next hex, so flight continues without a pause.
 - The world is deterministic (`WORLD_SEED`), so saves only store position, discovered tiles and the journal.
 
+### A bigger island that streams in
+- The island is radius 24 (~1,800 tiles), generated from the seed at runtime. Only tiles within 3 of anywhere discovered are built into the scene; new land rises out of the mist as the bee explores, so the GPU only draws what's nearby.
+
 ### Gathering and the hive
 - **Gather** by stopping on a resource tile: meadow gives nectar, flower patches pollen, water water, forest resin (bigger landmarks hold more). The bee hovers and gathers one unit at a time into its pouch. Tiles regrow over time.
-- **Unload** by reaching the doorstep; **go inside** with `F` (or tap the floating prompt / the hive). The bee flies in through the skep door; an iris wipe hides the scene swap.
+- **Badges** float over nearby tiles you can gather from: each resource has its own shape and colour; a faded, smaller badge means the tile is picked clean and regrowing.
+- **Unload** by reaching any of the six tiles around the hive; **go inside** with `F` (or tap the floating prompt / the hive). The bee flies in through the skep door; an iris wipe hides the scene swap.
 - **One action key:** `F` does whatever the floating prompt over the tile says: enter the hive, collect a building's tray, unseal a cell, or leave through the doorway.
 - **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with wax. Upgrades: bigger pouch, stronger wings, quicker gathering.
 - Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
 - Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.
+
+### Music and sound
+- Everything is synthesised live with the Web Audio API (`app/audio/engine.ts`): a generative, never-quite-repeating piece (soft pad, bass, kalimba melody) that turns slower and warmer inside the hive, a wing buzz that follows flight speed, and one-shots for gathering, a full pouch, unloading, discoveries, the hive door, collecting and building.
+- Audio starts on the first key press or tap (browser autoplay rules) and pauses while the tab is hidden. Music and effect volumes are in Settings.
 
 ## Accessibility built in
 - **Reduce motion** (follows the OS setting by default): no bob, squash, pop-ins or springy UI, and a calmer camera.
@@ -87,7 +98,6 @@ app/
 
 ## Next steps
 - Swap procedural props for Blender GLBs (same instancing approach; keep materials soft and slightly rough)
-- Audio: ambient loop, buzz while flying, gathering hum, discovery chime (with volume setting)
 - Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
 - Catching and the Beedex, which extends the journal's "Places" tab

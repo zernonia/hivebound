@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Direction } from '~/utils/hex'
-import { DOORSTEP } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
@@ -14,6 +13,7 @@ const held = useHeldDirection()
 settings.load()
 game.load()
 hive.load()
+useGameAudio()
 
 // Persist settings whenever they change.
 watch(() => settings.$state, () => settings.save(), { deep: true })
@@ -92,7 +92,7 @@ function onKeyDown(e: KeyboardEvent) {
       game.toast(game.describeHere())
       break
     case 'KeyH':
-      game.travelTo(DOORSTEP)
+      game.flyHome()
       break
     case 'KeyM':
       if (!settings.showMinimap) settings.showMinimap = true
