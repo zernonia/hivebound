@@ -100,6 +100,10 @@ export class WorldView {
       const list = plan[kind]
       const im = new THREE.InstancedMesh(def.geometry, def.material, Math.max(1, list.length))
       im.count = list.length
+      // Each prop kind spans the whole island, and instances scale up from 0 as fog lifts, so
+      // three's one-off bounding sphere (taken while most were hidden) goes stale and the whole
+      // mesh would get culled once home is off-screen. Culling it as one lump never saves work.
+      im.frustumCulled = false
       im.castShadow = def.castShadow
       im.receiveShadow = true
       list.forEach((p, idx) => {
