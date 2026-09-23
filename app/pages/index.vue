@@ -3,14 +3,17 @@ import type { Direction } from '~/utils/hex'
 import { DOORSTEP } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { useGame } from '~/stores/game'
+import { useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
 
 const game = useGame()
+const hive = useHive()
 const settings = useSettings()
 const held = useHeldDirection()
 
 settings.load()
 game.load()
+hive.load()
 
 // Persist settings whenever they change.
 watch(() => settings.$state, () => settings.save(), { deep: true })
@@ -50,6 +53,26 @@ function onKeyDown(e: KeyboardEvent) {
   }
   const target = e.target as HTMLElement | null
   if (target?.closest('input, textarea, select, [contenteditable]')) return
+  // Nothing steers the bee while it's flying through the hive door.
+  if (game.transition) return
+
+  // F: the contextual action shown in the floating prompt (enter, collect, unseal, leave).
+  if (e.code === 'KeyF') {
+    if (!e.repeat) game.doAction()
+    return
+  }
+  if (game.scene === 'hive') {
+    // Inside, movement keys walk the selection round the comb.
+    const dir = MOVE_KEYS[e.code]
+    if (dir) {
+      e.preventDefault()
+      if (dir === 'W' || dir === 'E') hive.moveSelectionSideways(dir)
+      else hive.moveSelection(dir)
+    }
+    else if (e.code === 'KeyJ') game.journalOpen = true
+    else if (e.code === 'Escape' || e.code === 'KeyO') game.settingsOpen = true
+    return
+  }
 
   const move = MOVE_KEYS[e.code]
   if (move) {
@@ -101,19 +124,29 @@ function onKeyUp(e: KeyboardEvent) {
   if (move) held.release(move)
 }
 
-const saveNow = () => game.save()
+const saveNow = () => {
+  game.save()
+  hive.save()
+}
+// Buildings run on real time: advance them every second, and catch up when the tab returns.
+let hiveClock: ReturnType<typeof setInterval> | undefined
+const catchUp = () => document.visibilityState === 'visible' && hive.tick()
 
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('blur', held.clear)
   window.addEventListener('pagehide', saveNow)
+  document.addEventListener('visibilitychange', catchUp)
+  hiveClock = setInterval(() => hive.tick(), 1000)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('blur', held.clear)
   window.removeEventListener('pagehide', saveNow)
+  document.removeEventListener('visibilitychange', catchUp)
+  clearInterval(hiveClock)
 })
 
 // Stop held movement when a panel opens.
@@ -138,6 +171,7 @@ watch(() => game.journalOpen || game.settingsOpen, open => open && held.clear())
     <JournalPanel />
     <SettingsPanel />
     <Announcer />
+    <HiveIris />
   </main>
 </template>
 

@@ -13,7 +13,9 @@ import {
   hexesInRange,
   neighbor,
 } from '~/utils/hex'
+import { HIVE_DOOR, STARTER_CELL, useHive } from './hive'
 import { useSettings } from './settings'
+import { RESOURCE_INFO, UNLOCK_CELL_COST, tileSource } from '~/utils/resources'
 import { DOORSTEP, POI_BY_ID, type PoiId, REVEAL_RADIUS, TERRAIN_LABEL, type Terrain, useWorldData } from '~/utils/world'
 
 export type JournalIcon = 'hive' | 'poi' | 'terrain'
@@ -28,6 +30,8 @@ export interface JournalEntry {
   day: number
   unread: boolean
 }
+
+export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal'
 
 export interface Toast {
   id: number
@@ -91,6 +95,14 @@ export const useGame = defineStore('game', {
     /** Alternates NW/SW (or NE/SE) so holding ← / → travels in a straight line. */
     lateralFlip: false,
     loaded: false,
+    /** Which scene the bee is in. */
+    scene: 'world' as 'world' | 'hive',
+    /** Flying into / out of the hive; the scene drives the animation and clears this. */
+    transition: null as null | 'enter' | 'exit',
+    /** Colour wipe used to hide the scene swap during a transition. */
+    irisClosed: false,
+    /** Go inside as soon as the bee reaches the doorstep. */
+    enterOnArrival: false,
   }),
 
   getters: {
@@ -102,6 +114,25 @@ export const useGame = defineStore('game', {
     },
     day(s) {
       return 1 + Math.floor(s.steps / 60)
+    },
+    /**
+     * The one thing F (or the floating prompt) does right now, if anything:
+     * go in at the doorstep; inside, collect / unseal the selected cell or leave by the door.
+     */
+    primaryAction(s): { id: ActionId, label: string } | null {
+      if (s.transition) return null
+      if (s.scene === 'world') {
+        const home = s.pos.q === DOORSTEP.q && s.pos.r === DOORSTEP.r && !s.queue.length
+        return home ? { id: 'enter', label: 'Enter hive' } : null
+      }
+      const hive = useHive()
+      const key = hive.selected
+      if (!key) return null
+      if (key === HIVE_DOOR) return { id: 'leave', label: 'Leave hive' }
+      const output = hive.cells[key]?.output ?? 0
+      if (output > 0) return { id: 'collect', label: `Collect ${output}` }
+      if (hive.canUnlock(key) && hive.has(UNLOCK_CELL_COST)) return { id: 'unseal', label: 'Unseal' }
+      return null
     },
     /** The final destination of the current route, if any. */
     destination(s): Hex | null {
@@ -168,6 +199,11 @@ export const useGame = defineStore('game', {
       this.seenTerrain = []
       this.journal = []
       this.steps = 0
+      this.scene = 'world'
+      this.transition = null
+      this.irisClosed = false
+      this.enterOnArrival = false
+      useHive().reset()
       this.load()
       this.announce('Progress reset. You are back at the Home Hive.')
     },
@@ -201,11 +237,13 @@ export const useGame = defineStore('game', {
 
     /** Queue a route to any tile. */
     travelTo(target: Hex): boolean {
+      // A new destination cancels a pending "go inside".
+      this.enterOnArrival = false
       const from = this.moving && this.queue.length ? this.queue[0]! : this.pos
       const tile = useWorldData().byKey.get(hexKey(target))
       if (!tile) return false
       if (!tile.walkable) {
-        if (tile.terrain === 'hive') return this.travelTo(DOORSTEP)
+        if (tile.terrain === 'hive') return this.enterHive()
         this.announce('The mist is too thick to fly into. Not yet.')
         return false
       }
@@ -246,6 +284,71 @@ export const useGame = defineStore('game', {
 
     cancelRoute() {
       this.queue = this.moving ? this.queue.slice(0, 1) : []
+      this.enterOnArrival = false
+    },
+
+    // ---------- the hive ----------
+    atDoorstep() {
+      return this.pos.q === DOORSTEP.q && this.pos.r === DOORSTEP.r && !this.queue.length
+    },
+
+    /** Flies home if needed, then goes inside. */
+    enterHive() {
+      if (this.scene !== 'world' || this.transition) return false
+      if (this.atDoorstep()) {
+        useHive().deposit()
+        this.transition = 'enter'
+        this.announce('Flying into the Home Hive.')
+        return true
+      }
+      if (!this.travelTo(DOORSTEP)) return false
+      this.enterOnArrival = true
+      return true
+    },
+
+    /** Runs the current primary action (F key / prompt button). */
+    doAction() {
+      const a = this.primaryAction
+      if (!a) return false
+      const hive = useHive()
+      switch (a.id) {
+        case 'enter': return this.enterHive()
+        case 'leave': return this.leaveHive()
+        case 'collect': return hive.collect(hive.selected!) > 0
+        case 'unseal': return hive.unlock(hive.selected!)
+      }
+    },
+
+    leaveHive() {
+      if (this.scene !== 'hive' || this.transition) return false
+      this.transition = 'exit'
+      this.announce('Flying back out to the meadow.')
+      return true
+    },
+
+    /** Called by the scene at the moment the iris is fully closed. */
+    swapScene() {
+      this.scene = this.transition === 'enter' ? 'hive' : 'world'
+      if (this.scene === 'hive') {
+        const hive = useHive()
+        if (!hive.selected || hive.selected === HIVE_DOOR) hive.selected = STARTER_CELL
+        hive.tick()
+        if (hive.first('inside')) {
+          this.addJournal({
+            id: 'inside-hive',
+            title: 'Home, inside',
+            body: 'Warm, golden and humming. The Queen waved at me from her cushion. There is space here to build things, if I bring back enough to build with.',
+            icon: 'hive',
+            subject: 'hive',
+          })
+        }
+      }
+    },
+
+    endTransition() {
+      this.transition = null
+      if (this.scene === 'hive') this.announce('Inside the Home Hive. Choose a cell to build on, collect from, or unseal.')
+      else if (this.settingsNarration()) this.announce(this.describeHere())
     },
 
     /** Called by the scene when a leg (one hex of flight) starts. */
@@ -273,8 +376,17 @@ export const useGame = defineStore('game', {
         if (tile.poi && !this.visitedPois.includes(tile.poi)) this.visitPoi(tile.poi)
         else if (!this.seenTerrain.includes(tile.terrain)) this.firstTerrain(tile.terrain)
       }
+      if (next.q === DOORSTEP.q && next.r === DOORSTEP.r) useHive().deposit()
       if (!this.queue.length) {
         this.moving = false
+        if (this.enterOnArrival) {
+          this.enterOnArrival = false
+          if (next.q === DOORSTEP.q && next.r === DOORSTEP.r) {
+            this.save()
+            this.enterHive()
+            return
+          }
+        }
         if (this.settingsNarration()) this.announce(this.describeHere())
         this.save()
       }
@@ -357,7 +469,16 @@ export const useGame = defineStore('game', {
           hint = ` Something interesting, ${POI_BY_ID[p.id].name}, is ${d} ${d === 1 ? 'hex' : 'hexes'} ${compassWord(this.pos, p.hex)}.`
         }
       }
-      return `You are at ${here}. Around you, ${around.join('; ')}.${hint}`
+      // What can be gathered right here.
+      let gather = ''
+      const tile = world.byKey.get(hexKey(this.pos))
+      const src = tileSource(tile)
+      if (tile && src) {
+        const left = useHive().tileAmount(tile)
+        const name = RESOURCE_INFO[src.resource].name.toLowerCase()
+        gather = left > 0 ? ` You can gather ${name} here, ${left} left.` : ` The ${name} here has been gathered; it is growing back.`
+      }
+      return `You are at ${here}.${gather} Around you, ${around.join('; ')}.${hint}`
     },
   },
 })
