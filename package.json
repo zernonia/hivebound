@@ -1,0 +1,29 @@
+{
+  "name": "hivebound",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "deploy": "nuxt generate && wrangler deploy"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^1.0.2",
+    "@tresjs/cientos": "^5.9.0",
+    "@tresjs/core": "^5.9.0",
+    "@tresjs/nuxt": "^5.7.0",
+    "nuxt": "^4.5.2",
+    "pinia": "^4.0.3",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "typescript": "~5.9",
+    "vue-tsc": "^3.3.11",
+    "wrangler": "^4.137.0"
+  }
+}
