@@ -44,7 +44,7 @@ app/
   game/                      Plain three.js builders (no Vue)
     worldView.ts             Instanced tiles + props, fog-of-war reveal animation
     props.ts                 Tuft/flower/tree/cloud kinds, hive, point-of-interest set pieces
-    bee.ts                   Procedural blocky bee rig (7×7×10 grid, soft edges)
+    bee.ts                   Procedural bee: `BeeLook` presets + accessory anchors
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
     game.ts                  Position, route queue, discovery, journal, narration, save/load
