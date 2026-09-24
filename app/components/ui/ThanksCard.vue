@@ -30,9 +30,7 @@ function close() {
 <template>
   <UiDialog :open="queen.showThanks" title="Thank you for playing!" @close="close">
     <div class="thanks">
-      <div class="art" aria-hidden="true">
-        <JournalArt subject="hive" />
-      </div>
+      <img class="art" src="/icon.svg" alt="" width="140" height="140">
       <p class="queen">
         “You flew further than any bee in a hundred summers, and brought a whole meadow home with you. The hive will hum about this for a very long time.”
         <span class="who">The Queen</span>
@@ -62,7 +60,9 @@ function close() {
   gap: 12px;
 }
 .art {
+  display: block;
   width: 140px;
+  height: 140px;
   margin: -4px auto 0;
 }
 .queen {

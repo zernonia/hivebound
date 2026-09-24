@@ -1,31 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="comb" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffc94d"/>
-      <stop offset="1" stop-color="#ffb627"/>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd35e"/>
+      <stop offset="0.72" stop-color="#ffc94a"/>
+      <stop offset="0.86" stop-color="#ffe3a0"/>
+      <stop offset="1" stop-color="#ffe3a0"/>
     </linearGradient>
     <linearGradient id="eye" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#1a110c"/>
-      <stop offset="0.45" stop-color="#1a110c"/>
-      <stop offset="1" stop-color="#b3733c"/>
+      <stop offset="0.42" stop-color="#1a110c"/>
+      <stop offset="1" stop-color="#c98a4e"/>
     </linearGradient>
   </defs>
-  <!-- Honey hexagon -->
-  <path d="M256 22 458 139v234L256 490 54 373V139z" fill="url(#comb)" stroke="#6b4a2b" stroke-width="22" stroke-linejoin="round"/>
-  <path d="M256 70 416 162v38" fill="none" stroke="#ffe08a" stroke-width="14" stroke-linecap="round" opacity="0.8"/>
+  <!-- Honeycomb cell -->
+  <path d="M256 24 456 140v232L256 488 56 372V140z" fill="#fff1cc" stroke="#6b4a2b" stroke-width="20" stroke-linejoin="round"/>
+  <path d="M256 70 414 162v36" fill="none" stroke="#fffaf0" stroke-width="12" stroke-linecap="round"/>
+  <g transform="translate(256 282) scale(1.12) translate(-256 -290)">
+  <!-- Wings, peeking up behind the body -->
+  <g fill="#e3f4ff" stroke="#9cc3dc" stroke-width="7" opacity="0.95">
+    <ellipse cx="170" cy="186" rx="72" ry="40" transform="rotate(-28 170 186)"/>
+    <ellipse cx="342" cy="186" rx="72" ry="40" transform="rotate(28 342 186)"/>
+  </g>
   <!-- Antennae -->
-  <path d="M212 182q-14-46-44-62M300 182q14-46 44-62" fill="none" stroke="#4a2c1c" stroke-width="14" stroke-linecap="round"/>
-  <circle cx="164" cy="116" r="16" fill="#4a2c1c"/>
-  <circle cx="348" cy="116" r="16" fill="#4a2c1c"/>
-  <!-- Blocky bee face -->
-  <rect x="130" y="172" width="252" height="222" rx="64" fill="#ffc94a" stroke="#6e4128" stroke-width="14"/>
-  <path d="M146 352h220" stroke="#6e4128" stroke-width="22" stroke-linecap="round" opacity="0.9"/>
-  <!-- Big rectangular eyes -->
-  <rect x="172" y="220" width="60" height="96" rx="20" fill="url(#eye)" stroke="#1c120d" stroke-width="6"/>
-  <rect x="280" y="220" width="60" height="96" rx="20" fill="url(#eye)" stroke="#1c120d" stroke-width="6"/>
-  <rect x="184" y="232" width="18" height="24" rx="7" fill="#fff"/>
-  <rect x="292" y="232" width="18" height="24" rx="7" fill="#fff"/>
-  <!-- Blush -->
-  <ellipse cx="160" cy="316" rx="16" ry="10" fill="#ff8fa8" opacity="0.85"/>
-  <ellipse cx="352" cy="316" rx="16" ry="10" fill="#ff8fa8" opacity="0.85"/>
+  <path d="M226 218C222 186 210 166 190 154M286 218C290 186 302 166 322 154" fill="none" stroke="#4a2c1c" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="186" cy="150" r="16" fill="#4a2c1c"/>
+  <circle cx="326" cy="150" r="16" fill="#4a2c1c"/>
+  <!-- Little legs -->
+  <rect x="198" y="404" width="26" height="30" rx="13" fill="#4a2c1c"/>
+  <rect x="288" y="404" width="26" height="30" rx="13" fill="#4a2c1c"/>
+  <!-- Soft rounded block of a body -->
+  <rect x="140" y="208" width="232" height="212" rx="46" fill="url(#body)" stroke="#6e4128" stroke-width="10"/>
+  <path d="M186 226h140" stroke="#fff0b8" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+  <!-- Big rectangular eyes: dark, warming towards the bottom, with two catchlights -->
+  <rect x="174" y="258" width="70" height="104" rx="20" fill="url(#eye)" stroke="#1c120d" stroke-width="7"/>
+  <rect x="268" y="258" width="70" height="104" rx="20" fill="url(#eye)" stroke="#1c120d" stroke-width="7"/>
+  <rect x="207" y="270" width="24" height="25" rx="8" fill="#fff"/>
+  <rect x="301" y="270" width="24" height="25" rx="8" fill="#fff"/>
+  <rect x="188" y="320" width="12" height="12" rx="4" fill="#fff"/>
+  <rect x="282" y="320" width="12" height="12" rx="4" fill="#fff"/>
+  <!-- Blush under the outer corners -->
+  <ellipse cx="166" cy="370" rx="16" ry="10" fill="#ff8fa8" opacity="0.8"/>
+  <ellipse cx="346" cy="370" rx="16" ry="10" fill="#ff8fa8" opacity="0.8"/>
+  </g>
 </svg>

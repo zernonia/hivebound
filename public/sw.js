@@ -8,7 +8,7 @@
  *   cached '/'.
  * Only same-origin GETs are ever cached. Bump VERSION to drop every old cache on activate.
  */
-const VERSION = 'v1'
+const VERSION = 'v2'
 const CACHE = `hivebound-${VERSION}`
 const SHELL = [
   '/',
