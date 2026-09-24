@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { DOORSTEP } from '~/utils/world'
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
@@ -84,7 +83,7 @@ function lookAround() {
           <span>Look</span>
           <span class="kbd hide-touch" aria-hidden="true">L</span>
         </button>
-        <button class="chip-btn" aria-label="Fly home" @click="game.travelTo(DOORSTEP)">
+        <button class="chip-btn" aria-label="Fly home" @click="game.flyHome()">
           <UiIcon name="home" />
           <span>Home</span>
           <span class="kbd hide-touch" aria-hidden="true">H</span>

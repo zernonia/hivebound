@@ -3,12 +3,15 @@ import * as THREE from 'three'
 import { useLoop, useTres } from '@tresjs/core'
 import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
+import { gameAudio } from '~/audio/engine'
+import { perfAvailable, perfFrameEnd, perfFrameStart } from '~/utils/perfMonitor'
 import { HiveView } from '~/game/hiveView'
+import { ResourceMarkers } from '~/game/resourceMarkers'
 import { WorldView } from '~/game/worldView'
-import { type Hex, findPath, hexKey, hexToWorld, worldToHex } from '~/utils/hex'
+import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, neighbor, worldToHex } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
-import { DOORSTEP, useWorldData } from '~/utils/world'
+import { useWorldData } from '~/utils/world'
 import { useGame } from '~/stores/game'
 import { HIVE_CELLS, QUEEN_CELL, useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
@@ -97,7 +100,9 @@ gatherMotes.visible = false
 
 // Everything outside lives on one layer so the hive can take over the screen.
 const worldLayer = new THREE.Group()
-worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes)
+// Badges only where you can act next: the six tiles round the bee, plus the one under the mouse.
+const markers = new ResourceMarkers(8)
+worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group)
 const hiveView = new HiveView(HIVE_CELLS, QUEEN_CELL)
 
 const rig = new THREE.Group()
@@ -268,7 +273,7 @@ function onWheel(ev: WheelEvent) {
 
 onMounted(() => {
   // Handy for poking at the scene from the browser console during development.
-  if (import.meta.dev) Object.assign(window, { __hivebound: { renderer, game, hive, settings, rig, world } })
+  if (import.meta.dev) Object.assign(window, { __hivebound: { renderer, game, hive, settings, rig, world, audio: gameAudio } })
   const el = renderer.domElement
   el.style.touchAction = 'none'
   el.addEventListener('pointerdown', onPointerDown)
@@ -323,6 +328,7 @@ let pitch = 0
 let time = 0
 let blinkIn = 2 + Math.random() * 3
 const tmpV = new THREE.Vector3()
+const tmpV2 = new THREE.Vector3()
 const camOffset = new THREE.Vector3()
 const prevPos = new THREE.Vector3()
 
@@ -354,6 +360,11 @@ let gatherT = 0
 let gatheringKey: string | null = null
 /** Tile we last said something about, so arrival messages play once per visit. */
 let notedKey: string | null = null
+/** The "pouch full" message has been shown for the current full pouch. */
+let fullNoticed = false
+watch(() => hive.pouchFull, (full) => {
+  if (!full) fullNoticed = false
+})
 
 function updateGathering(dt: number, rm: boolean, idle: boolean) {
   const tile = world.byKey.get(hexKey(game.pos))
@@ -363,7 +374,9 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
   if (here && src) {
     const left = hive.tileAmount(here)
     if (hive.pouchFull) {
-      if (notedKey !== here.key) {
+      // Say it once per full pouch, not on every tile flown over.
+      if (!fullNoticed) {
+        fullNoticed = true
         notedKey = here.key
         game.toast('Your pouch is full. Fly home (H) to unload.')
         game.announce('Your pouch is full. Fly home to unload.')
@@ -381,6 +394,7 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
         gatherT = 0
         hive.gather(here)
         if (hive.pouchFull) {
+          fullNoticed = true
           game.toast('Pouch full! Fly home (H) to unload.')
           game.announce(`Pouch full with ${hive.pouchTotal}. Fly home to unload.`)
         }
@@ -441,6 +455,25 @@ watch(() => game.transition, (v) => {
 })
 const easeInOut = (u: number) => u * u * (3 - 2 * u)
 const beeGoal = new THREE.Vector3()
+/** Keep this far from the skep's centre while circling it, so the bee never flies through it. */
+const SKEP_CLEARANCE = 1.1
+
+/**
+ * A path between two points outside that swings round the hive rather than through it:
+ * angle and radius are interpolated round the skep's centre, with the radius pushed out to
+ * clear the skep when the bee has to go round it (e.g. from a tile behind the hive).
+ */
+function roundHive(from: THREE.Vector3, to: THREE.Vector3, u: number, out: THREE.Vector3) {
+  const e = easeInOut(u)
+  const a0 = Math.atan2(from.z, from.x)
+  const da = shortestAngle(a0, Math.atan2(to.z, to.x))
+  const r0 = Math.hypot(from.x, from.z)
+  const r1 = Math.hypot(to.x, to.z)
+  const a = a0 + da * e
+  let r = THREE.MathUtils.lerp(r0, r1, e)
+  if (Math.abs(da) > 0.3) r = Math.max(r, SKEP_CLEARANCE * Math.pow(Math.sin(Math.PI * u), 0.35))
+  return out.set(Math.cos(a) * r, THREE.MathUtils.lerp(from.y, to.y, e), Math.sin(a) * r)
+}
 
 /** Moves the bee through the transition. Returns 0..1: how far the camera should be pulled in. */
 function updateTransition(dt: number, rm: boolean): number {
@@ -449,13 +482,14 @@ function updateTransition(dt: number, rm: boolean): number {
   t.t += dt
   const u = Math.min(1, t.t / dur)
   const e = easeInOut(u)
+  const before = tmpV2.copy(bee.root.position)
   if (t.phase === 'out') {
-    if (t.dir === 'enter') beeGoal.copy(DOOR_WORLD)
-    else beeGoal.copy(hiveView.entrance)
-    bee.root.position.lerpVectors(t.from, beeGoal, e)
+    if (t.dir === 'enter') roundHive(t.from, DOOR_WORLD, u, bee.root.position)
+    else bee.root.position.lerpVectors(t.from, hiveView.entrance, e)
     bee.root.position.y += rm ? 0 : Math.sin(Math.PI * u) * 0.25
-    bee.root.scale.setScalar(THREE.MathUtils.lerp(1, 0.25, u * u))
-    faceTowards(beeGoal, t.from, dt)
+    // Shrink only on the final approach, once the bee is lined up with the doorway.
+    bee.root.scale.setScalar(THREE.MathUtils.lerp(1, 0.25, Math.pow(u, 3)))
+    faceMovement(before, dt)
     if (!t.irised && u >= 0.5) {
       t.irised = true
       game.irisClosed = true
@@ -474,12 +508,18 @@ function updateTransition(dt: number, rm: boolean): number {
     }
     return rm ? 0 : e
   }
-  if (t.dir === 'enter') hiveView.hoverSpot(hive.selected, beeGoal)
-  else worldPos(DOORSTEP, beeGoal).add(tmpV.set(0, HOVER_ALT, 0))
-  bee.root.position.lerpVectors(t.from, beeGoal, e)
+  if (t.dir === 'enter') {
+    hiveView.hoverSpot(hive.selected, beeGoal)
+    bee.root.position.lerpVectors(t.from, beeGoal, e)
+  }
+  else {
+    // Out through the door and onto the doorstep in front of it.
+    worldPos(game.pos, beeGoal).add(tmpV.set(0, HOVER_ALT, 0))
+    roundHive(t.from, beeGoal, u, bee.root.position)
+  }
   bee.root.position.y += rm ? 0 : Math.sin(Math.PI * u) * 0.2
-  bee.root.scale.setScalar(THREE.MathUtils.lerp(0.25, 1, 1 - (1 - u) * (1 - u)))
-  faceTowards(beeGoal, t.from, dt)
+  bee.root.scale.setScalar(THREE.MathUtils.lerp(0.25, 1, 1 - Math.pow(1 - u, 3)))
+  faceMovement(before, dt)
   if (u >= 1) {
     bee.root.scale.setScalar(1)
     trans = null
@@ -489,11 +529,12 @@ function updateTransition(dt: number, rm: boolean): number {
   return rm ? 0 : 1 - e
 }
 
-function faceTowards(to: THREE.Vector3, from: THREE.Vector3, dt: number) {
-  const dx = to.x - from.x
-  const dz = to.z - from.z
-  if (Math.hypot(dx, dz) < 0.05) return
-  yaw += shortestAngle(yaw, Math.atan2(dx, dz)) * (1 - Math.exp(-dt * 10))
+/** Turns the bee to face the way it just moved (curved transition paths). */
+function faceMovement(before: THREE.Vector3, dt: number) {
+  const dx = bee.root.position.x - before.x
+  const dz = bee.root.position.z - before.z
+  if (Math.hypot(dx, dz) < 1e-4) return
+  yaw += shortestAngle(yaw, Math.atan2(dx, dz)) * (1 - Math.exp(-dt * 12))
 }
 
 function resetFlight() {
@@ -544,7 +585,51 @@ function syncHive() {
 syncHive()
 watch(() => hive.rev, syncHive)
 watch(() => [hive.selected, game.scene], syncHive)
-watch(() => settings.reducedMotion, v => hiveView.setReducedMotion(v), { immediate: true })
+watch(() => settings.reducedMotion, (v) => {
+  hiveView.setReducedMotion(v)
+  markers.setReducedMotion(v)
+}, { immediate: true })
+
+/**
+ * Picks the badges to show: discovered resource tiles next to the bee, and the hovered tile.
+ * The tile the bee is on is left to the HUD line.
+ */
+function refreshMarkers() {
+  const list = []
+  const keys = new Set(DIRECTION_LIST.map(d => hexKey(neighbor(game.pos, d))))
+  if (game.hoverKey) keys.add(game.hoverKey)
+  for (const key of keys) {
+    const tile = world.byKey.get(key)
+    if (!tile || !game.discovered.has(tile.key)) continue
+    const src = tileSource(tile)
+    if (src) list.push({ tile, resource: src.resource })
+  }
+  const now = Date.now()
+  markers.refresh(list, t => hive.tileAmount(t, now), hexKey(game.pos))
+}
+refreshMarkers()
+watch(() => [game.pos, game.hoverKey, game.revealTick, hive.rev, hive.pouchTotal], refreshMarkers)
+
+/**
+ * Gathered tiles visibly thin out (flowers, lily pads, mushrooms) and regrow over time.
+ * Only tiles that have been dipped into can differ from full, so only those are tracked.
+ */
+const thinned = new Set<string>()
+function syncFullness() {
+  const now = Date.now()
+  for (const key of new Set([...Object.keys(hive.tiles), ...thinned])) {
+    const tile = world.byKey.get(key)
+    const src = tileSource(tile)
+    if (!tile || !src) continue
+    const full = hive.tileAmount(tile, now) / src.max
+    worldView.setFullness(key, full)
+    if (full < 1) thinned.add(key)
+    else thinned.delete(key)
+  }
+}
+syncFullness()
+watch(() => [hive.pouchTotal, hive.rev], syncFullness)
+let markersIn = 0
 
 /* ------------------------------------------------------------------ */
 /* Camera                                                             */
@@ -633,6 +718,17 @@ function updatePrompt(cam: THREE.PerspectiveCamera) {
 /* ------------------------------------------------------------------ */
 let hiveSyncIn = 0
 const { onBeforeRender } = useLoop()
+
+// Dev performance overlay: time each frame from the first update hook to the end of three's
+// render call (wrapped once here; the timing only runs while the overlay is on).
+if (perfAvailable) {
+  onBeforeRender(() => perfFrameStart(), -1000)
+  const render = renderer.render.bind(renderer)
+  renderer.render = (scene, camera) => {
+    render(scene, camera)
+    perfFrameEnd(renderer.info, worldView.loadedCount)
+  }
+}
 onBeforeRender(({ delta }) => {
   const dt = Math.max(1e-4, Math.min(delta, 1 / 20))
   time += dt
@@ -684,6 +780,7 @@ onBeforeRender(({ delta }) => {
   bee.wingR.rotation.z = f
   bee.wingL.rotation.z = -f
   bee.antennae.rotation.x = rm ? 0 : -0.25 * speedNorm + Math.sin(time * (gathering ? 9 : 3)) * 0.08
+  gameAudio.setFlight(trans ? 0.8 : speedNorm, gathering, !game.journalOpen && !game.settingsOpen)
 
   // --- blink every few seconds (a quick squash of the eyes, then open again) ---
   blinkIn -= dt
@@ -732,6 +829,14 @@ onBeforeRender(({ delta }) => {
       destRing.scale.set(2 - pulse, 1, 2 - pulse)
     }
     worldView.update(dt)
+    // Regrowth happens on real time; re-check the badges now and then.
+    markersIn -= dt
+    if (markersIn <= 0) {
+      markersIn = 0.5
+      refreshMarkers()
+      syncFullness()
+    }
+    markers.update(time)
   }
 })
 

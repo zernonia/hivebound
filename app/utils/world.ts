@@ -35,7 +35,7 @@ export interface PoiDef {
 }
 
 export const WORLD_SEED = 1337
-export const WORLD_RADIUS = 13
+export const WORLD_RADIUS = 24
 export const HOME: Hex = { q: 0, r: 0 }
 /** Doorstep of the home hive: where the bee starts and returns to. */
 export const DOORSTEP: Hex = { q: 0, r: 1 }

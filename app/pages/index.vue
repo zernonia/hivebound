@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Direction } from '~/utils/hex'
-import { DOORSTEP } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
+import { perfAvailable, togglePerf } from '~/utils/perfMonitor'
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
@@ -14,6 +14,7 @@ const held = useHeldDirection()
 settings.load()
 game.load()
 hive.load()
+useGameAudio()
 
 // Persist settings whenever they change.
 watch(() => settings.$state, () => settings.save(), { deep: true })
@@ -45,6 +46,11 @@ const MOVE_KEYS: Record<string, Direction | 'W' | 'E'> = {
 
 function onKeyDown(e: KeyboardEvent) {
   if (e.metaKey || e.ctrlKey || e.altKey) return
+  // ` toggles the performance overlay (dev builds, or any build opened with ?perf).
+  if (e.code === 'Backquote' && perfAvailable) {
+    togglePerf()
+    return
+  }
   const modal = game.journalOpen || game.settingsOpen
   if (modal) {
     // Native <dialog> handles Esc; J toggles the journal closed.
@@ -92,7 +98,7 @@ function onKeyDown(e: KeyboardEvent) {
       game.toast(game.describeHere())
       break
     case 'KeyH':
-      game.travelTo(DOORSTEP)
+      game.flyHome()
       break
     case 'KeyM':
       if (!settings.showMinimap) settings.showMinimap = true
@@ -172,6 +178,7 @@ watch(() => game.journalOpen || game.settingsOpen, open => open && held.clear())
     <SettingsPanel />
     <Announcer />
     <HiveIris />
+    <PerfOverlay v-if="perfAvailable" />
   </main>
 </template>
 

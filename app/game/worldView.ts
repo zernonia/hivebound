@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { hexToWorld } from '~/utils/hex'
+import { hexKey, hexToWorld, hexesInRange } from '~/utils/hex'
 import { mulberry32 } from '~/utils/noise'
 import type { Palette } from '~/utils/palette'
 import type { PoiId, Tile, World } from '~/utils/world'
@@ -20,23 +20,48 @@ interface PropInstance {
   kind: PropKind
   index: number
   base: THREE.Matrix4
+  /** Which gatherable bit this is part of (a flower, a lily pad…), or -1 for scenery. */
+  group: number
   /** Visible regardless of discovery (mist clouds on the edge ring). */
   always?: boolean
   /** Fog puff: visible only while the tile is undiscovered. */
   fog?: boolean
 }
 
+interface PlannedProp {
+  kind: PropKind
+  m: THREE.Matrix4
+  group: number
+  color?: string
+  always?: boolean
+  fog?: boolean
+}
+
 interface TileView {
   tile: Tile
+  /** Instance slot in caps/soil once loaded, else -1. */
   capIndex: number
+  /** Built into the scene yet? Tiles stream in as the player explores. */
+  loaded: boolean
+  /** Props decided up front (deterministic), turned into instances when the tile loads. */
+  planned: PlannedProp[]
   props: PropInstance[]
   poi?: THREE.Group
   sparkle?: THREE.Group
   /** Reveal animation progress 0..1, or -1 when idle. */
   anim: number
+  /** Rise-out-of-the-mist animation when the tile first loads, 0..1, or -1 when idle. */
+  rise: number
+  /** How many gatherable groups (flowers, lily pads, mushrooms) the tile has. */
+  groups: number
+  /** Shown fullness of the tile's resource, 0..1, easing towards `fullTarget`. */
+  full: number
+  fullTarget: number
   discovered: boolean
 }
 
+/** Tiles load this far beyond anything discovered, so land rises out of the mist ahead of the bee. */
+const LOAD_RADIUS = 3
 const TILE_RADIUS = 0.96
 const CAP_DEPTH = 0.1
 const SOIL_DEPTH = 1.1
@@ -46,6 +71,8 @@ const tmpP = new THREE.Vector3()
 const tmpQ = new THREE.Quaternion()
 const tmpS = new THREE.Vector3()
 const tmpC = new THREE.Color()
+const tmpC2 = new THREE.Color()
+const tmpC3 = new THREE.Color()
 const UP = new THREE.Vector3(0, 1, 0)
 
 const easeOutBack = (t: number) => {
@@ -62,6 +89,9 @@ export class WorldView {
   private propMeshes = {} as Record<PropKind, THREE.InstancedMesh>
   private views: TileView[] = []
   private byKey = new Map<string, TileView>()
+  /** Loaded tiles by caps/soil instance slot, for picking. */
+  private byCap: TileView[] = []
+  private visitedPois: PoiId[] = []
   private animating = new Set<TileView>()
   private sparkles: TileView[] = []
   private palette: Palette
@@ -82,52 +112,65 @@ export class WorldView {
     const soilGeo = cushionHexGeometry(TILE_RADIUS - 0.05, SOIL_DEPTH, 0.05, 0.22, 1, 2)
     this.soil = new THREE.InstancedMesh(soilGeo, new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 }), n)
     this.soil.receiveShadow = true
+    // Allocate colour buffers now; slots fill in as tiles load.
+    this.caps.setColorAt(0, tmpC.set('#ffffff'))
+    this.soil.setColorAt(0, tmpC)
+    this.caps.count = 0
+    this.soil.count = 0
 
-    // --- Plan all prop instances deterministically ------------------------------------------
-    const plan: Record<PropKind, { tile: TileView, m: THREE.Matrix4, color?: string, always?: boolean, fog?: boolean }[]> = {
-      tuft: [], stem: [], petals: [], center: [], trunk: [], canopy: [], pebble: [], lily: [], mushStem: [], mushCap: [], cloud: [],
-    }
-
-    world.tiles.forEach((tile, i) => {
-      const view: TileView = { tile, capIndex: i, props: [], anim: -1, discovered: false }
+    // --- Plan every tile's props up front (cheap, deterministic); build them on load ---------
+    const counts = {} as Record<PropKind, number>
+    for (const kind of Object.keys(this.kinds) as PropKind[]) counts[kind] = 0
+    for (const tile of world.tiles) {
+      const view: TileView = { tile, capIndex: -1, loaded: false, planned: [], props: [], anim: -1, rise: -1, discovered: false, groups: 0, full: 1, fullTarget: 1 }
       this.views.push(view)
       this.byKey.set(tile.key, view)
-      this.planProps(view, plan)
-    })
+      this.planProps(view)
+      for (const p of view.planned) counts[p.kind]++
+    }
 
-    for (const kind of Object.keys(plan) as PropKind[]) {
+    for (const kind of Object.keys(this.kinds) as PropKind[]) {
       const def = this.kinds[kind]
-      const list = plan[kind]
-      const im = new THREE.InstancedMesh(def.geometry, def.material, Math.max(1, list.length))
-      im.count = list.length
-      // Each prop kind spans the whole island, and instances scale up from 0 as fog lifts, so
-      // three's one-off bounding sphere (taken while most were hidden) goes stale and the whole
-      // mesh would get culled once home is off-screen. Culling it as one lump never saves work.
-      im.frustumCulled = false
+      const im = new THREE.InstancedMesh(def.geometry, def.material, Math.max(1, counts[kind]))
+      if (def.tinted) im.setColorAt(0, tmpC.set('#ffffff'))
+      im.count = 0
       im.castShadow = def.castShadow
       im.receiveShadow = true
-      list.forEach((p, idx) => {
-        im.setMatrixAt(idx, p.m)
-        if (def.tinted) im.setColorAt(idx, tmpC.set(p.color ?? '#ffffff'))
-        p.tile.props.push({ kind, index: idx, base: p.m, always: p.always, fog: p.fog })
-      })
-      if (im.instanceColor) im.instanceColor.needsUpdate = true
       this.propMeshes[kind] = im
       this.group.add(im)
     }
 
-    // --- Tile bodies ---------------------------------------------------------------------------
-    for (const v of this.views) this.writeTile(v, 1)
-    this.recolor()
+    // Instances stream in and scale up from nothing, so three's one-off bounding spheres would
+    // go stale and cull (or miss picks on) whole meshes. Each spans the island anyway.
+    for (const im of [this.caps, this.soil, ...Object.values(this.propMeshes)]) im.frustumCulled = false
     this.group.add(this.soil, this.caps)
 
     // --- Set pieces ----------------------------------------------------------------------------
     this.hive = buildHive()
     this.hive.position.set(0, 0.18, 0)
     this.group.add(this.hive)
+  }
 
-    for (const v of this.views) {
-      if (!v.tile.poi) continue
+  /** Builds a tile into the scene: its body, props and any landmark. */
+  private loadTile(v: TileView, rise: boolean) {
+    if (v.loaded) return
+    v.loaded = true
+    v.capIndex = this.caps.count
+    this.caps.count++
+    this.soil.count = this.caps.count
+    this.byCap[v.capIndex] = v
+
+    for (const p of v.planned) {
+      const im = this.propMeshes[p.kind]
+      const index = im.count++
+      if (this.kinds[p.kind].tinted) {
+        im.setColorAt(index, tmpC.set(p.color ?? '#ffffff'))
+        im.instanceColor!.needsUpdate = true
+      }
+      v.props.push({ kind: p.kind, index, base: p.m, always: p.always, fog: p.fog, group: p.group })
+    }
+
+    if (v.tile.poi) {
       const { x, z } = hexToWorld(v.tile)
       const poi = buildPoi(v.tile.poi)
       poi.position.set(x, v.tile.height, z)
@@ -142,10 +185,17 @@ export class WorldView {
       this.sparkles.push(v)
       this.group.add(sp)
     }
+
+    this.colorTile(v)
+    if (rise && !this.reducedMotion) {
+      v.rise = 0
+      this.animating.add(v)
+    }
+    this.writeTile(v, 1)
   }
 
   // -------------------------------------------------------------------------------------------
-  private planProps(view: TileView, plan: Record<PropKind, { tile: TileView, m: THREE.Matrix4, color?: string, always?: boolean, fog?: boolean }[]>) {
+  private planProps(view: TileView) {
     const t = view.tile
     const rng = mulberry32(Math.floor(t.rand * 1e9) + 7)
     const { x, z } = hexToWorld(t)
@@ -159,17 +209,25 @@ export class WorldView {
     const mat = (px: number, py: number, pz: number, s: number, rotY = rng() * Math.PI * 2, sy = s) =>
       new THREE.Matrix4().compose(new THREE.Vector3(px, py, pz), new THREE.Quaternion().setFromAxisAngle(UP, rotY), new THREE.Vector3(s, sy, s))
 
+    // Gatherable bits (each flower, lily pad, mushroom) get a group so they can thin out as
+    // the tile is gathered; `group` is set while planning one of them.
+    let group = -1
     const add = (kind: PropKind, m: THREE.Matrix4, color?: string, extra: { always?: boolean, fog?: boolean } = {}) =>
-      plan[kind].push({ tile: view, m, color, ...extra })
+      view.planned.push({ kind, m, color, group, ...extra })
+    const gatherable = (build: () => void) => {
+      group = view.groups++
+      build()
+      group = -1
+    }
 
-    const flower = (px: number, pz: number, s = 1) => {
+    const flower = (px: number, pz: number, s = 1) => gatherable(() => {
       const h = 0.7 + rng() * 0.5
       const m = mat(px, y, pz, s, rng() * 6.28, h * s)
       add('stem', m)
       const head = mat(px, y + 0.3 * h * s, pz, s * (0.9 + rng() * 0.4))
       add('petals', head, pick(FLOWER_COLORS))
       add('center', head)
-    }
+    })
 
     const occupied = t.poi || t.terrain === 'hive'
     // Mist ring: clouds that are always visible, forming the world's soft border.
@@ -227,25 +285,29 @@ export class WorldView {
         if (rng() < 0.4) {
           const [px, pz] = spot(0.7)
           const m = mat(px, y, pz, 0.9 + rng() * 0.5)
-          add('mushStem', m)
-          add('mushCap', m, pick(MUSHROOM_COLORS))
+          gatherable(() => {
+            add('mushStem', m)
+            add('mushCap', m, pick(MUSHROOM_COLORS))
+          })
         }
         break
       }
       case 'water': {
-        if (rng() < 0.55) { const [px, pz] = spot(0.5); add('lily', mat(px, y + 0.012, pz, 0.8 + rng() * 0.6)) }
+        if (rng() < 0.55) { const [px, pz] = spot(0.5); gatherable(() => add('lily', mat(px, y + 0.012, pz, 0.8 + rng() * 0.6))) }
         break
       }
     }
   }
 
   // -------------------------------------------------------------------------------------------
-  private tileColor(t: Tile, discovered: boolean) {
+  private tileColor(t: Tile, discovered: boolean, full = 1) {
     const base = t.terrain === 'water' ? this.palette.water : this.palette.terrain[t.terrain]
     tmpC.set(base)
     const hsl = { h: 0, s: 0, l: 0 }
     tmpC.getHSL(hsl)
-    tmpC.setHSL(hsl.h + (t.rand - 0.5) * 0.02, hsl.s, Math.min(0.95, hsl.l + (t.rand - 0.5) * 0.06))
+    // A gathered tile looks a little sun-bleached until it regrows.
+    const spent = 1 - full
+    tmpC.setHSL(hsl.h + (t.rand - 0.5) * 0.02, hsl.s * (1 - spent * 0.4), Math.min(0.95, hsl.l + (t.rand - 0.5) * 0.06 + spent * 0.03))
     if (!discovered && t.terrain !== 'edge') tmpC.lerp(new THREE.Color(this.palette.fog), 0.68)
     return tmpC
   }
@@ -255,8 +317,10 @@ export class WorldView {
     const hidden = !v.discovered && v.tile.terrain !== 'edge'
     // Undiscovered tiles sit a touch lower, like un-risen dough.
     const e = v.anim >= 0 ? easeOutBack(p) : 1
-    const drop = hidden ? -0.05 : (v.anim >= 0 ? (1 - e) * -0.12 : 0)
-    const s = hidden ? 0.97 : (v.anim >= 0 ? 0.9 + 0.1 * e : 1)
+    // Rising out of the mist when first loaded.
+    const r = v.rise >= 0 ? easeOutBack(v.rise) : 1
+    const drop = (hidden ? -0.05 : (v.anim >= 0 ? (1 - e) * -0.12 : 0)) - (1 - r) * 0.9
+    const s = (hidden ? 0.97 : (v.anim >= 0 ? 0.9 + 0.1 * e : 1)) * (0.7 + 0.3 * r)
     tmpP.set(x, v.tile.height + drop, z)
     tmpS.set(s, 1, s)
     tmpM.compose(tmpP, tmpQ.identity(), tmpS)
@@ -270,11 +334,20 @@ export class WorldView {
       if (pr.always) k = 1
       else if (pr.fog) k = v.discovered ? (v.anim >= 0 ? Math.max(0, 1 - p * 2) : 0) : 1
       else k = v.discovered ? (v.anim >= 0 ? easeOutBack(Math.min(1, Math.max(0, p * 1.4 - 0.25))) : 1) : 0
+      k *= Math.max(0, r)
+      // Thin out gathered bits: the last groups shrink away first as fullness drops.
+      if (pr.group >= 0 && v.full < 1) k *= THREE.MathUtils.clamp(v.full * v.groups - pr.group, 0, 1)
       if (k <= 0.001) {
         tmpM.makeScale(0, 0, 0)
       }
       else if (k === 1) {
         tmpM.copy(pr.base)
+      }
+      else if (v.rise >= 0 && k > 0) {
+        pr.base.decompose(tmpP, tmpQ, tmpS)
+        tmpP.y -= (1 - r) * 0.9
+        tmpS.multiplyScalar(k)
+        tmpM.compose(tmpP, tmpQ, tmpS)
       }
       else {
         pr.base.decompose(tmpP, tmpQ, tmpS)
@@ -294,17 +367,18 @@ export class WorldView {
     this.soil.instanceMatrix.needsUpdate = true
   }
 
-  recolor() {
-    const soilA = new THREE.Color(this.palette.soil)
-    const soilB = new THREE.Color(this.palette.soilDark)
-    for (const v of this.views) {
-      this.caps.setColorAt(v.capIndex, this.tileColor(v.tile, v.discovered || v.tile.terrain === 'edge'))
-      const sc = soilA.clone().lerp(soilB, v.tile.rand * 0.6)
-      if (!v.discovered && v.tile.terrain !== 'edge') sc.lerp(new THREE.Color(this.palette.fog), 0.5)
-      this.soil.setColorAt(v.capIndex, sc)
-    }
+  private colorTile(v: TileView) {
+    const shown = v.discovered || v.tile.terrain === 'edge'
+    this.caps.setColorAt(v.capIndex, this.tileColor(v.tile, shown, v.full))
+    const sc = tmpC2.set(this.palette.soil).lerp(tmpC3.set(this.palette.soilDark), v.tile.rand * 0.6)
+    if (!shown) sc.lerp(tmpC3.set(this.palette.fog), 0.5)
+    this.soil.setColorAt(v.capIndex, sc)
     this.caps.instanceColor!.needsUpdate = true
     this.soil.instanceColor!.needsUpdate = true
+  }
+
+  recolor() {
+    for (const v of this.byCap) this.colorTile(v)
   }
 
   setPalette(p: Palette) {
@@ -316,16 +390,34 @@ export class WorldView {
     this.reducedMotion = r
   }
 
-  /** Sync discovery state. `fresh` tiles get a pop-in animation. */
+  /**
+   * Sync discovery state. `fresh` tiles get a pop-in animation. Discovering a tile also loads
+   * everything within LOAD_RADIUS of it, so the island streams in as the bee explores.
+   */
   syncDiscovered(discovered: Set<string>, fresh: string[]) {
     const freshSet = new Set(fresh)
-    let changed = false
+    // First sync (page load) builds quietly; later ones let new land rise into view.
+    const initial = this.caps.count === 0
+    const changedViews: TileView[] = []
     for (const v of this.views) {
       const d = discovered.has(v.tile.key)
       if (d === v.discovered) continue
       v.discovered = d
-      changed = true
-      if (d && freshSet.has(v.tile.key) && !this.reducedMotion) {
+      changedViews.push(v)
+    }
+    const before = this.caps.count
+    for (const v of changedViews) {
+      if (!v.discovered) continue
+      for (const h of hexesInRange(v.tile, LOAD_RADIUS)) {
+        const w = this.byKey.get(hexKey(h))
+        if (w && !w.loaded) this.loadTile(w, !initial)
+      }
+    }
+    // Tile picking raycasts the caps, which first test the mesh's bounding sphere: keep it current.
+    if (this.caps.count !== before) this.caps.computeBoundingSphere()
+    for (const v of changedViews) {
+      if (!v.loaded) continue
+      if (v.discovered && freshSet.has(v.tile.key) && !this.reducedMotion) {
         v.anim = 0
         this.animating.add(v)
       }
@@ -333,30 +425,63 @@ export class WorldView {
         v.anim = -1
       }
       this.writeTile(v, 1)
-      this.caps.setColorAt(v.capIndex, this.tileColor(v.tile, d))
+      this.colorTile(v)
     }
-    if (changed) {
-      this.recolor()
-    }
+    for (const v of this.sparkles) v.sparkle!.visible = v.discovered && !this.visitedPois.includes(v.tile.poi!)
   }
 
   setVisitedPois(visited: PoiId[]) {
+    this.visitedPois = [...visited]
     for (const v of this.sparkles) {
       v.sparkle!.visible = v.discovered && !visited.includes(v.tile.poi!)
     }
+  }
+
+  private fading = new Set<TileView>()
+
+  /** How much of a tile's resource is left (0..1); its flowers / lilies / mushrooms follow. */
+  setFullness(key: string, full: number) {
+    const v = this.byKey.get(key)
+    if (!v || Math.abs(v.fullTarget - full) < 1e-3) return
+    v.fullTarget = full
+    if (!v.loaded || this.reducedMotion) {
+      v.full = full
+      if (v.loaded) {
+        this.writeTile(v, 1)
+        this.colorTile(v)
+      }
+      return
+    }
+    this.fading.add(v)
+  }
+
+  /** Number of tiles currently built into the scene. */
+  get loadedCount() {
+    return this.caps.count
   }
 
   /** Per-frame update. */
   update(dt: number) {
     this.time += dt
     for (const v of this.animating) {
-      v.anim = Math.min(1, v.anim + dt / 0.55)
-      this.writeTile(v, v.anim)
-      if (v.anim >= 1) {
+      if (v.anim >= 0) v.anim = Math.min(1, v.anim + dt / 0.55)
+      if (v.rise >= 0) v.rise = Math.min(1, v.rise + dt / 0.7)
+      this.writeTile(v, v.anim >= 0 ? v.anim : 1)
+      if ((v.anim < 0 || v.anim >= 1) && (v.rise < 0 || v.rise >= 1)) {
         v.anim = -1
+        v.rise = -1
         this.animating.delete(v)
         this.writeTile(v, 1)
       }
+    }
+    for (const v of this.fading) {
+      v.full += (v.fullTarget - v.full) * Math.min(1, dt * 3)
+      if (Math.abs(v.fullTarget - v.full) < 0.005) {
+        v.full = v.fullTarget
+        this.fading.delete(v)
+      }
+      if (!this.animating.has(v)) this.writeTile(v, 1)
+      this.colorTile(v)
     }
     const motion = this.reducedMotion ? 0 : 1
     for (const v of this.sparkles) {
@@ -368,7 +493,7 @@ export class WorldView {
   }
 
   tileAtInstance(id: number) {
-    return this.views[id]?.tile
+    return this.byCap[id]?.tile
   }
 
   dispose() {
