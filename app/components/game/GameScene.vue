@@ -5,7 +5,7 @@ import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
 import { gameAudio } from '~/audio/engine'
 import { perfAvailable, perfFrameEnd, perfFrameStart } from '~/utils/perfMonitor'
-import { BeePool, animateBee, inView, updateFrustum } from '~/game/beePool'
+import { BeePool, animateBee, inView, updateFrustum, warmBees } from '~/game/beePool'
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { WorldView } from '~/game/worldView'
@@ -282,6 +282,7 @@ function onWheel(ev: WheelEvent) {
 onMounted(() => {
   // Handy for poking at the scene from the browser console during development.
   if (import.meta.dev) Object.assign(window, { __hivebound: { renderer, game, hive, settings, rig, world, audio: gameAudio } })
+  warmBees(renderer)
   const el = renderer.domElement
   el.style.touchAction = 'none'
   el.addEventListener('pointerdown', onPointerDown)

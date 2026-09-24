@@ -353,8 +353,10 @@ export const useGame = defineStore('game', {
       }
     },
 
+    /** Out the way you came in: only from the doorway, so the bee never flies itself there. */
     leaveHive() {
       if (this.scene !== 'hive' || this.transition) return false
+      if (useHive().selected !== HIVE_DOOR) return false
       this.transition = 'exit'
       this.announce('Flying back out to the meadow.')
       return true
@@ -372,7 +374,8 @@ export const useGame = defineStore('game', {
       }
       if (this.scene === 'hive') {
         const hive = useHive()
-        if (!hive.selected || hive.selected === HIVE_DOOR) hive.selected = STARTER_CELL
+        // Every visit starts just inside the doorway; the bee goes wherever you steer it from there.
+        hive.selected = HIVE_DOOR
         hive.tick()
         if (hive.first('inside')) {
           this.addJournal({
@@ -388,7 +391,7 @@ export const useGame = defineStore('game', {
 
     endTransition() {
       this.transition = null
-      if (this.scene === 'hive') this.announce('Inside the Home Hive. Choose a cell to build on, collect from, or unseal.')
+      if (this.scene === 'hive') this.announce('Inside the Home Hive, at the doorway. Fly to a cell to build on, collect from, or unseal; come back to the doorway to leave.')
       else if (this.settingsNarration()) this.announce(this.describeHere())
     },
 

@@ -89,6 +89,7 @@ app/
 - **One action key:** `F` does whatever the floating prompt over the tile says: enter the hive, collect a building's tray, unseal a cell, or leave through the doorway.
 - **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with wax. Upgrades: bigger pouch, stronger wings, quicker gathering.
 - Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
+- Each visit starts at the **doorway**; you steer the bee from there, and leave by coming back to the doorway (`F`). Nothing flies you around on its own.
 - Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.
 
 ### Helper bees

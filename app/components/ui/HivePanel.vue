@@ -113,10 +113,6 @@ function build(id: BuildingId) {
       <h2 id="hive-title">
         Home Hive
       </h2>
-      <button class="chip-btn" @click="game.leaveHive()">
-        <UiIcon name="arrow" class="out" />
-        <span>Leave</span>
-      </button>
     </header>
 
     <!-- Store -->
