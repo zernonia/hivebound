@@ -4,6 +4,7 @@ import { useLoop, useTres } from '@tresjs/core'
 import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
 import { gameAudio } from '~/audio/engine'
+import { perfAvailable, perfFrameEnd, perfFrameStart } from '~/utils/perfMonitor'
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { WorldView } from '~/game/worldView'
@@ -717,6 +718,17 @@ function updatePrompt(cam: THREE.PerspectiveCamera) {
 /* ------------------------------------------------------------------ */
 let hiveSyncIn = 0
 const { onBeforeRender } = useLoop()
+
+// Dev performance overlay: time each frame from the first update hook to the end of three's
+// render call (wrapped once here; the timing only runs while the overlay is on).
+if (perfAvailable) {
+  onBeforeRender(() => perfFrameStart(), -1000)
+  const render = renderer.render.bind(renderer)
+  renderer.render = (scene, camera) => {
+    render(scene, camera)
+    perfFrameEnd(renderer.info, worldView.loadedCount)
+  }
+}
 onBeforeRender(({ delta }) => {
   const dt = Math.max(1e-4, Math.min(delta, 1 / 20))
   time += dt

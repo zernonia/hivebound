@@ -27,6 +27,7 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Fly home | `H` | Home button |
 | Action: enter the hive, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
 | Inside the hive: pick a cell | Movement keys | Tap a cell or the cell map |
+| Performance overlay (dev, or `?perf`) | `` ` `` | × on the overlay |
 | Minimap size | `M` | Expand button |
 | Zoom | `+` / `−` | Scroll, pinch, +/− buttons |
 | Settings | `Esc` / `O` | Gear button |
@@ -89,6 +90,9 @@ app/
 ### Music and sound
 - Everything is synthesised live with the Web Audio API (`app/audio/engine.ts`): a generative, never-quite-repeating piece (soft pad, bass, kalimba melody) that turns slower and warmer inside the hive, a wing buzz that follows flight speed, and one-shots for gathering, a full pouch, unloading, discoveries, the hive door, collecting and building.
 - Audio starts on the first key press or tap (browser autoplay rules) and pauses while the tab is hidden. Music and effect volumes are in Settings.
+
+### Performance overlay
+- In dev (or any build opened with `?perf`, e.g. a Cloudflare preview on a phone), `` ` `` toggles an overlay with FPS, a frame-time graph, **main-thread busy %** (the game's frame work as a share of time; browsers don't expose real CPU usage), long tasks, JS heap (Chromium), draw calls, triangles and loaded tiles. Low FPS with a mostly idle main thread is flagged as GPU-bound.
 
 ## Accessibility built in
 - **Reduce motion** (follows the OS setting by default): no bob, squash, pop-ins or springy UI, and a calmer camera.
