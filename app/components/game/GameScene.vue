@@ -10,6 +10,7 @@ import { BeePool, animateBee, inView, updateFrustum, warmBees } from '~/game/bee
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { GoldenSparkles } from '~/game/goldenSparkles'
+import { Fireflies } from '~/game/fireflies'
 import { ReadySign } from '~/game/readySign'
 import { useQueen } from '~/stores/queen'
 import { isGoldenSpot } from '~/utils/golden'
@@ -129,7 +130,8 @@ const outdoorBees = new BeePool()
 // Badges only where you can act next: the six tiles round the bee, plus the one under the mouse.
 const markers = new ResourceMarkers(8)
 const golden = new GoldenSparkles()
-worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group, outdoorBees.group, golden.group)
+const fireflies = new Fireflies()
+worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group, outdoorBees.group, golden.group, fireflies.group)
 const hiveView = new HiveView(HIVE_CELLS, QUEEN_CELL)
 
 const rig = new THREE.Group()
@@ -996,6 +998,7 @@ onBeforeRender(({ delta }) => {
     }
     markers.update(time)
     golden.update(time)
+    fireflies.update(time, nightNow, bee.root.position, groundY, rm)
     hiveSign.update(dt, time, rm)
     // Wild bees move to new tiles every few minutes.
     wildIn -= dt

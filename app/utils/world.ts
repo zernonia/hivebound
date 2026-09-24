@@ -1,7 +1,7 @@
 import { fbm, hash2, mulberry32 } from './noise'
 import { type Hex, hexDistance, hexKey, hexesInRange, hexToWorld } from './hex'
 
-export type Terrain = 'hive' | 'clearing' | 'grass' | 'meadow' | 'flowers' | 'forest' | 'water' | 'edge'
+export type Terrain = 'hive' | 'clearing' | 'grass' | 'meadow' | 'flowers' | 'forest' | 'water' | 'edge' | 'lavender' | 'amber'
 
 export interface Tile {
   q: number
@@ -14,6 +14,10 @@ export interface Tile {
   rand: number
   poi?: PoiId
   walkable: boolean
+  /** The ring of mist round the first island: impassable until chapter two lifts it. */
+  gate?: boolean
+  /** Beyond the mist (chapter two's land): hidden and closed until the mist lifts. */
+  beyond?: boolean
 }
 
 export type PoiId =
@@ -25,6 +29,9 @@ export type PoiId =
   | 'nest'
   | 'honeycomb'
   | 'mist'
+  | 'cottage'
+  | 'hollowoak'
+  | 'moonwell'
 
 export interface PoiDef {
   id: PoiId
@@ -35,7 +42,10 @@ export interface PoiDef {
 }
 
 export const WORLD_SEED = 1337
+/** The first island ends in a ring of mist at this distance. */
 export const WORLD_RADIUS = 24
+/** Chapter two's land lies between the mist and the far edge of the world. */
+export const OUTER_RADIUS = 32
 export const HOME: Hex = { q: 0, r: 0 }
 /** Doorstep of the home hive: where the bee starts and returns to. */
 export const DOORSTEP: Hex = { q: 0, r: 1 }
@@ -50,6 +60,8 @@ export const TERRAIN_LABEL: Record<Terrain, string> = {
   forest: 'Whispering Woods',
   water: 'Lily Water',
   edge: 'The Mist',
+  lavender: 'Lavender Heath',
+  amber: 'Amber Woods',
 }
 
 export const POIS: PoiDef[] = [
@@ -133,13 +145,45 @@ export const POIS: PoiDef[] = [
       body: 'The meadow just... stops. Beyond is a warm, shimmering haze. My wings feel too thin to go further. Not yet, anyway.',
     },
   },
+  // --- Beyond the mist (chapter two) ---
+  {
+    id: 'cottage',
+    name: 'Lavender Cottage',
+    terrain: ['lavender'],
+    ring: [26, 28],
+    journal: {
+      title: 'A cottage in the heather',
+      body: 'A tiny round house with a lavender roof, and nobody home. The doormat says WELCOME, BEES in very old letters. So someone expected us.',
+    },
+  },
+  {
+    id: 'hollowoak',
+    name: 'The Hollow Oak',
+    terrain: ['amber'],
+    ring: [27, 30],
+    journal: {
+      title: 'The Hollow Oak',
+      body: 'The biggest tree I have ever seen, glowing orange all the way up. Inside it is warm and hums like our hive. Old bees lived here. I am sure of it.',
+    },
+  },
+  {
+    id: 'moonwell',
+    name: 'The Moonwell',
+    terrain: ['water', 'lavender', 'grass'],
+    ring: [28, 30],
+    journal: {
+      title: 'The Moonwell',
+      body: 'A round stone well full of water so still it holds the whole sky. At night, they say, it keeps a little piece of the moon.',
+    },
+  },
 ]
 
 export const POI_BY_ID = Object.fromEntries(POIS.map(p => [p.id, p])) as Record<PoiId, PoiDef>
 
 function pickTerrain(q: number, r: number, d: number): { terrain: Terrain, height: number } {
   if (d === 0) return { terrain: 'hive', height: 0.18 }
-  if (d >= WORLD_RADIUS) return { terrain: 'edge', height: 0 }
+  if (d === WORLD_RADIUS || d >= OUTER_RADIUS) return { terrain: 'edge', height: 0 }
+  if (d > WORLD_RADIUS) return pickBeyond(q, r)
   const { x, z } = hexToWorld({ q, r })
   const e = fbm(x * 0.09, z * 0.09, WORLD_SEED)
   const m = fbm(x * 0.12 + 40, z * 0.12 - 17, WORLD_SEED + 7)
@@ -153,6 +197,19 @@ function pickTerrain(q: number, r: number, d: number): { terrain: Terrain, heigh
   return { terrain: 'grass', height: 0 }
 }
 
+/** Chapter two's land: lavender heath, amber woods, meadow and a few pools. */
+function pickBeyond(q: number, r: number): { terrain: Terrain, height: number } {
+  const { x, z } = hexToWorld({ q, r })
+  const e = fbm(x * 0.1 + 90, z * 0.1 - 33, WORLD_SEED + 21)
+  const m = fbm(x * 0.13 - 12, z * 0.13 + 71, WORLD_SEED + 29)
+  const step = 0.14
+  if (m > 0.66) return { terrain: 'water', height: -0.1 }
+  if (e > 0.55) return { terrain: 'amber', height: step * 2 }
+  if (m < 0.44) return { terrain: 'lavender', height: step }
+  if (e > 0.45) return { terrain: 'meadow', height: step }
+  return { terrain: 'grass', height: 0 }
+}
+
 export interface World {
   tiles: Tile[]
   byKey: Map<string, Tile>
@@ -162,7 +219,10 @@ export interface World {
 export function generateWorld(): World {
   const tiles: Tile[] = []
   const byKey = new Map<string, Tile>()
-  for (const h of hexesInRange(HOME, WORLD_RADIUS)) {
+  // The first island is generated exactly as before (same order, so the same places land in
+  // the same spots), then the land beyond the mist is appended after it.
+  const beyond = hexesInRange(HOME, OUTER_RADIUS).filter(h => hexDistance(HOME, h) > WORLD_RADIUS)
+  for (const h of [...hexesInRange(HOME, WORLD_RADIUS), ...beyond]) {
     const d = hexDistance(HOME, h)
     const { terrain, height } = pickTerrain(h.q, h.r, d)
     const t: Tile = {
@@ -174,6 +234,8 @@ export function generateWorld(): World {
       rand: hash2(h.q, h.r, WORLD_SEED + 99),
       walkable: terrain !== 'edge' && terrain !== 'hive',
     }
+    if (d === WORLD_RADIUS) t.gate = true
+    if (d > WORLD_RADIUS) t.beyond = true
     tiles.push(t)
     byKey.set(t.key, t)
   }

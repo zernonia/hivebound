@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { hexKey, hexToWorld, worldToHex } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
-import { POIS, POI_BY_ID, WORLD_RADIUS, useWorldData } from '~/utils/world'
+import { OUTER_RADIUS, POIS, POI_BY_ID, WORLD_RADIUS, useWorldData } from '~/utils/world'
+import { useQueen } from '~/stores/queen'
 import { useGame } from '~/stores/game'
 import { useSettings } from '~/stores/settings'
 
@@ -18,19 +19,22 @@ onMounted(() => {
 })
 const size = computed(() => (settings.largeMinimap ? (narrow.value ? 220 : 260) : narrow.value ? 112 : 156))
 
-// Large map shows the whole island; small map is a local view around the bee.
-const FULL_EXTENT = (WORLD_RADIUS + 1) * 1.5
+// Large map shows the whole island (and the land beyond the mist, once it lifts); small map
+// is a local view around the bee.
+const queen = useQueen()
+const fullExtent = computed(() => ((queen.mistLifted ? OUTER_RADIUS : WORLD_RADIUS) + 1) * 1.5)
 const LOCAL_EXTENT = 7 * 1.5
 const view = computed(() => {
-  const extent = settings.largeMinimap ? FULL_EXTENT : LOCAL_EXTENT
+  const extent = settings.largeMinimap ? fullExtent.value : LOCAL_EXTENT
   const c = settings.largeMinimap ? { x: 0, z: 0 } : hexToWorld(game.pos)
   return { extent, cx: c.x, cz: c.z, scale: size.value / 2 / extent }
 })
 
 const summary = computed(() => {
   void game.revealTick
-  const walkable = world.tiles.filter(t => t.walkable).length
-  const seen = world.tiles.filter(t => t.walkable && game.discovered.has(t.key)).length
+  const open = world.tiles.filter(t => t.walkable && (!t.beyond || queen.mistLifted))
+  const walkable = open.length
+  const seen = open.filter(t => game.discovered.has(t.key)).length
   const found = world.pois.filter(p => game.discovered.has(hexKey(p.hex))).length
   return `Map. Explored ${Math.round((seen / walkable) * 100)} percent of the meadow. ${found} of ${POIS.length} places found, ${game.visitedPois.length} visited.`
 })
@@ -74,6 +78,8 @@ function draw() {
 
   // Island silhouette so the unexplored area still reads as "there's more".
   for (const t of world.tiles) {
+    // The land beyond the mist isn't even hinted at until the mist lifts.
+    if (t.beyond && !queen.mistLifted) continue
     const { x, z } = hexToWorld(t)
     hexPath(cx + x * scale, cy + z * scale, r)
     if (game.discovered.has(t.key)) {
@@ -151,7 +157,7 @@ const schedule = () => {
   raf = requestAnimationFrame(draw)
 }
 watch(
-  () => [game.revealTick, game.pos, game.queue.length, game.visitedPois.length, settings.colorVisionFriendly, settings.highContrast, size.value],
+  () => [game.revealTick, game.pos, game.queue.length, game.visitedPois.length, settings.colorVisionFriendly, settings.highContrast, size.value, queen.mistLifted],
   schedule,
 )
 onMounted(schedule)

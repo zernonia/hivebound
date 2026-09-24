@@ -59,6 +59,14 @@ const TERRAIN_NOTES: Partial<Record<Terrain, { title: string, body: string }>> =
     title: 'Lily water',
     body: 'Cool air rises off the water. My reflection looked brave. I looked back at it bravely.',
   },
+  lavender: {
+    title: 'Lavender heath',
+    body: 'Purple as far as I can see, and humming. The nectar here is sweeter and there is more of it. I may never leave. (I will leave. But slowly.)',
+  },
+  amber: {
+    title: 'The Amber Woods',
+    body: 'Every tree is orange and gold, as if autumn lives here all year. Resin drips down the bark like honey. It is warm, and very, very quiet.',
+  },
 }
 
 const SAVE_KEY = 'hivebound:save:v1'
@@ -250,6 +258,8 @@ export const useGame = defineStore('game', {
       const fresh: string[] = []
       for (const h of hexesInRange(center, REVEAL_RADIUS)) {
         const k = hexKey(h)
+        // Nothing beyond the mist is seen until it lifts.
+        if (world.byKey.get(k)?.beyond && !useQueen().mistLifted) continue
         if (world.byKey.has(k) && !this.discovered.has(k)) {
           this.discovered.add(k)
           fresh.push(k)
@@ -268,7 +278,11 @@ export const useGame = defineStore('game', {
 
     // ---------- movement ----------
     isWalkable(h: Hex) {
-      return !!useWorldData().byKey.get(hexKey(h))?.walkable
+      const tile = useWorldData().byKey.get(hexKey(h))
+      if (!tile) return false
+      // The mist ring and the land beyond open only once chapter one lifts the mist.
+      if (tile.gate || tile.beyond) return useQueen().mistLifted && (tile.gate || tile.walkable)
+      return tile.walkable
     },
 
     /** Queue a route to any tile. */

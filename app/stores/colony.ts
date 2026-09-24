@@ -446,6 +446,7 @@ export const useColony = defineStore('colony', {
         const st = hive.status(cell, now)
         if (st.kind === 'working') return `Working the ${where} · ${st.remaining}s`
         if (st.kind === 'full') return `${where} paused: the store is full`
+        if (st.kind === 'paused') return `Resting: the ${where} is paused`
         if (st.kind === 'waiting') {
           const need = Object.keys(st.missing).map(r => RESOURCE_INFO[r as keyof typeof RESOURCE_INFO].name.toLowerCase())
           return `Waiting for ${need.join(' and ')} at the ${where}`

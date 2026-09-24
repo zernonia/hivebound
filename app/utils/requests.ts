@@ -1,6 +1,7 @@
 import type { KeepsakeId } from './keepsakes'
 import { hash2 } from './noise'
 import type { Amounts, BuildingId } from './resources'
+import type { SpeciesId } from './species'
 import type { PoiId } from './world'
 
 /*
@@ -16,6 +17,8 @@ export type Goal =
   | { kind: 'deliver', amounts: Amounts }
   | { kind: 'build', building: BuildingId }
   | { kind: 'friends', count: number }
+  /** Have this many helpers of one species. */
+  | { kind: 'species', species: SpeciesId, count: number }
   | { kind: 'visit', poi: PoiId }
 
 export interface Reward {
@@ -76,8 +79,8 @@ export const CHAPTER_ONE: RequestDef[] = [
   {
     id: 'wax-walls',
     title: 'Wax for the walls',
-    ask: 'A Wax Works turns tree resin and honey into wax. Build one and bring me three wax.',
-    goals: [{ kind: 'build', building: 'waxworks' }, { kind: 'deliver', amounts: { wax: 3 } }],
+    ask: 'A Wax Works turns tree resin and honey into wax. Build one and bring me four wax. (You can pause it in its panel when you\'d rather keep your honey.)',
+    goals: [{ kind: 'build', building: 'waxworks' }, { kind: 'deliver', amounts: { wax: 4 } }],
     reward: { gift: { honey: 4, wax: 2 } },
     thanks: 'Beautiful wax, smooth as a pebble. Keep some to unseal the old cells, and have this honey.',
   },
@@ -118,12 +121,70 @@ export const CHAPTER_ONE: RequestDef[] = [
   {
     id: 'feast',
     title: 'A feast for the hive',
-    ask: 'Let\'s celebrate everything you\'ve done. Fifteen honey, five bee bread and three golden pollen for a hive feast!',
-    goals: [{ kind: 'deliver', amounts: { honey: 15, beebread: 5, golden: 3 } }],
+    ask: 'Let\'s celebrate everything you\'ve done. Twelve honey, four bee bread and three golden pollen for a hive feast!',
+    goals: [{ kind: 'deliver', amounts: { honey: 12, beebread: 4, golden: 3 } }],
     reward: { storage: 20, gift: { wax: 6 } },
-    thanks: 'What a feast! Everyone danced until the lamps went dim. Thank you, little explorer. The meadow is ours to share now. There will always be little wishes, if you have time.',
+    thanks: 'What a feast! Everyone danced until the lamps went dim. And listen: the mist at the edge of the meadow is thinning. Something is waiting out there, little explorer.',
   },
 ]
+
+/** Chapter two: past the mist. Unlocked by the feast, which lifts the mist ring. */
+export const CHAPTER_TWO: RequestDef[] = [
+  {
+    id: 'past-the-mist',
+    title: 'Past the mist',
+    ask: 'The mist has thinned enough to fly through! Old stories speak of a little cottage in the lavender beyond it. I\'ve marked where I think it is.',
+    goals: [{ kind: 'visit', poi: 'cottage' }],
+    reward: { storage: 10 },
+    thanks: 'A cottage that says WELCOME, BEES? Then this land was ours once, too. How lovely to be expected.',
+    reveal: 'cottage',
+  },
+  {
+    id: 'lavender-friend',
+    title: 'A friend in purple',
+    ask: 'Lavender Bees hum in the heath out there. Would you dance with one and bring them home?',
+    goals: [{ kind: 'species', species: 'lavender', count: 1 }],
+    reward: { gift: { honey: 5, beebread: 2 } },
+    thanks: 'Such a calm, sweet-smelling friend. The nursery already feels sleepier.',
+  },
+  {
+    id: 'amber-resin',
+    title: 'Amber resin',
+    ask: 'The Amber Woods drip with the finest resin. Fly home ten, and the Wax Works will sing.',
+    goals: [{ kind: 'bring', amounts: { resin: 10 } }],
+    reward: { gift: { wax: 5 } },
+    thanks: 'Glowing like little suns! This wax will be the best we\'ve ever made.',
+  },
+  {
+    id: 'hollow-oak',
+    title: 'The Hollow Oak',
+    ask: 'Deep in the Amber Woods there is a tree so big a whole hive could live inside. I\'ve marked it. Go and see?',
+    goals: [{ kind: 'visit', poi: 'hollowoak' }],
+    reward: { storage: 10 },
+    thanks: 'A hive inside a tree, humming all by itself? Then we were never really alone out here.',
+    reveal: 'hollowoak',
+  },
+  {
+    id: 'moonwell',
+    title: 'The Moonwell',
+    ask: 'They say the Moonwell holds a piece of the moon. Visit it, and bring me three grains of golden pollen for a wish.',
+    goals: [{ kind: 'visit', poi: 'moonwell' }, { kind: 'deliver', amounts: { golden: 3 } }],
+    reward: { storage: 10, gift: { honey: 6 } },
+    thanks: 'I made my wish. I can\'t tell you what it was, but I think you\'ll like it.',
+    reveal: 'moonwell',
+  },
+  {
+    id: 'big-family',
+    title: 'One big family',
+    ask: 'Our hive, the wild bees, the old hive in the oak. Let\'s bring everyone together: eight helpers, and a feast of twenty honey and ten wax.',
+    goals: [{ kind: 'friends', count: 8 }, { kind: 'deliver', amounts: { honey: 20, wax: 10 } }],
+    reward: { storage: 20, keepsake: 'starpin' },
+    thanks: 'Look at us all! You flew further than any bee in a hundred summers. Wear this star, little explorer. You\'ve earned it. The little wishes will keep coming, whenever you like.',
+  },
+]
+
+/** Chapter one and two, back to back. */
+export const STORY: RequestDef[] = [...CHAPTER_ONE, ...CHAPTER_TWO]
 
 const WISH_TITLES = ['A little wish', 'Something sweet', 'For the nursery', 'A cosy evening', 'Spring cleaning', 'Tea with the Queen', 'Just because']
 const WISH_ASKS = [
@@ -153,5 +214,5 @@ export function littleWish(n: number): RequestDef {
 
 /** The request at position `i` in the whole sequence. */
 export function requestAt(i: number): RequestDef {
-  return i < CHAPTER_ONE.length ? CHAPTER_ONE[i]! : littleWish(i - CHAPTER_ONE.length)
+  return i < STORY.length ? STORY[i]! : littleWish(i - STORY.length)
 }

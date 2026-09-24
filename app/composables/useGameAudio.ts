@@ -2,21 +2,24 @@ import { gameAudio } from '~/audio/engine'
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
+import { isNight } from '~/utils/daylight'
 
 /**
  * Connects game state to sound: unlocks audio on the first key press / tap, follows the
- * volume settings and the scene (meadow / hive music), and plays one-shots when things
+ * volume settings and the scene (meadow / night / hive music), and plays one-shots when things
  * happen. The wing buzz is driven per frame from GameScene.
  */
 export function useGameAudio() {
   const game = useGame()
   const hive = useHive()
   const settings = useSettings()
+  /** Hive inside; outside, night music after dark (when day and night are on). */
+  const mood = () => (game.scene === 'hive' ? 'hive' : settings.dayNight && isNight() ? 'night' : 'meadow')
 
   const unlock = () => {
     gameAudio.unlock()
     gameAudio.setVolumes(settings.musicVolume, settings.sfxVolume)
-    gameAudio.setMood(game.scene === 'hive' ? 'hive' : 'meadow')
+    gameAudio.setMood(mood())
   }
   const onVisibility = () => gameAudio.setSuspended(document.visibilityState === 'hidden')
 
@@ -33,7 +36,10 @@ export function useGameAudio() {
   })
 
   watch(() => [settings.musicVolume, settings.sfxVolume] as const, ([m, s]) => gameAudio.setVolumes(m, s))
-  watch(() => game.scene, s => gameAudio.setMood(s === 'hive' ? 'hive' : 'meadow'))
+  watch(() => [game.scene, settings.dayNight], () => gameAudio.setMood(mood()))
+  // Dusk and dawn come on the real clock: check now and then whether the mood should turn.
+  const moodClock = setInterval(() => gameAudio.setMood(mood()), 15_000)
+  onBeforeUnmount(() => clearInterval(moodClock))
 
   // Gathering fills the pouch; reaching the doorstep (or going inside) empties it.
   watch(() => hive.pouchTotal, (n, old) => {
