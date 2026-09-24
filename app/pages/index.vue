@@ -3,17 +3,20 @@ import type { Direction } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { perfAvailable, togglePerf } from '~/utils/perfMonitor'
 import { useGame } from '~/stores/game'
+import { useColony } from '~/stores/colony'
 import { useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
 
 const game = useGame()
 const hive = useHive()
+const colony = useColony()
 const settings = useSettings()
 const held = useHeldDirection()
 
 settings.load()
 game.load()
 hive.load()
+colony.load()
 useGameAudio()
 
 // Persist settings whenever they change.
@@ -61,6 +64,17 @@ function onKeyDown(e: KeyboardEvent) {
   if (target?.closest('input, textarea, select, [contenteditable]')) return
   // Nothing steers the bee while it's flying through the hive door.
   if (game.transition) return
+  // Befriending dance: F (or Space) to catch the green, Esc to back away.
+  if (colony.dance) {
+    if (e.code === 'KeyF' || e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault()
+      if (!e.repeat) colony.danceHit()
+    }
+    else if (e.code === 'Escape') {
+      colony.endDance()
+    }
+    return
+  }
 
   // F: the contextual action shown in the floating prompt (enter, collect, unseal, leave).
   if (e.code === 'KeyF') {
@@ -133,10 +147,15 @@ function onKeyUp(e: KeyboardEvent) {
 const saveNow = () => {
   game.save()
   hive.save()
+  colony.save()
 }
 // Buildings run on real time: advance them every second, and catch up when the tab returns.
 let hiveClock: ReturnType<typeof setInterval> | undefined
-const catchUp = () => document.visibilityState === 'visible' && hive.tick()
+const catchUp = () => {
+  if (document.visibilityState !== 'visible') return
+  hive.tick()
+  colony.tick()
+}
 
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
@@ -144,7 +163,10 @@ onMounted(() => {
   window.addEventListener('blur', held.clear)
   window.addEventListener('pagehide', saveNow)
   document.addEventListener('visibilitychange', catchUp)
-  hiveClock = setInterval(() => hive.tick(), 1000)
+  hiveClock = setInterval(() => {
+    hive.tick()
+    colony.tick()
+  }, 1000)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
@@ -178,6 +200,7 @@ watch(() => game.journalOpen || game.settingsOpen, open => open && held.clear())
     <SettingsPanel />
     <Announcer />
     <HiveIris />
+    <BefriendDance />
     <PerfOverlay v-if="perfAvailable" />
   </main>
 </template>

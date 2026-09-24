@@ -13,9 +13,11 @@ import {
   hexesInRange,
   neighbor,
 } from '~/utils/hex'
+import { useColony } from './colony'
 import { HIVE_DOOR, STARTER_CELL, useHive } from './hive'
 import { useSettings } from './settings'
 import { RESOURCE_INFO, UNLOCK_CELL_COST, tileSource } from '~/utils/resources'
+import { SPECIES } from '~/utils/species'
 import { DOORSTEP, HOME, POI_BY_ID, type PoiId, REVEAL_RADIUS, TERRAIN_LABEL, type Terrain, useWorldData } from '~/utils/world'
 
 export type JournalIcon = 'hive' | 'poi' | 'terrain'
@@ -31,7 +33,7 @@ export interface JournalEntry {
   unread: boolean
 }
 
-export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal'
+export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal' | 'befriend'
 
 export interface Toast {
   id: number
@@ -122,8 +124,14 @@ export const useGame = defineStore('game', {
     primaryAction(s): { id: ActionId, label: string } | null {
       if (s.transition) return null
       if (s.scene === 'world') {
-        const beside = hexDistance(s.pos, HOME) === 1 && !s.queue.length
-        return beside ? { id: 'enter', label: 'Enter hive' } : null
+        if (s.queue.length) return null
+        const colony = useColony()
+        if (colony.dance) return null
+        // A wild bee here comes first: they wander off, the hive doesn't.
+        void colony.rev
+        const wild = colony.wildBeeAt(useWorldData().byKey.get(hexKey(s.pos)))
+        if (wild) return { id: 'befriend', label: `Befriend ${SPECIES[wild].name}` }
+        return hexDistance(s.pos, HOME) === 1 ? { id: 'enter', label: 'Enter hive' } : null
       }
       const hive = useHive()
       const key = hive.selected
@@ -204,6 +212,7 @@ export const useGame = defineStore('game', {
       this.irisClosed = false
       this.enterOnArrival = false
       useHive().reset()
+      useColony().reset()
       this.load()
       this.announce('Progress reset. You are back at the Home Hive.')
     },
@@ -340,6 +349,7 @@ export const useGame = defineStore('game', {
         case 'leave': return this.leaveHive()
         case 'collect': return hive.collect(hive.selected!) > 0
         case 'unseal': return hive.unlock(hive.selected!)
+        case 'befriend': return useColony().startDance(hexKey(this.pos))
       }
     },
 

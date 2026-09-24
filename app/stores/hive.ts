@@ -26,7 +26,7 @@ import { useGame } from './game'
 /* ------------------------------------------------------------------ */
 
 export const HIVE_CENTER: Hex = { q: 0, r: 0 }
-export const HIVE_RADIUS = 2
+export const HIVE_RADIUS = 3
 export const HIVE_CELLS: Hex[] = hexesInRange(HIVE_CENTER, HIVE_RADIUS)
 export const QUEEN_CELL = hexKey(HIVE_CENTER)
 /** The press you start with. */
@@ -252,6 +252,31 @@ export const useHive = defineStore('hive', {
         })
       }
       return src.resource
+    },
+
+    /**
+     * Takes up to `n` units from a tile at time `at` (helper bees, including offline catch-up).
+     * Returns how many were taken.
+     */
+    takeFromTile(tile: Tile, n: number, at: number) {
+      const src = tileSource(tile)
+      if (!src) return 0
+      const have = this.tileAmount(tile, at)
+      const take = Math.min(n, have)
+      if (take <= 0) return 0
+      const rec = this.tiles[tile.key]
+      const ms = src.regen * 1000
+      const since = rec ? Math.max(0, at - rec.at) : 0
+      const keptAt = !rec || have >= src.max ? at : rec.at + Math.floor(since / ms) * ms
+      this.tiles[tile.key] = { amount: have - take, at: keptAt }
+      return take
+    },
+
+    /** Adds to the store as far as storage allows; returns how many fitted. */
+    addStock(r: Resource, n: number) {
+      const fit = Math.max(0, Math.min(n, this.storageCap - this.stock[r]))
+      this.stock[r] += fit
+      return fit
     },
 
     /** Empties the pouch into the hive store (as far as storage allows). */

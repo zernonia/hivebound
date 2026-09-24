@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { type CellStatus, HIVE_CELLS, HIVE_DOOR, QUEEN_CELL, useHive } from '~/stores/hive'
+import { type CellStatus, HIVE_CELLS, HIVE_DOOR, HIVE_RADIUS, QUEEN_CELL, useHive } from '~/stores/hive'
+import { type BeeJob, useColony } from '~/stores/colony'
+import { SPECIES } from '~/utils/species'
 import { useGame } from '~/stores/game'
+import { RAW_RESOURCES } from '~/utils/resources'
 import { hexKey } from '~/utils/hex'
 import {
   ALL_RESOURCES,
@@ -20,7 +23,9 @@ import {
 const hive = useHive()
 const game = useGame()
 
-const tab = ref<'cells' | 'upgrades'>('cells')
+const tab = ref<'cells' | 'colony' | 'upgrades'>('cells')
+const colony = useColony()
+const jobs: { v: BeeJob, label: string }[] = [...RAW_RESOURCES.map(r => ({ v: r as BeeJob, label: RESOURCE_INFO[r].name })), { v: null, label: 'Rest' }]
 
 // The comb map (layout + unsealing) is tucked away until asked for; the choice is remembered.
 const MAP_KEY = 'hivebound:hive-map'
@@ -46,7 +51,7 @@ onMounted(() => (timer = setInterval(() => (now.value = Date.now()), 500)))
 onBeforeUnmount(() => clearInterval(timer))
 
 /* ---------------- comb map ---------------- */
-const S = 27 // hex size in px
+const S = 24 // hex size in px
 const cells = computed(() => HIVE_CELLS.map((h) => {
   const key = hexKey(h)
   void hive.rev
@@ -132,6 +137,9 @@ function build(id: BuildingId) {
       <button id="tab-cells" role="tab" :aria-selected="tab === 'cells'" aria-controls="panel-cells" :class="{ on: tab === 'cells' }" @click="tab = 'cells'">
         Cells
       </button>
+      <button id="tab-colony" role="tab" :aria-selected="tab === 'colony'" aria-controls="panel-colony" :class="{ on: tab === 'colony' }" @click="tab = 'colony'">
+        Colony <span class="count">{{ colony.bees.length }}</span>
+      </button>
       <button id="tab-upgrades" role="tab" :aria-selected="tab === 'upgrades'" aria-controls="panel-upgrades" :class="{ on: tab === 'upgrades' }" @click="tab = 'upgrades'">
         Upgrades
       </button>
@@ -160,6 +168,7 @@ function build(id: BuildingId) {
             <svg v-else-if="c.status.kind === 'locked'" viewBox="0 0 24 24" class="glyph"><rect x="6" y="11" width="12" height="9" rx="2" fill="#f2b544" stroke="#5b3a24" stroke-width="1.6" /><path d="M9 11V8.5a3 3 0 0 1 6 0V11" fill="none" stroke="#5b3a24" stroke-width="1.6" /></svg>
             <ResourceIcon v-else-if="c.building && productOf(c.building)" :name="productOf(c.building)!" />
             <svg v-else-if="c.building === 'larder'" viewBox="0 0 24 24" class="glyph"><path d="M7 6h10v13H7z M7 12.5h10" fill="#f2b43c" stroke="#5b3a24" stroke-width="1.6" stroke-linejoin="round" /></svg>
+            <svg v-else-if="c.building === 'room'" viewBox="0 0 24 24" class="glyph"><path d="M4 17V9m0 5h16v3m0-3v-2a3 3 0 0 0-3-3h-6v5" fill="none" stroke="#5b3a24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><circle cx="7.5" cy="11" r="1.8" fill="#f7a1b5" stroke="#5b3a24" stroke-width="1.4" /></svg>
             <span v-else class="plus">+</span>
           </span>
           <span v-if="c.output" class="badge" aria-hidden="true">{{ c.output }}</span>
@@ -168,7 +177,7 @@ function build(id: BuildingId) {
         <button
           class="cell door"
           :class="{ sel: hive.selected === HIVE_DOOR }"
-          :style="{ transform: `translate(0px, ${S * Math.sqrt(3) * 3}px)` }"
+          :style="{ transform: `translate(0px, ${S * Math.sqrt(3) * (HIVE_RADIUS + 1)}px)` }"
           :aria-pressed="hive.selected === HIVE_DOOR"
           aria-label="Doorway, the way out"
           @click="hive.selected = HIVE_DOOR"
@@ -286,11 +295,51 @@ function build(id: BuildingId) {
               </button>
             </div>
           </template>
+          <p v-else-if="selBuilding.housing" class="status">
+            A home for {{ selBuilding.housing }} helper bees. The colony has {{ colony.bees.length }} of {{ colony.capacity }} beds filled.
+          </p>
           <p v-else class="status">
             Adds room for {{ selBuilding.storage }} more of every resource.
           </p>
         </template>
       </div>
+    </div>
+
+    <!-- Colony -->
+    <div v-show="tab === 'colony'" id="panel-colony" role="tabpanel" aria-labelledby="tab-colony" class="body">
+      <p class="beds">
+        <strong>{{ colony.bees.length }} / {{ colony.capacity }}</strong> beds filled
+        <span v-if="!colony.hasRoom" class="note"> · build a Bee Room for more</span>
+      </p>
+      <p v-if="!colony.bees.length" class="blurb">
+        No helpers yet. Wild bees hover over meadows, flower patches, water and woods: fly onto one and press <span class="kbd">F</span> to try the befriending dance. There's always a friendly Bumble at the Wild Nest.
+      </p>
+      <ul class="colony">
+        <li v-for="b in colony.bees" :key="b.id" class="friend">
+          <div class="friend-head">
+            <span class="swatch" :style="{ background: SPECIES[b.species].look.colors.body, borderColor: SPECIES[b.species].look.colors.stripe }" aria-hidden="true" />
+            <span class="who"><strong>{{ b.name }}</strong> <span class="species">{{ SPECIES[b.species].name }}</span></span>
+          </div>
+          <p class="status-line">
+            {{ (void now, colony.statusText(b, now)) }}
+          </p>
+          <div class="jobs" role="radiogroup" :aria-label="`${b.name}'s job`">
+            <button
+              v-for="j in jobs"
+              :key="j.label"
+              role="radio"
+              :aria-checked="b.job === j.v"
+              :class="{ on: b.job === j.v, fav: j.v === SPECIES[b.species].favourite }"
+              :title="j.v === SPECIES[b.species].favourite ? `${j.label} (favourite)` : j.label"
+              @click="colony.setJob(b.id, j.v)"
+            >
+              <ResourceIcon v-if="j.v" :name="j.v" />
+              <span v-else>Rest</span>
+              <span v-if="j.v" class="sr-only">{{ j.label }}</span>
+            </button>
+          </div>
+        </li>
+      </ul>
     </div>
 
     <!-- Upgrades -->
@@ -411,6 +460,81 @@ h3 {
   padding: 0 6px 6px;
 }
 /* Honeycomb map of the cells */
+.tabs .count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--paper-2);
+  font-size: 0.8rem;
+}
+.beds {
+  margin: 0 0 8px;
+}
+.colony {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.friend {
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 8px 10px;
+}
+.friend-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.swatch {
+  width: 22px;
+  height: 20px;
+  border-radius: 7px;
+  border: 3px solid;
+  flex: none;
+}
+.species {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.status-line {
+  margin: 4px 0 6px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.jobs {
+  display: flex;
+  gap: 4px;
+}
+.jobs button {
+  flex: 1;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+  font-weight: 700;
+  font-size: 0.85rem;
+  position: relative;
+}
+.jobs button.on {
+  background: var(--honey);
+  border-color: var(--honey-deep);
+}
+.jobs button.fav::after {
+  content: '♥';
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  font-size: 0.65rem;
+  color: #e8553f;
+}
 .map-toggle {
   display: flex;
   align-items: center;
@@ -440,12 +564,12 @@ h3 {
 }
 .comb {
   position: relative;
-  height: 330px;
+  height: 364px;
   margin: 0;
 }
 /* The comb is centred a little high so the doorway fits underneath. */
 .comb .cell {
-  top: calc(50% - 23px - 38px);
+  top: calc(50% - 22px - 21px);
 }
 .door-bg {
   background: #fff1c2;
@@ -458,10 +582,10 @@ h3 {
 }
 .cell {
   position: absolute;
-  left: calc(50% - 26px);
+  left: calc(50% - 24px);
   top: calc(50% - 23px);
-  width: 52px;
-  height: 46px;
+  width: 48px;
+  height: 44px;
   padding: 0;
   border: 0;
   background: none;
@@ -640,7 +764,7 @@ h3 {
     padding: 12px 14px;
   }
   .comb {
-    height: 320px;
+    height: 350px;
   }
 }
 </style>

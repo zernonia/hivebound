@@ -390,6 +390,28 @@ export class GameAudio {
     this.pluck(midi(84), t, { gain: 0.025, decay: 0.08, type: 'sine' })
   }
 
+  /** Befriending dance: the marker just entered the green. */
+  danceCue() {
+    const t = this.now()
+    if (t < 0) return
+    this.pluck(midi(91), t, { gain: 0.04, decay: 0.12, type: 'sine' })
+  }
+
+  /** A new friend joined. */
+  befriended() {
+    const t = this.now()
+    if (t < 0) return
+    ;[67, 71, 74, 79, 83].forEach((n, i) => this.kalimba(midi(n), t + i * 0.1, 0.09, 'sfx'))
+  }
+
+  /** Missed the green: a soft, low "oops". */
+  danceMiss() {
+    const t = this.now()
+    if (t < 0) return
+    this.kalimba(midi(55), t, 0.08, 'sfx')
+    this.kalimba(midi(52), t + 0.12, 0.07, 'sfx')
+  }
+
   dispose() {
     if (this.timer) clearInterval(this.timer)
     void this.ctx?.close()

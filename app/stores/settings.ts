@@ -19,6 +19,8 @@ export interface SettingsState {
   /** 0..1; 0 turns it off. */
   musicVolume: number
   sfxVolume: number
+  /** Slower marker and a wider green arc in the befriending dance. */
+  easyBefriend: boolean
 }
 
 const STORAGE_KEY = 'hivebound:settings:v1'
@@ -56,6 +58,7 @@ export const useSettings = defineStore('settings', {
     zoom: 1.2,
     musicVolume: 0.4,
     sfxVolume: 0.6,
+    easyBefriend: false,
   }),
   getters: {
     /** Seconds to fly one hex. */

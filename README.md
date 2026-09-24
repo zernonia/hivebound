@@ -25,7 +25,8 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Look around (narrated) | `L` | Look button |
 | Journal | `J` | Journal button |
 | Fly home | `H` | Home button |
-| Action: enter the hive, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
+| Action: enter the hive, befriend, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
+| Befriending dance: catch in the green | `F` (`Esc` backs away) | Tap the ring |
 | Inside the hive: pick a cell | Movement keys | Tap a cell or the cell map |
 | Performance overlay (dev, or `?perf`) | `` ` `` | × on the overlay |
 | Minimap size | `M` | Expand button |
@@ -54,16 +55,19 @@ app/
     accessories.ts           Accessories that attach to the bee's anchors (crown…)
     hiveView.ts              Inside the hive: comb cells, Queen, walls, motes, trays
     resourceMarkers.ts       Floating badges over neighbouring / hovered tiles showing what can be gathered
-    buildings.ts             Hive building models (press, kitchen, wax works, larder)
+    buildings.ts             Hive building models (press, kitchen, wax works, larder, bee room)
+    beePool.ts               Pooled models for other bees (0.8× scale) + frustum check
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
     game.ts                  Position, route queue, discovery, journal, narration, save/load
     settings.ts              Accessibility & comfort settings (persisted)
     hive.ts                  Pouch, store, tile supplies, buildings, upgrades, offline catch-up
+    colony.ts                Wild encounters, befriending dance, helper bees, jobs + trips
   utils/
     hex.ts                   Axial flat-top hex math, BFS pathfinding
     world.ts                 Seeded world generation, terrain, points of interest + journal text
     resources.ts             Resources, which tiles yield them, buildings, recipes, upgrades
+    species.ts               Wild bee species: look, habitat, favourite job, speed, dance
     palette.ts               Default + colour-vision-friendly palettes
     noise.ts                 Seeded RNG + value noise
 ```
@@ -87,6 +91,12 @@ app/
 - Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
 - Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.
 
+### Helper bees
+- **Wild bees** hover over their home terrain: Bumbles on meadows, Masons on flowers, Dew Bees on water, Carpenters in forests. The Wild Nest always has a friendly Bumble for your first friend; elsewhere encounters come and go every few minutes.
+- **Befriend** one with `F`: a marker circles a ring, and you press `F` (or tap the ring) while it's inside the green arc. You get three tries; each species dances at its own speed. A soft tick plays as the marker enters the green, so it works by ear too. *Easier befriending* in Settings slows it down and widens the arc.
+- **Helpers** live in the hive. You start with 2 beds; each **Bee Room** adds 4, up to a colony of 20. Give each bee a job in the hive panel's **Colony** tab (nectar, pollen, water, resin, or rest); they fly to the nearest explored tile with that resource, gather, bring it home to the store, and take a little rest. Each species prefers its favourite (♥) and is a bit slower than you, so exploring yourself always gathers faster.
+- Helpers keep working while the game is closed (same 8-hour cap). They're drawn smaller than your bee (0.8×) and only when on screen. Inside the hive (now radius 3), idle bees wander between cells and resting bees sleep in the Bee Room beds.
+
 ### Music and sound
 - Everything is synthesised live with the Web Audio API (`app/audio/engine.ts`): a generative, never-quite-repeating piece (soft pad, bass, kalimba melody) that turns slower and warmer inside the hive, a wing buzz that follows flight speed, and one-shots for gathering, a full pouch, unloading, discoveries, the hive door, collecting and building.
 - Audio starts on the first key press or tap (browser autoplay rules) and pauses while the tab is hidden. Music and effect volumes are in Settings.
@@ -105,7 +115,7 @@ app/
 - Swap procedural props for Blender GLBs (same instancing approach; keep materials soft and slightly rough)
 - Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
-- Catching and the Beedex, which extends the journal's "Places" tab
+- Helper bees for processing jobs (running buildings), and a Beedex page per species
 
 ## Deploy (Cloudflare Workers, auto-deploy from GitHub)
 

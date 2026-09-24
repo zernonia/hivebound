@@ -197,7 +197,40 @@ function larder(): BuildingModel {
   return { group: g, animate() {} }
 }
 
-const BUILDERS: Record<BuildingId, () => BuildingModel> = { press, kitchen, waxworks, larder }
+/** Bee Room: a low wax nook with four little round beds in soft colours. */
+function room(): BeeRoomModel {
+  const g = new THREE.Group()
+  const rim = mesh(new THREE.CylinderGeometry(0.44, 0.46, 0.14, 6, 1, true), M.comb)
+  rim.material = M.comb.clone()
+  ;(rim.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide
+  rim.position.y = 0.07
+  rim.rotation.y = Math.PI / 6
+  g.add(rim)
+  const floor = mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.03, 6), M.lid)
+  floor.position.y = 0.015
+  floor.rotation.y = Math.PI / 6
+  g.add(floor)
+  const bedColors = ['#f7a1b5', '#9fdcc8', '#a9d8ff', '#ffe08a']
+  const beds: THREE.Vector3[] = []
+  bedColors.forEach((c, i) => {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4
+    const bed = mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.07, 20), std(c, 0.95))
+    bed.position.set(Math.cos(a) * 0.21, 0.065, Math.sin(a) * 0.21)
+    const pillow = mesh(new THREE.SphereGeometry(0.05, 12, 8), std('#fffaf0', 0.95))
+    pillow.scale.set(1.3, 0.6, 1)
+    pillow.position.set(Math.cos(a) * 0.29, 0.11, Math.sin(a) * 0.29)
+    g.add(bed, pillow)
+    beds.push(new THREE.Vector3(bed.position.x, 0.16, bed.position.z))
+  })
+  return { group: g, animate() {}, beds }
+}
+
+export interface BeeRoomModel extends BuildingModel {
+  /** Where a resting bee settles, relative to the building. */
+  beds: THREE.Vector3[]
+}
+
+const BUILDERS: Record<BuildingId, () => BuildingModel> = { press, kitchen, waxworks, larder, room }
 
 export function buildBuilding(id: BuildingId): BuildingModel {
   const model = BUILDERS[id]()

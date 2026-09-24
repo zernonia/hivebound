@@ -5,13 +5,17 @@ import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
 import { gameAudio } from '~/audio/engine'
 import { perfAvailable, perfFrameEnd, perfFrameStart } from '~/utils/perfMonitor'
+import { BeePool, animateBee, inView, updateFrustum } from '~/game/beePool'
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { WorldView } from '~/game/worldView'
-import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, neighbor, worldToHex } from '~/utils/hex'
+import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, hexesInRange, neighbor, worldToHex } from '~/utils/hex'
+import type { SpeciesId } from '~/utils/species'
+import type { Tile } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
 import { useWorldData } from '~/utils/world'
+import { useColony } from '~/stores/colony'
 import { useGame } from '~/stores/game'
 import { HIVE_CELLS, QUEEN_CELL, useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
@@ -21,6 +25,7 @@ const settings = useSettings()
 const world = useWorldData()
 const held = useHeldDirection()
 const hive = useHive()
+const colony = useColony()
 const { renderer, camera: activeCamera, scene: tresScene } = useTres()
 
 /* ------------------------------------------------------------------ */
@@ -100,9 +105,12 @@ gatherMotes.visible = false
 
 // Everything outside lives on one layer so the hive can take over the screen.
 const worldLayer = new THREE.Group()
+// Other bees outside: wild ones hovering on their tiles, and helpers flying their trips.
+const outdoorBees = new BeePool()
+
 // Badges only where you can act next: the six tiles round the bee, plus the one under the mouse.
 const markers = new ResourceMarkers(8)
-worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group)
+worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group, outdoorBees.group)
 const hiveView = new HiveView(HIVE_CELLS, QUEEN_CELL)
 
 const rig = new THREE.Group()
@@ -639,7 +647,8 @@ const camFocus = new THREE.Vector3()
 function sceneDistance(cam: THREE.PerspectiveCamera) {
   // Portrait screens pull the camera back so a similar area stays visible.
   const portrait = Math.min(1.9, Math.max(1, 1 / Math.max(0.3, cam.aspect)))
-  const zoom = game.scene === 'hive' ? THREE.MathUtils.clamp(settings.zoom, 0.75, 1.3) * 0.82 : settings.zoom
+  // The hive (radius 3) needs a little more room than the old radius-2 comb.
+  const zoom = game.scene === 'hive' ? THREE.MathUtils.clamp(settings.zoom, 0.75, 1.3) * 1.02 : settings.zoom
   return zoom * Math.pow(portrait, 0.75)
 }
 
@@ -711,6 +720,84 @@ function updatePrompt(cam: THREE.PerspectiveCamera) {
   const x = (promptAnchor.x * 0.5 + 0.5) * el.clientWidth
   const y = (-promptAnchor.y * 0.5 + 0.5) * el.clientHeight
   promptEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
+}
+
+/* ------------------------------------------------------------------ */
+/* Other bees outside                                                 */
+/* ------------------------------------------------------------------ */
+/** Wild bees are looked for within this many hexes of the player (then culled to the view). */
+const WILD_RADIUS = 9
+let wildList: { tile: Tile, species: SpeciesId, phase: number }[] = []
+function refreshWild() {
+  const now = Date.now()
+  wildList = []
+  for (const h of hexesInRange(game.pos, WILD_RADIUS)) {
+    const tile = world.byKey.get(hexKey(h))
+    const species = colony.wildBeeAt(tile, now)
+    if (tile && species) wildList.push({ tile, species, phase: tile.rand * 6.28 })
+  }
+}
+refreshWild()
+watch(() => [game.pos, game.revealTick, colony.rev], refreshWild)
+let wildIn = 0
+
+/** Where helpers leave from and land: the top of the skep. */
+const HIVE_TOP = new THREE.Vector3(0, 1.3, 0)
+const beeSpot = new THREE.Vector3()
+const beeAim = new THREE.Vector3()
+
+function updateOutdoorBees(time: number, rm: boolean) {
+  outdoorBees.begin()
+  const now = Date.now()
+  for (const w of wildList) {
+    const dancing = colony.dance?.tileKey === w.tile.key
+    worldPos(w.tile, beeSpot)
+    let yaw: number
+    if (dancing) {
+      // Stops circling to face the player and does a little wiggle dance.
+      beeSpot.z += 0.5
+      beeSpot.y += 0.8 + (rm ? 0 : Math.abs(Math.sin(time * 7)) * 0.1)
+      yaw = Math.PI + (rm ? 0 : Math.sin(time * 6) * 0.45)
+    }
+    else {
+      const a = time * 0.6 + w.phase
+      beeSpot.x += Math.cos(a) * 0.4
+      beeSpot.z += Math.sin(a) * 0.4
+      beeSpot.y += 0.75 + (rm ? 0 : Math.sin(time * 2 + w.phase) * 0.05)
+      yaw = -a
+    }
+    if (!inView(beeSpot)) continue
+    const rig = outdoorBees.take(w.species)
+    rig.root.position.copy(beeSpot)
+    rig.root.rotation.y = yaw
+    animateBee(rig, time, w.phase, 0.2, rm)
+  }
+  for (const b of colony.bees) {
+    const ph = colony.tripPhase(b, now)
+    if (!ph) continue
+    worldPos(ph.tile, beeAim).add(tmpV.set(0, 0.7, 0))
+    let flying = 1
+    if (ph.leg === 'gather') {
+      const a = time * 1.4 + b.id
+      beeSpot.set(beeAim.x + Math.cos(a) * 0.3, beeAim.y - 0.1 + Math.sin(time * 5 + b.id) * 0.04, beeAim.z + Math.sin(a) * 0.3)
+      flying = 0.3
+    }
+    else {
+      const u = ph.leg === 'out' ? ph.u : 1 - ph.u
+      beeSpot.lerpVectors(HIVE_TOP, beeAim, easeInOut(u))
+      beeSpot.y += Math.sin(Math.PI * u) * 0.9
+    }
+    if (!inView(beeSpot)) continue
+    const rig = outdoorBees.take(b.species)
+    rig.root.position.copy(beeSpot)
+    if (ph.leg === 'gather') rig.root.rotation.y = -(time * 1.4 + b.id)
+    else {
+      const to = ph.leg === 'out' ? beeAim : HIVE_TOP
+      rig.root.rotation.y = Math.atan2(to.x - beeSpot.x, to.z - beeSpot.z)
+    }
+    animateBee(rig, time, b.id * 0.37, flying, rm)
+  }
+  outdoorBees.end()
 }
 
 /* ------------------------------------------------------------------ */
@@ -807,6 +894,8 @@ onBeforeRender(({ delta }) => {
     cam.lookAt(camTarget.x, camTarget.y + 0.2, camTarget.z)
     updateViewShift(cam, dt)
     updatePrompt(cam)
+    cam.updateMatrixWorld()
+    updateFrustum(cam)
   }
 
   // --- light follows the action ---
@@ -820,6 +909,7 @@ onBeforeRender(({ delta }) => {
       syncHive()
     }
     hiveView.update(dt, time)
+    hiveView.updateColony(colony.bees.filter(b => !b.trip).map(b => ({ id: b.id, species: b.species, resting: !b.job })), dt, time)
   }
   else {
     // --- rings pulse ---
@@ -837,6 +927,13 @@ onBeforeRender(({ delta }) => {
       syncFullness()
     }
     markers.update(time)
+    // Wild bees move to new tiles every few minutes.
+    wildIn -= dt
+    if (wildIn <= 0) {
+      wildIn = 2
+      refreshWild()
+    }
+    updateOutdoorBees(time, rm)
   }
 })
 
