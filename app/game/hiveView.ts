@@ -1,10 +1,12 @@
 import * as THREE from 'three'
 import { buildBeeVariant } from './beeVariants'
-import { type BuildingModel, buildBuilding } from './buildings'
+import { BeePool, animateBee } from './beePool'
+import { type BeeRoomModel, type BuildingModel, buildBuilding } from './buildings'
 import { cushionHexGeometry, hexRingGeometry } from './geometry'
 import { type Hex, hexDistance, hexKey, hexToWorld } from '~/utils/hex'
 import { BUILDINGS, type BuildingId, RESOURCE_INFO, type Resource } from '~/utils/resources'
-import { type CellState, HIVE_DOOR } from '~/stores/hive'
+import type { SpeciesId } from '~/utils/species'
+import { type CellState, HIVE_DOOR, HIVE_RADIUS } from '~/stores/hive'
 
 /*
  * Inside the home hive: a honeycomb floor of cells around the Queen, a back wall of comb
@@ -13,6 +15,8 @@ import { type CellState, HIVE_DOOR } from '~/stores/hive'
  */
 
 const CELL_RADIUS = 0.94
+/** Distance between neighbouring cell centres. */
+const ROW = Math.sqrt(3)
 const CELL_TOP = 0.12
 
 interface CellView {
@@ -41,9 +45,9 @@ const tmpV = new THREE.Vector3()
 export class HiveView {
   readonly group = new THREE.Group()
   /** Where the bee comes in and goes out, just past the front edge of the comb. */
-  readonly entrance = new THREE.Vector3(0, 0.55, 5.4)
+  readonly entrance = new THREE.Vector3(0, 0.55, (HIVE_RADIUS + 1.12) * ROW)
   /** The doorway spot on the floor, selectable to leave. */
-  readonly door = new THREE.Vector3(0, CELL_TOP, 4.75)
+  readonly door = new THREE.Vector3(0, CELL_TOP, (HIVE_RADIUS + 0.74) * ROW)
   private cells = new Map<string, CellView>()
   private pickables: THREE.Object3D[] = []
   private selectRing: THREE.Mesh
@@ -52,6 +56,9 @@ export class HiveView {
   private motes: THREE.Points
   private moteBase: Float32Array
   private reducedMotion = false
+  /** Colony bees at home, pottering about (or asleep in a Bee Room). */
+  private colonyPool = new BeePool()
+  private wanderers = new Map<number, { pos: THREE.Vector3, target: THREE.Vector3, wait: number, yaw: number }>()
 
   constructor(cellHexes: Hex[], private queenKey: string) {
     this.group.name = 'hive-interior'
@@ -72,7 +79,8 @@ export class HiveView {
     this.group.add(dome)
 
     // --- floor slab under the comb ---
-    const floor = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.8, 0.6, 6), new THREE.MeshStandardMaterial({ color: '#c77d24', roughness: 0.8 }))
+    const floorR = (HIVE_RADIUS + 1.7) * ROW
+    const floor = new THREE.Mesh(new THREE.CylinderGeometry(floorR, floorR + 0.4, 0.6, 6), new THREE.MeshStandardMaterial({ color: '#c77d24', roughness: 0.8 }))
     floor.rotation.y = Math.PI / 6
     floor.position.y = -0.34
     floor.receiveShadow = true
@@ -83,14 +91,15 @@ export class HiveView {
     const colMat = new THREE.MeshStandardMaterial({ color: '#e8a33a', roughness: 0.6 })
     const capMat = new THREE.MeshStandardMaterial({ color: '#ffd27a', roughness: 0.45, emissive: new THREE.Color('#ffb640'), emissiveIntensity: 0.15 })
     const capGeo = new THREE.CylinderGeometry(0.78, 0.82, 0.08, 6)
-    for (let q = -5; q <= 5; q++) {
-      for (let r = -5; r <= 5; r++) {
+    const W0 = HIVE_RADIUS + 1
+    for (let q = -W0 - 1; q <= W0 + 1; q++) {
+      for (let r = -W0 - 1; r <= W0 + 1; r++) {
         const h = { q, r }
         const d = hexDistance(h, { q: 0, r: 0 })
-        if (d < 3 || d > 4) continue
+        if (d < W0 || d > W0 + 1) continue
         const { x, z } = hexToWorld(h)
         if (z > 1.2) continue // keep the front open towards the camera
-        const height = 1.2 + (d - 3) * 1.6 + Math.abs(Math.sin(q * 3.1 + r * 1.7)) * 1.4 + Math.max(0, -z) * 0.25
+        const height = 1.2 + (d - W0) * 1.6 + Math.abs(Math.sin(q * 3.1 + r * 1.7)) * 1.4 + Math.max(0, -z) * 0.25
         const col = new THREE.Mesh(colGeo, colMat)
         col.scale.y = height
         col.position.set(x, height / 2 - 0.3, z)
@@ -193,17 +202,19 @@ export class HiveView {
     this.pickables.push(arch, doorPad)
 
     // --- warm light ---
-    const lamp = new THREE.PointLight('#ffc36b', 28, 22, 1.6)
-    lamp.position.set(0, 5, 1)
+    const lamp = new THREE.PointLight('#ffc36b', 34, 28, 1.5)
+    lamp.position.set(0, 6, 1.5)
     this.group.add(lamp)
+
+    this.group.add(this.colonyPool.group)
 
     // --- drifting motes ---
     const n = 60
     this.moteBase = new Float32Array(n * 3)
     for (let i = 0; i < n; i++) {
-      this.moteBase[i * 3] = (Math.random() - 0.5) * 12
+      this.moteBase[i * 3] = (Math.random() - 0.5) * floorR * 1.8
       this.moteBase[i * 3 + 1] = 0.5 + Math.random() * 4
-      this.moteBase[i * 3 + 2] = (Math.random() - 0.5) * 10
+      this.moteBase[i * 3 + 2] = (Math.random() - 0.5) * floorR * 1.6
     }
     const moteGeo = new THREE.BufferGeometry()
     moteGeo.setAttribute('position', new THREE.BufferAttribute(this.moteBase.slice(), 3))
@@ -296,6 +307,89 @@ export class HiveView {
       }
       c.ring.userData.progress = s.progress
     }
+  }
+
+  /** A random spot to drift to: over some cell, at a lazy height. */
+  private randomSpot(out = new THREE.Vector3()) {
+    const all = [...this.cells.values()]
+    const c = all[Math.floor(Math.random() * all.length)]!
+    return out.copy(c.pos).add(tmpV.set((Math.random() - 0.5) * 0.8, 0.8 + Math.random() * 0.9, (Math.random() - 0.5) * 0.8))
+  }
+
+  /**
+   * Draws the colony bees that are home. Bees working at a building hover beside it, bustling
+   * round it while it runs; resting bees (no job) settle onto Bee Room beds when there are any;
+   * everyone else drifts from cell to cell, pausing now and then.
+   */
+  updateColony(bees: { id: number, species: SpeciesId, resting: boolean, work: string | null }[], dt: number, time: number) {
+    const rm = this.reducedMotion
+    const beds: THREE.Vector3[] = []
+    for (const c of this.cells.values()) {
+      const model = c.building?.model as BeeRoomModel | undefined
+      if (model?.beds) for (const b of model.beds) beds.push(b.clone().add(c.pos))
+    }
+    let bed = 0
+    const slots = new Map<string, number>()
+    this.colonyPool.begin()
+    const seen = new Set<number>()
+    for (const b of bees) {
+      seen.add(b.id)
+      let w = this.wanderers.get(b.id)
+      if (!w) {
+        // New arrivals come in through the doorway.
+        w = { pos: this.door.clone().setY(0.9), target: this.randomSpot(), wait: 0, yaw: Math.PI }
+        this.wanderers.set(b.id, w)
+      }
+      const sleeping = b.resting && bed < beds.length
+      const site = b.work ? this.cells.get(b.work) : undefined
+      if (site) {
+        // Two spots either side of the building; a slow loop round it while it's busy.
+        const slot = slots.get(b.work!) ?? 0
+        slots.set(b.work!, slot + 1)
+        const busy = site.ring.userData.progress != null
+        // (Sides, not front: the front right is where your own bee hovers.)
+        const a = (slot === 0 ? -1.7 : 1.7) + (busy && !rm ? Math.sin(time * 0.9 + slot * 2) * 0.45 : 0)
+        w.target.copy(site.pos).add(tmpV.set(Math.sin(a) * 0.72, busy ? 1.05 : 0.95, Math.cos(a) * 0.72))
+      }
+      else if (sleeping) {
+        w.target.copy(beds[bed++]!)
+      }
+      else if (w.pos.distanceTo(w.target) < 0.15) {
+        w.wait -= dt
+        if (w.wait <= 0) {
+          this.randomSpot(w.target)
+          w.wait = 1.5 + Math.random() * 3.5
+        }
+      }
+      const before = tmpV.copy(w.pos)
+      w.pos.lerp(w.target, 1 - Math.exp(-dt * (rm ? 3 : site ? 2.2 : 1.1)))
+      const dx = w.pos.x - before.x
+      const dz = w.pos.z - before.z
+      const moving = Math.min(1, Math.hypot(dx, dz) / Math.max(dt, 1e-4) / 1.5)
+      if (site && moving < 0.3) {
+        // Face the building they're tending.
+        const want = Math.atan2(site.pos.x - w.pos.x, site.pos.z - w.pos.z)
+        w.yaw += Math.atan2(Math.sin(want - w.yaw), Math.cos(want - w.yaw)) * (1 - Math.exp(-dt * 4))
+      }
+      else if (moving > 0.05) w.yaw = Math.atan2(dx, dz)
+      else if (!sleeping) w.yaw += Math.atan2(Math.sin(-w.yaw), Math.cos(-w.yaw)) * (1 - Math.exp(-dt * 1.5))
+      const rig = this.colonyPool.take(b.species)
+      rig.root.position.copy(w.pos)
+      if (!sleeping && !rm) rig.root.position.y += Math.sin(time * 2.2 + b.id) * 0.05
+      rig.root.rotation.y = w.yaw
+      animateBee(rig, time, b.id * 0.37, sleeping ? 0 : moving, rm)
+      if (sleeping && w.pos.distanceTo(w.target) < 0.05) {
+        // Asleep: wings folded down, eyes closed.
+        rig.wingR.rotation.z = -0.15
+        rig.wingL.rotation.z = 0.15
+        for (const e of rig.eyes) e.scale.y = 0.1
+      }
+      else {
+        for (const e of rig.eyes) e.scale.y = 1
+      }
+    }
+    for (const id of this.wanderers.keys()) if (!seen.has(id)) this.wanderers.delete(id)
+    this.colonyPool.end()
   }
 
   update(dt: number, time: number) {

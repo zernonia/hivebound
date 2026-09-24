@@ -19,6 +19,7 @@ import {
   tileSource,
 } from '~/utils/resources'
 import type { Tile } from '~/utils/world'
+import { useColony } from './colony'
 import { useGame } from './game'
 
 /* ------------------------------------------------------------------ */
@@ -26,7 +27,7 @@ import { useGame } from './game'
 /* ------------------------------------------------------------------ */
 
 export const HIVE_CENTER: Hex = { q: 0, r: 0 }
-export const HIVE_RADIUS = 2
+export const HIVE_RADIUS = 3
 export const HIVE_CELLS: Hex[] = hexesInRange(HIVE_CENTER, HIVE_RADIUS)
 export const QUEEN_CELL = hexKey(HIVE_CENTER)
 /** The press you start with. */
@@ -34,6 +35,8 @@ export const STARTER_CELL = hexKey({ q: 1, r: 0 })
 /** The way out: a selectable spot just past the front cell of the comb. */
 export const HIVE_DOOR = 'door'
 const DOOR_FRONT_CELL = hexKey({ q: 0, r: HIVE_RADIUS })
+/** Each helper working at a building shortens its batches: 1 helper = 1.5× as fast, 2 = 2×. */
+const WORKER_SPEEDUP = 0.5
 const STARTER_UNLOCKED = HIVE_CELLS.filter(h => hexDistance(h, HIVE_CENTER) === 1).map(hexKey)
 
 export interface CellState {
@@ -133,7 +136,8 @@ export const useHive = defineStore('hive', {
         }
       }
       catch { /* corrupt or unavailable: start fresh */ }
-      this.tick()
+      // No catch-up tick here: buildings run at the pace of their helpers, so the page ticks
+      // once the colony has loaded too.
     },
 
     save() {
@@ -254,6 +258,31 @@ export const useHive = defineStore('hive', {
       return src.resource
     },
 
+    /**
+     * Takes up to `n` units from a tile at time `at` (helper bees, including offline catch-up).
+     * Returns how many were taken.
+     */
+    takeFromTile(tile: Tile, n: number, at: number) {
+      const src = tileSource(tile)
+      if (!src) return 0
+      const have = this.tileAmount(tile, at)
+      const take = Math.min(n, have)
+      if (take <= 0) return 0
+      const rec = this.tiles[tile.key]
+      const ms = src.regen * 1000
+      const since = rec ? Math.max(0, at - rec.at) : 0
+      const keptAt = !rec || have >= src.max ? at : rec.at + Math.floor(since / ms) * ms
+      this.tiles[tile.key] = { amount: have - take, at: keptAt }
+      return take
+    },
+
+    /** Adds to the store as far as storage allows; returns how many fitted. */
+    addStock(r: Resource, n: number) {
+      const fit = Math.max(0, Math.min(n, this.storageCap - this.stock[r]))
+      this.stock[r] += fit
+      return fit
+    },
+
     /** Empties the pouch into the hive store (as far as storage allows). */
     deposit() {
       const moved: Amounts = {}
@@ -287,7 +316,7 @@ export const useHive = defineStore('hive', {
       const def = BUILDINGS[c.building]
       if (!def.recipe) return { kind: 'storage' }
       if (c.startedAt != null) {
-        const total = def.recipe.seconds * 1000
+        const total = this.batchMs(key)
         const elapsed = Math.min(total, now - c.startedAt)
         return { kind: 'working', remaining: Math.ceil((total - elapsed) / 1000), progress: elapsed / total }
       }
@@ -305,7 +334,11 @@ export const useHive = defineStore('hive', {
         const c = this.cells[key]!
         const recipe = c.building ? BUILDINGS[c.building].recipe : undefined
         if (!recipe) continue
-        const ms = recipe.seconds * 1000
+        const ms = this.batchMs(key)
+        const tended = this.workersHere(key) > 0
+        const product = Object.keys(recipe.out)[0] as Resource
+        // A tray left waiting on a full store gets carried in once there's room.
+        if (tended && c.output > 0 && this.storeOutput(c, product) > 0) changed = true
         if (c.startedAt != null && now - c.startedAt > OFFLINE_CAP_MS) c.startedAt = now - OFFLINE_CAP_MS
         let cursor = now
         for (let guard = 0; guard < 2000; guard++) {
@@ -315,6 +348,8 @@ export const useHive = defineStore('hive', {
             cursor = c.startedAt + ms
             c.startedAt = null
             changed = true
+            // Helpers carry each batch straight to the store, so the tray never holds things up.
+            if (tended) this.storeOutput(c, product)
           }
           if (c.output >= TRAY_CAP || !this.has(recipe.in)) break
           this.pay(recipe.in)
@@ -326,23 +361,27 @@ export const useHive = defineStore('hive', {
       return changed
     },
 
-    /** Moves a building's tray into the store. */
-    collect(key: string) {
+    /** Helpers at this building who are home (a bee finishing a trip joins when it lands). */
+    workersHere(key: string) {
+      return useColony().workersAt(key).filter(b => !b.trip).length
+    },
+
+    /** How long one batch takes at this building right now. */
+    batchMs(key: string) {
       const c = this.cells[key]
       const recipe = c?.building ? BUILDINGS[c.building].recipe : undefined
-      if (!c || !recipe || c.output <= 0) return 0
-      const product = Object.keys(recipe.out)[0] as Resource
+      if (!recipe) return Infinity
+      return (recipe.seconds * 1000) / (1 + WORKER_SPEEDUP * this.workersHere(key))
+    },
+
+    /** Moves as much of a tray as fits into the store; returns how much moved. */
+    storeOutput(c: CellState, product: Resource) {
       const n = Math.min(c.output, this.storageCap - this.stock[product])
-      if (n <= 0) {
-        useGame().announce(`The store has no room for more ${RESOURCE_INFO[product].name}.`)
-        return 0
-      }
+      if (n <= 0) return 0
       c.output -= n
       this.stock[product] += n
-      const game = useGame()
-      game.announce(`Collected ${n} ${RESOURCE_INFO[product].name}.`)
       if (product === 'honey' && this.first('honey')) {
-        game.addJournal({
+        useGame().addJournal({
           id: 'first-honey',
           title: 'Our very first honey',
           body: 'The press gave a happy little squeak and out came honey. Real honey! I licked the spoon. Then I licked it again, for science.',
@@ -350,6 +389,21 @@ export const useHive = defineStore('hive', {
           subject: 'hive',
         })
       }
+      return n
+    },
+
+    /** Moves a building's tray into the store. */
+    collect(key: string) {
+      const c = this.cells[key]
+      const recipe = c?.building ? BUILDINGS[c.building].recipe : undefined
+      if (!c || !recipe || c.output <= 0) return 0
+      const product = Object.keys(recipe.out)[0] as Resource
+      const n = this.storeOutput(c, product)
+      if (n <= 0) {
+        useGame().announce(`The store has no room for more ${RESOURCE_INFO[product].name}.`)
+        return 0
+      }
+      useGame().announce(`Collected ${n} ${RESOURCE_INFO[product].name}.`)
       this.tick()
       this.changed()
       return n

@@ -61,7 +61,7 @@ export function tileSource(tile: Tile | undefined): TileSource | null {
 /* Hive buildings                                                     */
 /* ------------------------------------------------------------------ */
 
-export type BuildingId = 'press' | 'kitchen' | 'waxworks' | 'larder'
+export type BuildingId = 'press' | 'kitchen' | 'waxworks' | 'larder' | 'room'
 
 export interface Recipe {
   in: Amounts
@@ -76,6 +76,8 @@ export interface BuildingDef {
   recipe?: Recipe
   /** Extra storage per resource. */
   storage?: number
+  /** Helper bees it can house. */
+  housing?: number
 }
 
 export const BUILDINGS: Record<BuildingId, BuildingDef> = {
@@ -102,6 +104,12 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     blurb: 'Extra comb for storing more of everything.',
     cost: { wax: 4 },
     storage: 40,
+  },
+  room: {
+    name: 'Bee Room',
+    blurb: 'Four snug little beds for helper bees.',
+    cost: { wax: 3, honey: 4 },
+    housing: 4,
   },
 }
 
