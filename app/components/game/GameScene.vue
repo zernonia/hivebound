@@ -10,6 +10,8 @@ import { BeePool, animateBee, inView, updateFrustum, warmBees } from '~/game/bee
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { GoldenSparkles } from '~/game/goldenSparkles'
+import { ReadySign } from '~/game/readySign'
+import { useQueen } from '~/stores/queen'
 import { isGoldenSpot } from '~/utils/golden'
 import { nightAmount } from '~/utils/daylight'
 import { setCloudNight } from '~/game/props'
@@ -797,6 +799,17 @@ let wildIn = 0
 
 /** Where helpers leave from and land: the top of the skep. */
 const HIVE_TOP = new THREE.Vector3(0, 1.3, 0)
+
+// When the Queen's request is complete: a "!" over her inside, and over the hive outside.
+const queen = useQueen()
+const hiveSign = new ReadySign(0.9)
+hiveSign.place(HIVE_TOP.clone().add(new THREE.Vector3(0, 1.1, 0)))
+worldLayer.add(hiveSign.sprite)
+const queenReady = computed(() => queen.ready())
+watch(queenReady, (v) => {
+  hiveView.setQueenReady(v)
+  hiveSign.setReady(v)
+}, { immediate: true })
 const beeSpot = new THREE.Vector3()
 const beeAim = new THREE.Vector3()
 
@@ -983,6 +996,7 @@ onBeforeRender(({ delta }) => {
     }
     markers.update(time)
     golden.update(time)
+    hiveSign.update(dt, time, rm)
     // Wild bees move to new tiles every few minutes.
     wildIn -= dt
     if (wildIn <= 0) {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type CellStatus, HIVE_CELLS, HIVE_DOOR, HIVE_RADIUS, QUEEN_CELL, useHive } from '~/stores/hive'
 import { useQueen } from '~/stores/queen'
+import type { PickerOption } from './UiPicker.vue'
 import { MAX_WORKERS, type ColonyBee, useColony, workCell } from '~/stores/colony'
 import { SPECIES } from '~/utils/species'
 import { useGame } from '~/stores/game'
@@ -54,20 +55,27 @@ const workplaces = computed(() => {
   })
 })
 
-function onWorkPick(bee: ColonyBee, ev: Event) {
-  const key = (ev.target as HTMLSelectElement).value
-  if (key) colony.setJob(bee.id, `cell:${key}`)
+/** Buildings a bee can be sent to (full ones greyed out, unless it already works there). */
+function workOptions(bee: ColonyBee): PickerOption[] {
+  return workplaces.value.map(w => ({
+    value: w.key,
+    label: w.label,
+    note: `${w.workers}/${MAX_WORKERS}`,
+    disabled: w.workers >= MAX_WORKERS && workCell(bee.job) !== w.key,
+  }))
 }
 
 /** Bees that could be sent to the selected building (anyone not already there). */
 function freeBees(key: string) {
   return colony.bees.filter(b => workCell(b.job) !== key)
 }
-function onAssign(key: string, ev: Event) {
-  const el = ev.target as HTMLSelectElement
-  const id = Number(el.value)
-  el.value = ''
-  if (id) colony.setJob(id, `cell:${key}`)
+function helperOptions(key: string): PickerOption[] {
+  return freeBees(key).map(b => ({
+    value: String(b.id),
+    label: b.name,
+    note: SPECIES[b.species].name,
+    swatch: { fill: SPECIES[b.species].look.colors.body, border: SPECIES[b.species].look.colors.stripe },
+  }))
 }
 
 // The comb map (layout + unsealing) is tucked away until asked for; the choice is remembered.
@@ -117,7 +125,8 @@ const productOf = (id: BuildingId): Resource | null => {
 }
 
 function cellLabel(c: (typeof cells.value)[number]) {
-  const name = c.key === QUEEN_CELL ? 'The Queen' : c.building ? BUILDINGS[c.building].name : c.status.kind === 'locked' ? 'Sealed cell' : 'Empty cell'
+  if (c.key === QUEEN_CELL) return queenReady.value ? 'The Queen, request ready to hand in' : 'The Queen'
+  const name = c.building ? BUILDINGS[c.building].name : c.status.kind === 'locked' ? 'Sealed cell' : 'Empty cell'
   return `${name}, ${statusText(c.status, c.output)}`
 }
 
@@ -211,6 +220,7 @@ function build(id: BuildingId) {
             <span v-else class="plus">+</span>
           </span>
           <span v-if="c.output" class="badge" aria-hidden="true">{{ c.output }}</span>
+          <span v-else-if="c.key === QUEEN_CELL && queenReady" class="badge queen-ready" aria-hidden="true">!</span>
           <span v-else-if="c.status.kind === 'working'" class="dot" aria-hidden="true" />
         </button>
         <button
@@ -341,19 +351,15 @@ function build(id: BuildingId) {
                 {{ b.name }}
                 <button class="unassign" :aria-label="`Send ${b.name} to rest`" @click="colony.setJob(b.id, null)">×</button>
               </span>
-              <select
+              <UiPicker
                 v-if="colony.workersAt(sel.key).length < MAX_WORKERS && freeBees(sel.key).length"
                 class="assign"
-                :aria-label="`Add a helper to the ${selBuilding.name}`"
-                @change="onAssign(sel.key, $event)"
-              >
-                <option value="">
-                  + Add a helper
-                </option>
-                <option v-for="b in freeBees(sel.key)" :key="b.id" :value="b.id">
-                  {{ b.name }} ({{ SPECIES[b.species].name }})
-                </option>
-              </select>
+                :options="helperOptions(sel.key)"
+                :model-value="null"
+                placeholder="+ Add a helper"
+                :label="`Add a helper to the ${selBuilding.name}`"
+                @update:model-value="id => colony.setJob(Number(id), `cell:${sel!.key}`)"
+              />
               <span v-else-if="!colony.bees.length" class="note">Befriend a wild bee to help here.</span>
             </div>
             <p v-if="colony.workersAt(sel.key).length" class="note">
@@ -415,26 +421,16 @@ function build(id: BuildingId) {
               <span v-if="j.v" class="sr-only">{{ j.label }}{{ j.v === SPECIES[b.species].favourite ? ', favourite' : '' }}</span>
             </button>
           </div>
-          <select
+          <UiPicker
             v-if="workplaces.length"
             class="work"
-            :class="{ on: workCell(b.job) }"
-            :value="workCell(b.job) ?? ''"
-            :aria-label="`Where ${b.name} works in the hive`"
-            @change="onWorkPick(b, $event)"
-          >
-            <option value="" disabled>
-              Work at a building…
-            </option>
-            <option
-              v-for="w in workplaces"
-              :key="w.key"
-              :value="w.key"
-              :disabled="w.workers >= MAX_WORKERS && workCell(b.job) !== w.key"
-            >
-              {{ w.label }} ({{ w.workers }}/{{ MAX_WORKERS }})
-            </option>
-          </select>
+            highlight
+            :options="workOptions(b)"
+            :model-value="workCell(b.job)"
+            placeholder="Work at a building…"
+            :label="`Where ${b.name} works in the hive`"
+            @update:model-value="key => colony.setJob(b.id, `cell:${key}`)"
+          />
         </li>
       </ul>
     </div>
@@ -654,23 +650,8 @@ h3 {
 .q-lines .n {
   margin-left: auto;
 }
-.work,
-.assign {
-  width: 100%;
-  min-height: 44px;
+.work {
   margin-top: 4px;
-  padding: 0 10px;
-  border-radius: 12px;
-  border: 2px solid var(--line);
-  background: var(--paper-2);
-  color: var(--ink);
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-.work.on {
-  background: var(--honey);
-  border-color: var(--honey-deep);
 }
 .helpers {
   display: flex;
@@ -712,9 +693,7 @@ h3 {
   color: var(--ink-soft);
 }
 .helpers .assign {
-  width: auto;
-  flex: 1;
-  margin: 0;
+  flex-basis: 100%;
 }
 .jobs button.fav::after {
   content: '♥';
@@ -806,6 +785,11 @@ h3 {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--ink-soft);
+}
+.badge.queen-ready {
+  background: #ffc93d;
+  color: #5b3a24;
+  border: 2px solid #5b3a24;
 }
 .badge {
   position: absolute;

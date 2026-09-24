@@ -124,7 +124,7 @@ export const TRAY_CAP = 10
 /** Buildings catch up at most this long while the game is closed. */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000
 export const BASE_STORAGE = 40
-export const UNLOCK_CELL_COST: Amounts = { wax: 3 }
+export const UNLOCK_CELL_COST: Amounts = { wax: 1 }
 
 /* ------------------------------------------------------------------ */
 /* Upgrades                                                           */

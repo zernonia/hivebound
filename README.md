@@ -93,7 +93,7 @@ app/
 - **Gathered tiles thin out:** each flower, lily pad or mushroom on a tile is part of its supply, so they disappear as you gather and grow back as the tile regrows; the tile's colour also dulls slightly while it's low.
 - **Unload** by reaching any of the six tiles around the hive; **go inside** with `F` (or tap the floating prompt / the hive). The bee flies in through the skep door; an iris wipe hides the scene swap.
 - **One action key:** `F` does whatever the floating prompt over the tile says: enter the hive, collect a building's tray, unseal a cell, or leave through the doorway.
-- **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with wax. Upgrades: bigger pouch, stronger wings, quicker gathering.
+- **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with 1 wax each, so the hive can spread out early. Upgrades: bigger pouch, stronger wings, quicker gathering.
 - Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
 - Each visit starts at the **doorway**; you steer the bee from there, and leave by coming back to the doorway (`F`). Nothing flies you around on its own.
 - Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.
@@ -106,7 +106,7 @@ app/
 - Helpers keep working while the game is closed (same 8-hour cap). They're drawn smaller than your bee (0.8×) and only when on screen. Inside the hive (now radius 3), idle bees wander between cells and resting bees sleep in the Bee Room beds.
 
 ### The Queen's requests
-- The Queen always has one request, shown in a small card under the location panel (tap to fold it away) and in her panel inside the hive. Hand it in by visiting her and pressing `F`.
+- The Queen always has one request, shown in a small card under the location panel (tap to fold it away) and in her panel inside the hive. Hand it in by visiting her and pressing `F`. When it's ready, a gold **!** bobs over the hive outside and over the Queen inside (and on her cell in the hive map).
 - **Chapter one** walks through the whole game: fly home nectar, press honey, befriend a bee, bake bee bread, make wax, build a Bee Room, a bigger colony, find golden pollen, visit the old honeycomb, and a hive feast. Some requests mark a place on your map when they start. Rewards are more room in the store, gifts, and the Royal Ribbon.
 - After that come endless **little wishes** (honey, bee bread, wax, golden pollen) that grow slowly, each giving something back. The hive level counts requests completed.
 

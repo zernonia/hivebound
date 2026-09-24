@@ -92,12 +92,12 @@ function reset() {
       </h3>
       <div class="slider">
         <label for="vol-music">Music</label>
-        <input id="vol-music" v-model.number="settings.musicVolume" type="range" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.musicVolume)">
+        <input id="vol-music" v-model.number="settings.musicVolume" type="range" :style="{ '--fill': `${settings.musicVolume * 100}%` }" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.musicVolume)">
         <span class="val" aria-hidden="true">{{ pct(settings.musicVolume) }}</span>
       </div>
       <div class="slider">
         <label for="vol-sfx">Sound effects</label>
-        <input id="vol-sfx" v-model.number="settings.sfxVolume" type="range" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.sfxVolume)">
+        <input id="vol-sfx" v-model.number="settings.sfxVolume" type="range" :style="{ '--fill': `${settings.sfxVolume * 100}%` }" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.sfxVolume)">
         <span class="val" aria-hidden="true">{{ pct(settings.sfxVolume) }}</span>
       </div>
     </section>
@@ -278,7 +278,47 @@ h3 {
 .slider input[type='range'] {
   width: 100%;
   height: 32px;
-  accent-color: var(--honey-deep);
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  /* Filled part of the track, set from the value inline. */
+  --fill: 50%;
+}
+.slider input[type='range']::-webkit-slider-runnable-track {
+  height: 12px;
+  border-radius: 99px;
+  border: 2px solid var(--line);
+  background: linear-gradient(90deg, var(--honey) var(--fill), var(--paper-2) var(--fill));
+}
+.slider input[type='range']::-moz-range-track {
+  height: 12px;
+  border-radius: 99px;
+  border: 2px solid var(--line);
+  background: linear-gradient(90deg, var(--honey) var(--fill), var(--paper-2) var(--fill));
+}
+.slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: #fffaf0;
+  box-shadow: 0 2px 0 rgba(91, 58, 36, 0.25);
+}
+.slider input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: #fffaf0;
+}
+.slider input[type='range']:focus-visible {
+  outline: 3px solid var(--honey-deep);
+  outline-offset: 2px;
+  border-radius: 99px;
 }
 .slider .val {
   text-align: right;
