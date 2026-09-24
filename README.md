@@ -118,11 +118,23 @@ app/
 
 ### Day and night
 - A slow day on the real clock: 24 minutes for a full day, about a quarter of it night. The light turns moonlit blue and the sky deepens; the location card shows the time of day.
+- At night **fireflies** drift round your bee and the music turns low and hushed, with far-off crickets.
 - **Moon Bees** hover over soft grass only at night. They're the fastest helpers, with a tricky dance. *Day and night* in Settings turns it off (always day; Moon Bees then visit any time).
+
+### Chapter two: past the mist
+- Handing in the feast (the end of chapter one) lifts the mist ring round the island. Beyond it lies new land: **Lavender Heath** (rich nectar) and the **Amber Woods** (rich resin), with meadows and pools between.
+- Three new places, each with a keepsake: **Lavender Cottage** (Lavender Sprig), **the Hollow Oak** (Amber Leaf Cape, worn on the back) and **the Moonwell** (Moon Locket). Two new species: **Lavender Bees** on the heath and **Ember Bees** in the Amber Woods.
+- Six chapter-two requests lead through it all and end with the Queen's **Star Pin**; then the little wishes carry on.
+- The first island generates exactly as before (the new ring is appended after it), so existing saves keep every tile and place. Saves that were already on little wishes start chapter two, keeping those wishes as hive levels.
 
 ### Coming back
 - If you've been away for 2 minutes or more (closed the game or left the tab) and the hive made something, a **Welcome back** card lists what came in and who was busy.
 - Helpers on their **favourite** job (♥) gather it faster.
+
+### Balance notes
+- Tuned with a scripted player that plays chapter one on a virtual clock using the real stores (it flies, gathers, builds, befriends and hands in like a sensible player). It finishes chapter one in about 13 minutes, which should be roughly 40 minutes of relaxed human play.
+- Unloading always empties the pouch: anything the store can't hold goes to the nursery, so a full store can never leave you unable to gather something else.
+- Buildings can be **paused** from their card (handy so the Wax Works doesn't eat honey you're saving). The Honey Press makes a jar every 20s.
 
 ### Music and sound
 - Everything is synthesised live with the Web Audio API (`app/audio/engine.ts`): a generative, never-quite-repeating piece (soft pad, bass, kalimba melody) that turns slower and warmer inside the hive, a wing buzz that follows flight speed, and one-shots for gathering, a full pouch, unloading, discoveries, the hive door, collecting and building.
