@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
 import { type FlightSpeed, type TextScale, useSettings } from '~/stores/settings'
+import { useColony } from '~/stores/colony'
+import { useHive } from '~/stores/hive'
+import { useQueen } from '~/stores/queen'
+import { exportSave, importSave, parseSave, saveFileName } from '~/utils/saveTransfer'
 
 const game = useGame()
 const settings = useSettings()
@@ -40,6 +44,124 @@ function reset() {
   game.resetProgress()
   game.settingsOpen = false
 }
+
+// --- Your save: export / import ---
+const hive = useHive()
+const colony = useColony()
+const queen = useQueen()
+const saveStatus = ref('')
+const saveError = ref(false)
+/** Shown when the clipboard is off-limits, so the code can be selected by hand. */
+const fallbackCode = ref('')
+const copied = ref(false)
+const loadOpen = ref(false)
+const pasted = ref('')
+const confirmLoad = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout> | undefined
+const keepBtn = ref<HTMLButtonElement>()
+
+function say(msg: string, error = false) {
+  saveStatus.value = msg
+  saveError.value = error
+}
+
+/** Export what's in play right now, not just what was last written to storage. */
+function freshCode() {
+  game.save()
+  hive.save()
+  colony.save()
+  queen.save()
+  settings.save()
+  return exportSave()
+}
+
+async function copySave() {
+  const code = freshCode()
+  try {
+    await navigator.clipboard.writeText(code)
+    fallbackCode.value = ''
+    copied.value = true
+    say('Save code copied. Keep it somewhere safe!')
+    clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => (copied.value = false), 2000)
+  }
+  catch {
+    fallbackCode.value = code
+    say('Your browser kept the clipboard to itself. Select the code below and copy it.')
+  }
+}
+
+function downloadSave() {
+  const blob = new Blob([freshCode()], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = saveFileName()
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  say('Save file downloaded.')
+}
+
+function toggleLoad() {
+  loadOpen.value = !loadOpen.value
+  confirmLoad.value = false
+  if (!loadOpen.value) pasted.value = ''
+  say('')
+}
+
+async function pickFile(ev: Event) {
+  const input = ev.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try {
+    pasted.value = (await file.text()).trim()
+    askLoad()
+  }
+  catch {
+    say('That file couldn\'t be read. Try another one?', true)
+  }
+}
+
+/** Step one: check the code, then ask before replacing anything. */
+function askLoad() {
+  const check = parseSave(pasted.value)
+  if (!check.ok) {
+    confirmLoad.value = false
+    say(check.error, true)
+    return
+  }
+  confirmLoad.value = true
+  say('')
+  // The load button gives way to the confirm pair; land on the safe choice.
+  nextTick(() => keepBtn.value?.focus())
+}
+
+/** Step two: write it in and reload so every store starts from the loaded save. */
+function doLoad() {
+  const result = importSave(pasted.value)
+  if (!result.ok) {
+    confirmLoad.value = false
+    say(result.error, true)
+    return
+  }
+  say('Save loaded! Settling back into your hive…')
+  location.reload()
+}
+
+watch(() => game.settingsOpen, (open) => {
+  if (open) return
+  // Start fresh next time Settings opens.
+  loadOpen.value = false
+  confirmLoad.value = false
+  pasted.value = ''
+  fallbackCode.value = ''
+  say('')
+})
+watch(pasted, () => {
+  if (confirmLoad.value) confirmLoad.value = false
+})
+onBeforeUnmount(() => clearTimeout(copiedTimer))
 </script>
 
 <template>
@@ -119,6 +241,77 @@ function reset() {
         <div><dt>Stop</dt><dd><span class="kbd">Space</span></dd></div>
         <div><dt>Settings</dt><dd><span class="kbd">Esc</span></dd></div>
       </dl>
+    </section>
+
+    <section aria-labelledby="s-save" class="save">
+      <h3 id="s-save">
+        Your save
+      </h3>
+      <p class="save-intro">
+        Your journey lives in this browser. Keep a copy, or carry it to another device.
+      </p>
+      <div class="save-row">
+        <button class="save-btn" @click="copySave">
+          {{ copied ? 'Copied!' : 'Copy save code' }}
+        </button>
+        <button class="save-btn" @click="downloadSave">
+          Download save file
+        </button>
+        <button class="save-btn" :aria-expanded="loadOpen" aria-controls="save-load" @click="toggleLoad">
+          Load a save
+        </button>
+      </div>
+
+      <div v-if="fallbackCode" class="save-field">
+        <label for="save-code-out">Your save code</label>
+        <textarea
+          id="save-code-out"
+          :value="fallbackCode"
+          readonly
+          rows="3"
+          spellcheck="false"
+          @focus="($event.target as HTMLTextAreaElement).select()"
+        />
+      </div>
+
+      <div v-if="loadOpen" id="save-load" class="save-field">
+        <label for="save-code-in">Paste a save code</label>
+        <textarea
+          id="save-code-in"
+          v-model="pasted"
+          rows="3"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          placeholder="HIVEBOUND1:…"
+        />
+        <div class="save-row">
+          <label class="save-btn file-btn">
+            <input type="file" accept=".txt,text/plain" class="sr-only" @change="pickFile">
+            Choose a save file
+          </label>
+          <button v-if="!confirmLoad" class="save-btn primary" :disabled="!pasted.trim()" @click="askLoad">
+            Load this save
+          </button>
+        </div>
+        <div v-if="confirmLoad" class="confirm" role="group" aria-labelledby="save-confirm-q">
+          <p id="save-confirm-q">
+            This replaces your current game. Continue?
+          </p>
+          <div class="save-row">
+            <button class="save-btn danger-btn" @click="doLoad">
+              Yes, replace my game
+            </button>
+            <button ref="keepBtn" class="save-btn" @click="confirmLoad = false">
+              Keep my game
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="save-status" :class="{ error: saveError }" role="status" aria-live="polite">
+        {{ saveStatus }}
+      </p>
     </section>
 
     <section class="danger">
@@ -251,6 +444,104 @@ h3 {
 }
 .kbd {
   margin-left: 2px;
+}
+.save-intro {
+  margin: 0 12px 10px;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+.save-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 12px;
+}
+.save-btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  border-bottom-width: 4px;
+  background: var(--paper-2);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease), background var(--dur);
+}
+.save-btn:hover {
+  background: #fff;
+}
+.save-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+.save-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+.save-btn.primary {
+  background: var(--honey);
+  border-color: var(--honey-deep);
+}
+.save-btn.danger-btn {
+  background: #ffe3e0;
+  border-color: #e7a3a3;
+  color: #a4453f;
+}
+/* The native file control stays hidden; its label is the button. */
+.file-btn:has(input:focus-visible) {
+  box-shadow: var(--focus);
+}
+.save-field {
+  margin: 12px 0 0;
+}
+.save-field > label {
+  display: block;
+  margin: 0 12px 6px;
+  font-weight: 600;
+}
+.save-field textarea {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font: 0.85rem/1.4 ui-monospace, 'SF Mono', Menlo, monospace;
+  resize: vertical;
+  word-break: break-all;
+  user-select: text;
+}
+.save-field textarea:focus-visible {
+  border-color: var(--honey-deep);
+  box-shadow: var(--focus) !important;
+}
+.confirm {
+  margin: 4px 12px 0;
+  padding: 10px 0;
+  border-radius: 16px;
+  background: #fff1e0;
+  border: 2px solid #f3c9a0;
+}
+.confirm p {
+  margin: 0 12px 8px;
+  font-weight: 600;
+}
+.save-status {
+  min-height: 1.4em;
+  margin: 8px 12px 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.save-status.error {
+  color: #a4453f;
 }
 .danger {
   margin-top: 18px;

@@ -47,6 +47,8 @@ export interface CellState {
   startedAt: number | null
   /** Finished goods waiting in the tray. */
   output: number
+  /** Paused by the player: finishes the batch in progress but doesn't start another. */
+  paused?: boolean
 }
 
 export type CellStatus =
@@ -57,6 +59,7 @@ export type CellStatus =
   | { kind: 'working', remaining: number, progress: number }
   | { kind: 'waiting', missing: Amounts }
   | { kind: 'full' }
+  | { kind: 'paused' }
 
 const SAVE_KEY = 'hivebound:hive:v1'
 
@@ -331,20 +334,31 @@ export const useHive = defineStore('hive', {
     /** Empties the pouch into the hive store (as far as storage allows). */
     deposit() {
       const moved: Amounts = {}
+      const shared: Amounts = {}
       for (const r of RAW_RESOURCES) {
-        const n = Math.min(this.pouch[r], this.storageCap - this.stock[r])
+        const have = this.pouch[r]
+        if (!have) continue
+        const n = Math.min(have, this.storageCap - this.stock[r])
         if (n > 0) {
           this.stock[r] += n
-          this.pouch[r] -= n
           moved[r] = n
         }
+        // Whatever doesn't fit goes to the nursery, so a full store never leaves the pouch
+        // stuck full (and the bee unable to gather anything else).
+        if (have > n) shared[r] = have - n
+        this.pouch[r] = 0
       }
-      const any = Object.keys(moved).length > 0
+      const any = Object.keys(moved).length > 0 || Object.keys(shared).length > 0
       if (any) {
-        useQueen().noteBrought(moved)
+        // Counts for "fly it home" requests either way: you did bring it.
+        const brought: Amounts = { ...moved }
+        for (const r of RAW_RESOURCES) if (shared[r]) brought[r] = (brought[r] ?? 0) + shared[r]!
+        useQueen().noteBrought(brought)
         const game = useGame()
-        const left = this.pouchTotal
-        const msg = `Unloaded ${formatAmounts(moved)} into the hive.${left ? ` The store is full, so ${left} stayed in your pouch.` : ''}`
+        const parts = []
+        if (Object.keys(moved).length) parts.push(`Unloaded ${formatAmounts(moved)} into the hive.`)
+        if (Object.keys(shared).length) parts.push(`The store was full, so ${formatAmounts(shared)} went to the nursery.`)
+        const msg = parts.join(' ')
         game.toast(msg)
         game.announce(msg)
         this.tick()
@@ -367,6 +381,7 @@ export const useHive = defineStore('hive', {
         return { kind: 'working', remaining: Math.ceil((total - elapsed) / 1000), progress: elapsed / total }
       }
       if (c.output >= TRAY_CAP) return { kind: 'full' }
+      if (c.paused) return { kind: 'paused' }
       return { kind: 'waiting', missing: this.missing(def.recipe.in) }
     },
 
@@ -397,7 +412,7 @@ export const useHive = defineStore('hive', {
             // Helpers carry each batch straight to the store, so the tray never holds things up.
             if (tended) this.storeOutput(c, product)
           }
-          if (c.output >= TRAY_CAP || !this.has(recipe.in)) break
+          if (c.paused || c.output >= TRAY_CAP || !this.has(recipe.in)) break
           this.pay(recipe.in)
           c.startedAt = cursor
           changed = true
@@ -436,6 +451,17 @@ export const useHive = defineStore('hive', {
         })
       }
       return n
+    },
+
+    /** Pause or resume a building (so it stops using up what you're saving). */
+    togglePause(key: string) {
+      const c = this.cells[key]
+      if (!c?.building || !BUILDINGS[c.building].recipe) return
+      c.paused = !c.paused
+      const name = BUILDINGS[c.building].name
+      useGame().announce(c.paused ? `${name} paused. It won't use any more of the store.` : `${name} is working again.`)
+      this.tick()
+      this.changed()
     },
 
     /** Moves a building's tray into the store. */

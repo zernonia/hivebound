@@ -22,7 +22,7 @@ watch(() => game.journalOpen, (open) => {
   }
 })
 
-const SLOT_LABEL: Record<KeepsakeSlot, string> = { head: 'Head', face: 'Face', neck: 'Neck', side: 'Side', tail: 'Tail' }
+const SLOT_LABEL: Record<KeepsakeSlot, string> = { head: 'Head', face: 'Face', neck: 'Neck', side: 'Side', back: 'Back', tail: 'Tail' }
 const keepsakes = computed(() => KEEPSAKE_LIST.map((id) => {
   const def = KEEPSAKES[id]
   const found = game.keepsakes.includes(id)
@@ -87,7 +87,7 @@ const places = computed(() => {
 
     <div v-else-if="tab === 'keepsakes'" class="keepsakes" role="tabpanel">
       <p class="hint">
-        Things to wear, found around the island. One per spot: head, face, neck, side and tail.
+        Things to wear, found around the island. One per spot: head, face, neck, side, back and tail.
       </p>
       <ul>
         <li v-for="k in keepsakes" :key="k.id" :class="{ found: k.found, worn: k.worn }">

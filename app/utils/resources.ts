@@ -51,12 +51,18 @@ export function tileSource(tile: Tile | undefined): TileSource | null {
     case 'dandelion': return { resource: 'pollen', max: 8, regen: 25 }
     case 'pond': return { resource: 'water', max: 10, regen: 20 }
     case 'stump': return { resource: 'resin', max: 6, regen: 40 }
+    case 'cottage': return { resource: 'nectar', max: 10, regen: 25 }
+    case 'hollowoak': return { resource: 'resin', max: 8, regen: 35 }
+    case 'moonwell': return { resource: 'water', max: 12, regen: 20 }
   }
   switch (tile.terrain) {
     case 'meadow': return { resource: 'nectar', max: 3, regen: 60 }
     case 'flowers': return { resource: 'pollen', max: 3, regen: 60 }
     case 'water': return { resource: 'water', max: 4, regen: 45 }
     case 'forest': return { resource: 'resin', max: 2, regen: 90 }
+    // Beyond the mist, the land is richer.
+    case 'lavender': return { resource: 'nectar', max: 5, regen: 50 }
+    case 'amber': return { resource: 'resin', max: 4, regen: 60 }
     default: return null
   }
 }
@@ -89,7 +95,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     name: 'Honey Press',
     blurb: 'Slowly squeezes nectar into golden honey.',
     cost: { nectar: 6 },
-    recipe: { in: { nectar: 3 }, out: { honey: 1 }, seconds: 30 },
+    recipe: { in: { nectar: 3 }, out: { honey: 1 }, seconds: 20 },
   },
   kitchen: {
     name: 'Bee Bread Kitchen',

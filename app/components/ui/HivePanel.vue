@@ -68,6 +68,7 @@ function statusText(st: CellStatus, output = 0): string {
     case 'working': return st.remaining > 0 ? `working, ${st.remaining}s left${tray}` : `just finishing${tray}`
     case 'waiting': return `waiting for ${formatAmounts(st.missing) || 'room'}${tray}`
     case 'full': return output ? `tray full, ${output} ready to collect` : 'tray full, collect to keep going'
+    case 'paused': return `paused${tray}`
   }
 }
 
@@ -212,9 +213,14 @@ const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, 
             </div>
             <div class="tray">
               <span>Tray: <strong>{{ sel.output }}</strong> / {{ TRAY_CAP }}</span>
-              <button class="chip-btn primary" :disabled="!sel.output" @click="hive.collect(sel.key)">
-                <span class="kbd hide-touch" aria-hidden="true">F</span> Collect
-              </button>
+              <span class="tray-actions">
+                <button class="chip-btn" :aria-pressed="!!hive.cells[sel.key]?.paused" @click="hive.togglePause(sel.key)">
+                  {{ hive.cells[sel.key]?.paused ? 'Resume' : 'Pause' }}
+                </button>
+                <button class="chip-btn primary" :disabled="!sel.output" @click="hive.collect(sel.key)">
+                  <span class="kbd hide-touch" aria-hidden="true">F</span> Collect
+                </button>
+              </span>
             </div>
           </template>
           <p v-else-if="selBuilding.housing" class="status">
@@ -424,6 +430,10 @@ h3 {
   height: 100%;
   background: linear-gradient(90deg, #ffcf4d, var(--honey));
   transition: width 500ms linear;
+}
+.tray-actions {
+  display: flex;
+  gap: 6px;
 }
 .tray {
   display: flex;

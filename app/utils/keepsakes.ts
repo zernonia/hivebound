@@ -5,7 +5,7 @@ import type { PoiId } from './world'
  * Queen). One per slot can be worn at a time.
  */
 
-export type KeepsakeSlot = 'head' | 'face' | 'neck' | 'side' | 'tail'
+export type KeepsakeSlot = 'head' | 'face' | 'neck' | 'side' | 'back' | 'tail'
 
 export type KeepsakeId =
   | 'specs'
@@ -17,6 +17,10 @@ export type KeepsakeId =
   | 'oldcrown'
   | 'mistscarf'
   | 'ribbon'
+  | 'sprig'
+  | 'leafcape'
+  | 'locket'
+  | 'starpin'
 
 export interface KeepsakeDef {
   name: string
@@ -36,6 +40,10 @@ export const KEEPSAKES: Record<KeepsakeId, KeepsakeDef> = {
   oldcrown: { name: 'Ancient Crown', blurb: 'Dug from the old honeycomb. Whoever wore it was very small and very important.', slot: 'head', from: 'honeycomb' },
   mistscarf: { name: 'Mist Scarf', blurb: 'Woven from the shimmer at the edge of the world. Cool and soft.', slot: 'neck', from: 'mist' },
   ribbon: { name: 'Royal Ribbon', blurb: 'The Queen\'s own thank-you bow, for a very helpful bee.', slot: 'tail', from: 'queen' },
+  sprig: { name: 'Lavender Sprig', blurb: 'From the cottage window box. Tucked behind an antenna, it smells like a nap.', slot: 'head', from: 'cottage' },
+  leafcape: { name: 'Amber Leaf Cape', blurb: 'One huge glowing leaf from the Hollow Oak, worn like a little cape.', slot: 'back', from: 'hollowoak' },
+  locket: { name: 'Moon Locket', blurb: 'A tiny silver locket from the Moonwell. It glows softly after dark.', slot: 'neck', from: 'moonwell' },
+  starpin: { name: 'Star Pin', blurb: 'The Queen\'s star, for the bee who flew further than any other.', slot: 'head', from: 'queen' },
 }
 
 export const KEEPSAKE_LIST = Object.keys(KEEPSAKES) as KeepsakeId[]

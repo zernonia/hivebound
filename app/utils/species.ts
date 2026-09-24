@@ -9,7 +9,7 @@ import type { Terrain } from './world'
  * dance: how fast the marker spins and how wide the green arc is.
  */
 
-export type SpeciesId = 'bumble' | 'mason' | 'dew' | 'carpenter' | 'moon'
+export type SpeciesId = 'bumble' | 'mason' | 'dew' | 'carpenter' | 'moon' | 'lavender' | 'ember'
 
 export interface SpeciesDef {
   name: string
@@ -113,6 +113,38 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
     gatherSeconds: 5,
     nightOnly: true,
     dance: { turns: 1.15, arc: 42 },
+  },
+  // --- Beyond the mist ---
+  lavender: {
+    name: 'Lavender Bee',
+    blurb: 'Soft lilac with plum stripes, and always smells faintly of the heath. The calmest bee you will ever meet.',
+    look: {
+      ...HONEY_BEE,
+      body: { width: 0.54, height: 0.52, length: 0.56, corner: 0.14 },
+      colors: { ...HONEY_BEE.colors, body: '#c9b2ec', stripe: '#5c3f7a', belly: '#f1e8ff', antenna: '#5c3f7a', legs: '#5c3f7a', blush: '#ff9fc6' },
+      eyes: { ...HONEY_BEE.eyes, bottom: '#8d6cc4' },
+    },
+    habitat: 'lavender',
+    favourite: 'nectar',
+    carry: 3,
+    secondsPerHex: 1.8,
+    gatherSeconds: 5,
+    dance: { turns: 0.9, arc: 56 },
+  },
+  ember: {
+    name: 'Ember Bee',
+    blurb: 'Warm orange with a glowing tip on each antenna. Lives in the Amber Woods and carries resin like treasure.',
+    look: {
+      ...HONEY_BEE,
+      colors: { ...HONEY_BEE.colors, body: '#f09a4a', stripe: '#6a2f1c', belly: '#ffe0bf', antenna: '#6a2f1c', legs: '#6a2f1c', antennaTip: '#ffd36b', antennaGlow: 0.6 },
+      eyes: { ...HONEY_BEE.eyes, bottom: '#d0662d' },
+    },
+    habitat: 'amber',
+    favourite: 'resin',
+    carry: 3,
+    secondsPerHex: 1.9,
+    gatherSeconds: 6,
+    dance: { turns: 1.05, arc: 46 },
   },
 }
 

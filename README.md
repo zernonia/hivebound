@@ -80,6 +80,9 @@ app/
     noise.ts                 Seeded RNG + value noise
 ```
 
+### How the world is drawn
+- **World props** are procedural and instanced: each kind (tufts, flowers, tulips, lavender, round trees, pines, fruit, pebbles, mushrooms, lily pads and blooms, clouds) is one merged, vertex-coloured geometry drawn as a single `InstancedMesh`. A per-vertex `tint` attribute controls which parts take the per-instance colour, so petals and leaves vary while centres and trunks stay put. Tilt, hue and variants come from a seeded per-tile random stream, so the world looks the same on every load.
+
 ### How movement works
 - `game.queue` holds the hexes still to fly through. Taps call `travelTo()` (BFS path) and keys call `step()`, which buffers at most one extra hex so held keys don't overshoot.
 - `GameScene` runs a smooth flight model: an invisible "carrot" glides along the route at a constant speed and the bee chases it with exponential smoothing, so it curves through corners instead of stopping at each hex. It climbs from hover to cruise altitude while travelling, follows the terrain height, banks into turns and pitches with speed (bank and bob are off with reduced motion).
@@ -118,11 +121,23 @@ app/
 
 ### Day and night
 - A slow day on the real clock: 24 minutes for a full day, about a quarter of it night. The light turns moonlit blue and the sky deepens; the location card shows the time of day.
+- At night **fireflies** drift round your bee and the music turns low and hushed, with far-off crickets.
 - **Moon Bees** hover over soft grass only at night. They're the fastest helpers, with a tricky dance. *Day and night* in Settings turns it off (always day; Moon Bees then visit any time).
+
+### Chapter two: past the mist
+- Handing in the feast (the end of chapter one) lifts the mist ring round the island. Beyond it lies new land: **Lavender Heath** (rich nectar) and the **Amber Woods** (rich resin), with meadows and pools between.
+- Three new places, each with a keepsake: **Lavender Cottage** (Lavender Sprig), **the Hollow Oak** (Amber Leaf Cape, worn on the back) and **the Moonwell** (Moon Locket). Two new species: **Lavender Bees** on the heath and **Ember Bees** in the Amber Woods.
+- Six chapter-two requests lead through it all and end with the Queen's **Star Pin**; then the little wishes carry on.
+- The first island generates exactly as before (the new ring is appended after it), so existing saves keep every tile and place. Saves that were already on little wishes start chapter two, keeping those wishes as hive levels.
 
 ### Coming back
 - If you've been away for 2 minutes or more (closed the game or left the tab) and the hive made something, a **Welcome back** card lists what came in and who was busy.
 - Helpers on their **favourite** job (♥) gather it faster.
+
+### Balance notes
+- Tuned with a scripted player that plays chapter one on a virtual clock using the real stores (it flies, gathers, builds, befriends and hands in like a sensible player). It finishes chapter one in about 13 minutes, which should be roughly 40 minutes of relaxed human play.
+- Unloading always empties the pouch: anything the store can't hold goes to the nursery, so a full store can never leave you unable to gather something else.
+- Buildings can be **paused** from their card (handy so the Wax Works doesn't eat honey you're saving). The Honey Press makes a jar every 20s.
 
 ### Music and sound
 - Everything is synthesised live with the Web Audio API (`app/audio/engine.ts`): a generative, never-quite-repeating piece (soft pad, bass, kalimba melody) that turns slower and warmer inside the hive, a wing buzz that follows flight speed, and one-shots for gathering, a full pouch, unloading, discoveries, the hive door, collecting and building.
@@ -130,6 +145,12 @@ app/
 
 ### Performance overlay
 - In dev (or any build opened with `?perf`, e.g. a Cloudflare preview on a phone), `` ` `` toggles an overlay with FPS, a frame-time graph, **main-thread busy %** (the game's frame work as a share of time; browsers don't expose real CPU usage), long tasks, JS heap (Chromium), draw calls, triangles and loaded tiles. Low FPS with a mostly idle main thread is flagged as GPU-bound.
+
+## Your save
+Your journey lives in your browser. Open **Settings → Your save** to **Copy save code** or **Download save file** (a small `.txt`), and keep it somewhere safe. To carry on elsewhere, choose **Load a save** and paste the code or pick the file. Loading replaces the game in that browser, so Hivebound asks first.
+
+## Install / offline
+Hivebound is installable: use your browser's **Install app** or **Add to Home Screen**. After your first visit it also opens offline, since the game is cached on your device. When you're online it always loads the newest version. Offline it uses the copy you last played, with the fallback fonts.
 
 ## Accessibility built in
 - **Reduce motion** (follows the OS setting by default): no bob, squash, pop-ins or springy UI, and a calmer camera.
@@ -143,7 +164,6 @@ app/
 - Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
 - A Beedex page per species, and species perks for building work
-- Chapter two: past the mist, with new requests and places
 
 ## Deploy (Cloudflare Workers, auto-deploy from GitHub)
 

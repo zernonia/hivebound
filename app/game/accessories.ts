@@ -213,6 +213,77 @@ function ribbon() {
   return g
 }
 
+function lavenderSprig() {
+  const g = new THREE.Group()
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.22, 6), mat('#6f9a5a', 0.8))
+  stem.position.y = 0.11
+  g.add(stem)
+  // Little buds stacked up the top of the stem, smaller towards the tip.
+  const bud = new THREE.SphereGeometry(1, 10, 8)
+  const bm = mat('#a88be0', 0.6)
+  for (let i = 0; i < 7; i++) {
+    const b = new THREE.Mesh(bud, bm)
+    const k = 1 - i / 9
+    b.scale.set(0.028 * k, 0.034 * k, 0.028 * k)
+    b.position.set((i % 2 ? 1 : -1) * 0.012, 0.13 + i * 0.022, 0)
+    g.add(b)
+  }
+  g.position.set(0.15, 0.24, 0.1)
+  g.rotation.set(0.2, 0, -0.5)
+  return g
+}
+
+function leafCape() {
+  const g = new THREE.Group()
+  // A broad leaf laid over the back, gently curled, with a midrib.
+  const shape = new THREE.Shape()
+  shape.moveTo(0, 0)
+  shape.bezierCurveTo(0.2, 0.06, 0.2, 0.32, 0, 0.42)
+  shape.bezierCurveTo(-0.2, 0.32, -0.2, 0.06, 0, 0)
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.01, bevelEnabled: true, bevelSize: 0.006, bevelThickness: 0.006, bevelSegments: 2 })
+  const leaf = new THREE.Mesh(geo, mat('#e8913a', 0.7, { emissive: new THREE.Color('#c25a12'), emissiveIntensity: 0.12 }))
+  leaf.rotation.x = -Math.PI / 2 + 0.25
+  const rib = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.4, 6), mat('#a8561c', 0.8))
+  rib.rotation.x = Math.PI / 2 - 0.25
+  rib.position.set(0, 0.035, -0.19)
+  g.add(leaf, rib)
+  g.position.set(0, 0.26, 0.04)
+  return g
+}
+
+function moonLocket() {
+  const g = new THREE.Group()
+  const chain = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.008, 6, 40), mat('#dfe6f2', 0.3, { metalness: 0.5 }))
+  chain.scale.set(1, 0.96, 1.5)
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.018, 20), mat('#eef3ff', 0.25, { metalness: 0.4, emissive: new THREE.Color('#b9cbff'), emissiveIntensity: 0.35 }))
+  disc.rotation.x = Math.PI / 2
+  disc.position.set(0, -0.2, 0.305)
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(0.018, 12, 10), mat('#fff6c9', 0.3, { emissive: new THREE.Color('#fff0a0'), emissiveIntensity: 0.6 }))
+  moon.position.set(0.008, -0.2, 0.318)
+  g.add(chain, disc, moon)
+  g.position.set(0, 0, 0.06)
+  return g
+}
+
+function starPin() {
+  const g = new THREE.Group()
+  const shape = new THREE.Shape()
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 + Math.PI / 2
+    const r = i % 2 ? 0.035 : 0.08
+    if (i === 0) shape.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+    else shape.lineTo(Math.cos(a) * r, Math.sin(a) * r)
+  }
+  const star = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(shape, { depth: 0.02, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 2 }),
+    mat('#ffd24a', 0.3, { metalness: 0.3, emissive: new THREE.Color('#ffb400'), emissiveIntensity: 0.3 }),
+  )
+  g.add(star)
+  g.position.set(-0.14, 0.3, 0.14)
+  g.rotation.set(-0.2, 0.3, 0.25)
+  return g
+}
+
 const KEEPSAKE_BUILDERS: Record<string, () => THREE.Object3D> = {
   specs,
   sunflower: sunflowerClip,
@@ -223,6 +294,10 @@ const KEEPSAKE_BUILDERS: Record<string, () => THREE.Object3D> = {
   oldcrown: oldCrown,
   mistscarf: mistScarf,
   ribbon,
+  sprig: lavenderSprig,
+  leafcape: leafCape,
+  locket: moonLocket,
+  starpin: starPin,
 }
 
 /** Builds a keepsake in body space (add to `rig.body`), or null for an unknown id. */

@@ -3,14 +3,15 @@
  *
  * - Music: a generative, never-quite-repeating piece. A soft pad walks a cosy chord
  *   progression, a round bass marks each bar, and kalimba-like plucks wander a pentatonic
- *   scale. Inside the hive it slows down and warms up.
+ *   scale. Inside the hive it slows down and warms up; at night it turns low and hushed,
+ *   with far-off crickets.
  * - Effects: a wing buzz that follows flight speed, plus short one-shots for gathering,
  *   unloading, discoveries, the hive door, collecting and building.
  *
  * Browsers only allow audio after a user gesture, so nothing plays until `unlock()`.
  */
 
-type Mood = 'meadow' | 'hive'
+type Mood = 'meadow' | 'hive' | 'night'
 
 const A4 = 440
 const midi = (n: number) => A4 * Math.pow(2, (n - 69) / 12)
@@ -21,6 +22,8 @@ const PROGRESSIONS: Record<Mood, number[][]> = {
   meadow: [[48, 55, 59, 64], [45, 52, 55, 60], [41, 48, 52, 57], [43, 50, 52, 59]],
   // Fmaj7 – Em7 – Dm7 – Cmaj7 (sleepier, for inside)
   hive: [[41, 48, 52, 57], [40, 47, 50, 55], [38, 45, 48, 53], [36, 43, 47, 52]],
+  // Am7 – Fmaj7 – Cmaj7 – Em7, voiced low (night)
+  night: [[45, 52, 55, 60], [41, 48, 52, 57], [36, 43, 47, 52], [40, 47, 50, 55]],
 }
 /** C major pentatonic across two octaves for the melody. */
 const SCALE = [72, 74, 76, 79, 81, 84, 86, 88]
@@ -81,7 +84,7 @@ export class GameAudio {
   setMood(mood: Mood) {
     this.mood = mood
     if (!this.ctx) return
-    this.musicFilter.frequency.setTargetAtTime(mood === 'hive' ? 1000 : 1800, this.ctx.currentTime, 1.5)
+    this.musicFilter.frequency.setTargetAtTime(this.filterFor(mood), this.ctx.currentTime, 1.5)
   }
 
   /** Pause everything while the tab is hidden. */
@@ -113,7 +116,7 @@ export class GameAudio {
 
     this.musicFilter = ctx.createBiquadFilter()
     this.musicFilter.type = 'lowpass'
-    this.musicFilter.frequency.value = this.mood === 'hive' ? 1000 : 1800
+    this.musicFilter.frequency.value = this.filterFor(this.mood)
     this.musicBus = ctx.createGain()
     this.musicBus.gain.value = this.musicVolume * 0.85
     this.musicFilter.connect(this.musicBus)
@@ -161,8 +164,12 @@ export class GameAudio {
   /* Music                                                              */
   /* ------------------------------------------------------------------ */
 
+  private filterFor(mood: Mood) {
+    return mood === 'hive' ? 1000 : mood === 'night' ? 1100 : 1800
+  }
+
   private barSeconds() {
-    return this.mood === 'hive' ? 5.2 : 4.2
+    return this.mood === 'hive' ? 5.2 : this.mood === 'night' ? 5.8 : 4.2
   }
 
   private startMusic() {
@@ -189,15 +196,43 @@ export class GameAudio {
     for (const n of chord.slice(1)) this.padVoice(midi(n), t, len * 1.15)
     // Bass: a round sine on the root.
     this.pluck(midi(chord[0]! - 12), t, { type: 'sine', gain: 0.15, decay: len * 0.8, bus: 'music', attack: 0.12 })
+    if (this.mood === 'night') this.crickets(t, len)
     // Melody: a few kalimba notes drifting stepwise, with whole bars of rest to breathe.
     if (this.bar % 4 === 3) return
-    const steps = this.mood === 'hive' ? 3 : 4
+    const steps = this.mood === 'meadow' ? 4 : 3
     for (let i = 0; i < steps; i++) {
-      if (Math.random() > (this.mood === 'hive' ? 0.3 : 0.4)) continue
+      if (Math.random() > (this.mood === 'meadow' ? 0.4 : this.mood === 'hive' ? 0.3 : 0.22)) continue
       const move = Math.random() < 0.7 ? (Math.random() < 0.5 ? -1 : 1) : 0
       this.melodyIndex = Math.max(0, Math.min(SCALE.length - 3, this.melodyIndex + move))
       const when = t + (i * len) / steps + (Math.random() - 0.5) * 0.04
       this.kalimba(midi(SCALE[this.melodyIndex]!), when, 0.075, 'music')
+    }
+  }
+
+  /** Far-off crickets: a few soft trills of short high pips, panned about, well under the music. */
+  private crickets(t: number, len: number) {
+    const ctx = this.ctx!
+    const trills = 1 + Math.floor(Math.random() * 3)
+    for (let k = 0; k < trills; k++) {
+      const start = t + Math.random() * len
+      const pitch = 4200 + Math.random() * 900
+      const pan = ctx.createStereoPanner()
+      pan.pan.value = Math.random() * 1.6 - 0.8
+      pan.connect(this.musicBus)
+      const pips = 3 + Math.floor(Math.random() * 3)
+      for (let i = 0; i < pips; i++) {
+        const at = start + i * 0.075
+        const osc = ctx.createOscillator()
+        osc.type = 'sine'
+        osc.frequency.value = pitch
+        const g = ctx.createGain()
+        g.gain.setValueAtTime(0, at)
+        g.gain.linearRampToValueAtTime(0.012, at + 0.008)
+        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05)
+        osc.connect(g).connect(pan)
+        osc.start(at)
+        osc.stop(at + 0.06)
+      }
     }
   }
 

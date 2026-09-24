@@ -5,10 +5,19 @@ import type { Palette } from '~/utils/palette'
 import type { PoiId, Tile, World } from '~/utils/world'
 import { cushionHexGeometry, mixColor } from './geometry'
 import {
+  AMBER_CANOPY_COLORS,
+  AMBER_MUSHROOM_COLORS,
+  AMBER_PINE_COLORS,
   CANOPY_COLORS,
+  LAVENDER_COLORS,
   FLOWER_COLORS,
+  LILY_COLORS,
+  LOTUS_COLORS,
   MUSHROOM_COLORS,
+  PEBBLE_COLORS,
+  PINE_COLORS,
   type PropKind,
+  TREE_BIT_COLORS,
   TUFT_COLORS,
   buildHive,
   buildPoi,
@@ -26,15 +35,18 @@ interface PropInstance {
   always?: boolean
   /** Fog puff: visible only while the tile is undiscovered. */
   fog?: boolean
+  /** A cloud of the mist ring round the first island: most drift away once it lifts. */
+  gate?: boolean
 }
 
 interface PlannedProp {
   kind: PropKind
   m: THREE.Matrix4
   group: number
-  color?: string
+  color?: THREE.ColorRepresentation
   always?: boolean
   fog?: boolean
+  gate?: boolean
 }
 
 interface TileView {
@@ -98,6 +110,7 @@ export class WorldView {
   private reducedMotion = false
   private hive: THREE.Group
   private time = 0
+  private mistLifted = false
 
   constructor(private world: World, palette: Palette) {
     this.palette = palette
@@ -167,7 +180,7 @@ export class WorldView {
         im.setColorAt(index, tmpC.set(p.color ?? '#ffffff'))
         im.instanceColor!.needsUpdate = true
       }
-      v.props.push({ kind: p.kind, index, base: p.m, always: p.always, fog: p.fog, group: p.group })
+      v.props.push({ kind: p.kind, index, base: p.m, always: p.always, fog: p.fog, gate: p.gate, group: p.group })
     }
 
     if (v.tile.poi) {
@@ -198,6 +211,21 @@ export class WorldView {
   private planProps(view: TileView) {
     const t = view.tile
     const rng = mulberry32(Math.floor(t.rand * 1e9) + 7)
+    // A second, independent stream for purely cosmetic jitter (tilt, hue, variants), so the
+    // layout drawn from `rng` stays exactly where it always was.
+    const jit = mulberry32(Math.floor(t.rand * 1e9) + 911)
+    const pickJ = <T>(arr: T[]) => arr[Math.floor(jit() * arr.length)]!
+    /** A colour nudged a little in hue, saturation and lightness so repeats don't look stamped. */
+    const tone = (c: THREE.ColorRepresentation, h = 0.015, s = 0.08, l = 0.04) =>
+      new THREE.Color(c).offsetHSL((jit() - 0.5) * 2 * h, (jit() - 0.5) * 2 * s, (jit() - 0.5) * 2 * l)
+    /** Tips a prop off vertical by up to `amount` radians, in a random direction. */
+    const lean = (m: THREE.Matrix4, amount: number) => {
+      const a = jit() * Math.PI * 2
+      const k = jit() * amount
+      m.decompose(tmpP, tmpQ, tmpS)
+      tmpQ.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.cos(a) * k, 0, Math.sin(a) * k)))
+      return m.compose(tmpP, tmpQ, tmpS)
+    }
     const { x, z } = hexToWorld(t)
     const y = t.height
     const pick = <T>(arr: T[]) => arr[Math.floor(rng() * arr.length)]!
@@ -212,7 +240,7 @@ export class WorldView {
     // Gatherable bits (each flower, lily pad, mushroom) get a group so they can thin out as
     // the tile is gathered; `group` is set while planning one of them.
     let group = -1
-    const add = (kind: PropKind, m: THREE.Matrix4, color?: string, extra: { always?: boolean, fog?: boolean } = {}) =>
+    const add = (kind: PropKind, m: THREE.Matrix4, color?: THREE.ColorRepresentation, extra: { always?: boolean, fog?: boolean, gate?: boolean } = {}) =>
       view.planned.push({ kind, m, color, group, ...extra })
     const gatherable = (build: () => void) => {
       group = view.groups++
@@ -222,11 +250,14 @@ export class WorldView {
 
     const flower = (px: number, pz: number, s = 1) => gatherable(() => {
       const h = 0.7 + rng() * 0.5
-      const m = mat(px, y, pz, s, rng() * 6.28, h * s)
+      const m = lean(mat(px, y, pz, s, rng() * 6.28, h * s), 0.14)
       add('stem', m)
-      const head = mat(px, y + 0.3 * h * s, pz, s * (0.9 + rng() * 0.4))
-      add('petals', head, pick(FLOWER_COLORS))
-      add('center', head)
+      // The head sits on the (leaning) stem's tip.
+      const tip = new THREE.Vector3(0, 0.3, 0).applyMatrix4(m)
+      const head = mat(tip.x, tip.y, tip.z, s * (0.9 + rng() * 0.4))
+      const color = pick(FLOWER_COLORS)
+      const tulip = jit() < 0.22
+      add(tulip ? 'tulip' : 'petals', lean(head, tulip ? 0.1 : 0.3), tone(color, 0.02, 0.1, 0.03))
     })
 
     const occupied = t.poi || t.terrain === 'hive'
@@ -235,7 +266,7 @@ export class WorldView {
       const n = 1 + Math.floor(rng() * 2)
       for (let i = 0; i < n; i++) {
         const [px, pz] = spot(0.5)
-        add('cloud', mat(px, y + 0.25 + rng() * 0.35, pz, 0.9 + rng() * 0.6), undefined, { always: true })
+        add('cloud', mat(px, y + 0.25 + rng() * 0.35, pz, 0.9 + rng() * 0.6), undefined, { always: true, gate: !!t.gate && i > 0 })
       }
       return
     }
@@ -250,20 +281,20 @@ export class WorldView {
 
     switch (t.terrain) {
       case 'clearing': {
-        if (rng() < 0.6) { const [px, pz] = spot(); add('pebble', mat(px, y, pz, 0.8 + rng() * 0.6)) }
+        if (rng() < 0.6) { const [px, pz] = spot(); add('pebble', mat(px, y, pz, 0.8 + rng() * 0.6), tone(pickJ(PEBBLE_COLORS))) }
         if (rng() < 0.5) { const [px, pz] = spot(); flower(px, pz, 0.8) }
         break
       }
       case 'grass': {
         const n = Math.floor(rng() * 3)
-        for (let i = 0; i < n; i++) { const [px, pz] = spot(); add('tuft', mat(px, y, pz, 0.9 + rng() * 0.5), pick(TUFT_COLORS)) }
+        for (let i = 0; i < n; i++) { const [px, pz] = spot(); add('tuft', lean(mat(px, y, pz, 0.9 + rng() * 0.5), 0.15), tone(pick(TUFT_COLORS))) }
         if (rng() < 0.35) { const [px, pz] = spot(); flower(px, pz) }
-        if (rng() < 0.15) { const [px, pz] = spot(); add('pebble', mat(px, y, pz, 0.7 + rng() * 0.8)) }
+        if (rng() < 0.15) { const [px, pz] = spot(); add('pebble', mat(px, y, pz, 0.7 + rng() * 0.8), tone(pickJ(PEBBLE_COLORS))) }
         break
       }
       case 'meadow': {
         const n = 2 + Math.floor(rng() * 3)
-        for (let i = 0; i < n; i++) { const [px, pz] = spot(); add('tuft', mat(px, y, pz, 1.1 + rng() * 0.6), pick(TUFT_COLORS)) }
+        for (let i = 0; i < n; i++) { const [px, pz] = spot(); add('tuft', lean(mat(px, y, pz, 1.1 + rng() * 0.6), 0.15), tone(pick(TUFT_COLORS))) }
         const f = 1 + Math.floor(rng() * 2)
         for (let i = 0; i < f; i++) { const [px, pz] = spot(); flower(px, pz, 1.1) }
         break
@@ -271,7 +302,7 @@ export class WorldView {
       case 'flowers': {
         const f = 4 + Math.floor(rng() * 4)
         for (let i = 0; i < f; i++) { const [px, pz] = spot(0.66); flower(px, pz, 0.9 + rng() * 0.4) }
-        if (rng() < 0.5) { const [px, pz] = spot(); add('tuft', mat(px, y, pz, 0.9), pick(TUFT_COLORS)) }
+        if (rng() < 0.5) { const [px, pz] = spot(); add('tuft', lean(mat(px, y, pz, 0.9), 0.15), tone(pick(TUFT_COLORS))) }
         break
       }
       case 'forest': {
@@ -279,21 +310,64 @@ export class WorldView {
         for (let i = 0; i < n; i++) {
           const [px, pz] = n === 1 ? spot(0.25) : spot(0.5)
           const s = (n === 1 ? 1.25 : 0.9) * (0.85 + rng() * 0.3)
-          add('trunk', mat(px, y, pz, s))
-          add('canopy', mat(px, y, pz, s), pick(CANOPY_COLORS))
+          rng() // the old separate trunk's spin: keeps the layout stream in step
+          const m = lean(mat(px, y, pz, s), 0.06)
+          const leaf = pick(CANOPY_COLORS)
+          // Some trees are little pines; some round ones carry fruit or blossom.
+          if (jit() < 0.3) {
+            add('pine', m, tone(pickJ(PINE_COLORS), 0.015, 0.06, 0.05))
+          }
+          else {
+            add('tree', m, tone(leaf, 0.02, 0.08, 0.05))
+            if (jit() < 0.3) add('treeBits', m, tone(pickJ(TREE_BIT_COLORS), 0.01, 0.05, 0.03))
+          }
         }
         if (rng() < 0.4) {
           const [px, pz] = spot(0.7)
-          const m = mat(px, y, pz, 0.9 + rng() * 0.5)
-          gatherable(() => {
-            add('mushStem', m)
-            add('mushCap', m, pick(MUSHROOM_COLORS))
-          })
+          const m = lean(mat(px, y, pz, 0.9 + rng() * 0.5), 0.12)
+          gatherable(() => add('mushroom', m, tone(pick(MUSHROOM_COLORS), 0.02, 0.06, 0.04)))
+        }
+        break
+      }
+      // --- Beyond the mist ---
+      case 'lavender': {
+        const n = 2 + Math.floor(rng() * 3)
+        for (let i = 0; i < n; i++) {
+          const [px, pz] = spot(0.62)
+          const m = lean(mat(px, y, pz, 1 + rng() * 0.5), 0.1)
+          gatherable(() => add('lavender', m, tone(pick(LAVENDER_COLORS), 0.015, 0.08, 0.04)))
+        }
+        if (rng() < 0.4) { const [px, pz] = spot(); add('tuft', lean(mat(px, y, pz, 0.9), 0.15), tone(pick(TUFT_COLORS))) }
+        break
+      }
+      case 'amber': {
+        const n = rng() < 0.35 ? 2 : 1
+        for (let i = 0; i < n; i++) {
+          const [px, pz] = n === 1 ? spot(0.25) : spot(0.5)
+          const s = (n === 1 ? 1.3 : 0.95) * (0.85 + rng() * 0.3)
+          const m = lean(mat(px, y, pz, s), 0.06)
+          if (jit() < 0.25) add('pine', m, tone(pickJ(AMBER_PINE_COLORS), 0.015, 0.06, 0.05))
+          else add('tree', m, tone(pick(AMBER_CANOPY_COLORS), 0.02, 0.08, 0.05))
+        }
+        // Resin-gold mushrooms are what thin out as the tile is gathered.
+        const k = 1 + Math.floor(rng() * 2)
+        for (let i = 0; i < k; i++) {
+          const [px, pz] = spot(0.7)
+          const m = lean(mat(px, y, pz, 0.8 + rng() * 0.4), 0.12)
+          gatherable(() => add('mushroom', m, tone(pick(AMBER_MUSHROOM_COLORS), 0.02, 0.06, 0.04)))
         }
         break
       }
       case 'water': {
-        if (rng() < 0.55) { const [px, pz] = spot(0.5); gatherable(() => add('lily', mat(px, y + 0.012, pz, 0.8 + rng() * 0.6))) }
+        if (rng() < 0.55) {
+          const [px, pz] = spot(0.5)
+          gatherable(() => {
+            const m = mat(px, y + 0.012, pz, 0.8 + rng() * 0.6)
+            add('lily', m, tone(pickJ(LILY_COLORS), 0.01, 0.05, 0.03))
+            // Now and then a bloom sits on the pad, and goes with it when gathered.
+            if (jit() < 0.4) add('lilyBloom', m.clone().multiply(new THREE.Matrix4().makeTranslation(0.05, 0.012, -0.04)), tone(pickJ(LOTUS_COLORS), 0.02, 0.05, 0.02))
+          })
+        }
         break
       }
     }
@@ -331,7 +405,8 @@ export class WorldView {
     for (const pr of v.props) {
       const im = this.propMeshes[pr.kind]
       let k: number
-      if (pr.always) k = 1
+      if (pr.gate && this.mistLifted) k = 0
+      else if (pr.always) k = 1
       else if (pr.fog) k = v.discovered ? (v.anim >= 0 ? Math.max(0, 1 - p * 2) : 0) : 1
       else k = v.discovered ? (v.anim >= 0 ? easeOutBack(Math.min(1, Math.max(0, p * 1.4 - 0.25))) : 1) : 0
       k *= Math.max(0, r)
@@ -410,7 +485,8 @@ export class WorldView {
       if (!v.discovered) continue
       for (const h of hexesInRange(v.tile, LOAD_RADIUS)) {
         const w = this.byKey.get(hexKey(h))
-        if (w && !w.loaded) this.loadTile(w, !initial)
+        // The land beyond the mist stays unbuilt (and unseen) until the mist lifts.
+        if (w && !w.loaded && (this.mistLifted || !w.tile.beyond)) this.loadTile(w, !initial)
       }
     }
     // Tile picking raycasts the caps, which first test the mesh's bounding sphere: keep it current.
@@ -428,6 +504,27 @@ export class WorldView {
       this.colorTile(v)
     }
     for (const v of this.sparkles) v.sparkle!.visible = v.discovered && !this.visitedPois.includes(v.tile.poi!)
+  }
+
+  /**
+   * Chapter two: thin the mist ring (most of its clouds drift off) and build the land beyond
+   * next to anything already discovered, so it's there when the bee looks through.
+   */
+  setMistLifted(lifted: boolean) {
+    if (this.mistLifted === lifted) return
+    this.mistLifted = lifted
+    const before = this.caps.count
+    if (lifted) {
+      for (const v of this.views) {
+        if (!v.discovered) continue
+        for (const h of hexesInRange(v.tile, LOAD_RADIUS)) {
+          const w = this.byKey.get(hexKey(h))
+          if (w && !w.loaded) this.loadTile(w, true)
+        }
+      }
+    }
+    if (this.caps.count !== before) this.caps.computeBoundingSphere()
+    for (const v of this.views) if (v.loaded && v.tile.gate) this.writeTile(v, 1)
   }
 
   setVisitedPois(visited: PoiId[]) {

@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 import { hexDistance, hexKey } from '~/utils/hex'
 import { isGoldenSpot } from '~/utils/golden'
 import { KEEPSAKES } from '~/utils/keepsakes'
-import { type Goal, type RequestDef, requestAt, CHAPTER_ONE } from '~/utils/requests'
+import { type Goal, type RequestDef, requestAt, CHAPTER_ONE, STORY } from '~/utils/requests'
+import { SPECIES } from '~/utils/species'
 import { ALL_RESOURCES, type Amounts, BUILDINGS, RESOURCE_INFO, formatAmounts } from '~/utils/resources'
 import { HOME, POI_BY_ID, useWorldData } from '~/utils/world'
 import { useColony } from './colony'
@@ -35,6 +36,8 @@ export const useQueen = defineStore('queen', {
     revealed: [] as string[],
     /** What you've flown home yourself since the current request started ('bring' goals). */
     brought: {} as Amounts,
+    /** Little wishes done before chapter two existed (older saves), still counted in the level. */
+    extraLevels: 0,
   }),
 
   getters: {
@@ -43,10 +46,14 @@ export const useQueen = defineStore('queen', {
     },
     /** 1 + requests completed: a gentle measure of how far the hive has come. */
     hiveLevel(s) {
-      return s.done + 1
+      return s.done + s.extraLevels + 1
     },
     inChapterOne(s) {
       return s.done < CHAPTER_ONE.length
+    },
+    /** The feast (end of chapter one) lifts the mist: the land beyond opens up. */
+    mistLifted(s) {
+      return s.done >= CHAPTER_ONE.length
     },
   },
 
@@ -55,10 +62,18 @@ export const useQueen = defineStore('queen', {
       try {
         const raw = localStorage.getItem(SAVE_KEY)
         if (raw) {
-          const d = JSON.parse(raw) as { done?: number, revealed?: string[], brought?: Amounts }
+          const d = JSON.parse(raw) as { v?: number, done?: number, revealed?: string[], brought?: Amounts, extraLevels?: number }
           this.done = d.done ?? 0
           this.revealed = d.revealed ?? []
           this.brought = d.brought ?? {}
+          this.extraLevels = d.extraLevels ?? 0
+          // Saves from before chapter two: anyone already on little wishes goes back to start
+          // chapter two, keeping the wishes they did as hive levels.
+          if (!d.v && this.done > CHAPTER_ONE.length) {
+            this.extraLevels += this.done - CHAPTER_ONE.length
+            this.done = CHAPTER_ONE.length
+            this.brought = {}
+          }
         }
       }
       catch { /* start fresh */ }
@@ -66,7 +81,7 @@ export const useQueen = defineStore('queen', {
     },
     save() {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({ done: this.done, revealed: this.revealed, brought: this.brought }))
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, done: this.done, revealed: this.revealed, brought: this.brought, extraLevels: this.extraLevels }))
       }
       catch { /* ignore */ }
     },
@@ -78,6 +93,7 @@ export const useQueen = defineStore('queen', {
       this.done = 0
       this.revealed = []
       this.brought = {}
+      this.extraLevels = 0
       this.startCurrent()
     },
 
@@ -106,6 +122,11 @@ export const useQueen = defineStore('queen', {
         case 'build': {
           const have = Object.values(hive.cells).some(c => c.building === g.building) ? 1 : 0
           return [{ label: `Build a ${BUILDINGS[g.building].name}`, have, need: 1, done: have >= 1 }]
+        }
+        case 'species': {
+          const have = Math.min(g.count, useColony().bees.filter(b => b.species === g.species).length)
+          const name = SPECIES[g.species].name
+          return [{ label: g.count === 1 ? `Befriend a ${name}` : `Befriend ${g.count} ${name}s`, have, need: g.count, done: have >= g.count }]
         }
         case 'friends': {
           const have = Math.min(g.count, useColony().bees.length)
@@ -162,18 +183,33 @@ export const useQueen = defineStore('queen', {
         game.giveKeepsake(r.keepsake)
         gifts.push(KEEPSAKES[r.keepsake].name)
       }
-      const chapter = this.done < CHAPTER_ONE.length
+      const chapter = this.done < STORY.length
       if (chapter) {
         game.addJournal({ id: `queen:${req.id}`, title: req.title, body: `The Queen said: "${req.thanks}"`, icon: 'hive', subject: 'hive' }, false)
       }
       this.done++
       this.brought = {}
+      if (this.done === CHAPTER_ONE.length) this.liftMist()
       game.toast(`The Queen is delighted!${gifts.length ? ` ${gifts.join(', ')}.` : ''}`)
       game.announce(`The Queen says: "${req.thanks}"${gifts.length ? ` You received ${gifts.join(', ')}.` : ''}`)
       this.startCurrent()
       hive.changed()
       this.save()
       return true
+    },
+
+    /** End of chapter one: the mist ring thins and the land beyond opens. */
+    liftMist() {
+      const game = useGame()
+      game.addJournal({
+        id: 'mist-lifts',
+        title: 'The mist lifts',
+        body: 'This morning the mist at the edge of the meadow was thin as a curtain. Through it: purple hills, orange trees, and the faint hum of other bees. The Queen says it is ours to explore.',
+        icon: 'poi',
+        subject: 'mist',
+      })
+      game.toast('The mist has lifted! New land waits beyond it.')
+      game.announce('The mist at the edge of the meadow has lifted. You can fly through it to new land beyond.')
     },
 
     /** Marks the new request's place (or the nearest golden pollen) on the map, once. */

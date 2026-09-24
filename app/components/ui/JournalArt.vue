@@ -60,6 +60,32 @@ defineProps<{ subject?: string }>()
       <circle cx="44" cy="42" r="16" fill="#7cc47a" />
       <circle cx="76" cy="48" r="13" fill="#8fd07a" />
     </template>
+    <template v-else-if="subject === 'cottage'">
+      <path d="M36 74V48h48v26z" fill="#fff4e0" />
+      <path d="M30 50 60 26l30 24z" fill="#b99ae0" />
+      <path d="M54 74V62a6 6 0 0 1 12 0v12" fill="#8a5f3c" />
+      <rect x="70" y="54" width="9" height="8" rx="2" fill="#bfe6ff" />
+      <path d="M24 76v-8M28 76v-10M92 76v-9M96 76v-7" stroke="#8d6cc4" stroke-width="3" />
+    </template>
+    <template v-else-if="subject === 'hollowoak' || subject === 'amber'">
+      <path d="M50 76V52M70 76V52" stroke="#8a5f3c" stroke-width="5" />
+      <path v-if="subject === 'hollowoak'" d="M54 76V60a6 6 0 0 1 12 0v16" fill="#5a3a22" />
+      <circle cx="60" cy="36" r="22" fill="#f0a24a" />
+      <circle cx="44" cy="44" r="12" fill="#e8913a" />
+      <circle cx="78" cy="42" r="13" fill="#f5b85c" />
+    </template>
+    <template v-else-if="subject === 'moonwell'">
+      <ellipse cx="60" cy="62" rx="28" ry="10" fill="#cfd6e6" />
+      <ellipse cx="60" cy="60" rx="20" ry="6" fill="#6fa8e6" />
+      <path d="M40 62v10M80 62v10" stroke="#9aa5ba" stroke-width="4" />
+      <path d="M66 22a10 10 0 1 1-8 16 8 8 0 1 0 8-16z" fill="#fff4c9" />
+    </template>
+    <template v-else-if="subject === 'lavender'">
+      <g v-for="x in [34, 48, 62, 76, 90]" :key="x">
+        <path :d="`M${x} 76V46`" stroke="#6fb35e" />
+        <ellipse :cx="x" cy="42" rx="4" ry="10" fill="#b99ae0" />
+      </g>
+    </template>
     <template v-else>
       <path d="M30 74c4-14 8-22 10-26M50 74c2-12 4-20 6-26M70 74c-1-12 0-18 2-24M88 74c-2-10-4-16-6-20" stroke="#6fb35e" />
       <circle cx="56" cy="44" r="5" fill="#ff9ec7" />
