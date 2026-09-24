@@ -22,6 +22,23 @@ const game = useGame()
 
 const tab = ref<'cells' | 'upgrades'>('cells')
 
+// The comb map (layout + unsealing) is tucked away until asked for; the choice is remembered.
+const MAP_KEY = 'hivebound:hive-map'
+const showMap = ref(false)
+onMounted(() => {
+  try {
+    showMap.value = localStorage.getItem(MAP_KEY) === '1'
+  }
+  catch { /* storage unavailable */ }
+})
+function toggleMap() {
+  showMap.value = !showMap.value
+  try {
+    localStorage.setItem(MAP_KEY, showMap.value ? '1' : '0')
+  }
+  catch { /* ignore */ }
+}
+
 // Tick a clock so countdowns and progress bars move.
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval> | undefined
@@ -42,6 +59,9 @@ const cells = computed(() => HIVE_CELLS.map((h) => {
     output: hive.cells[key]?.output ?? 0,
   }
 }))
+
+/** Buildings with goods waiting in their tray. */
+const readyCount = computed(() => cells.value.filter(c => c.output > 0).length)
 
 const productOf = (id: BuildingId): Resource | null => {
   const out = BUILDINGS[id].recipe?.out
@@ -119,7 +139,12 @@ function build(id: BuildingId) {
 
     <!-- Cells -->
     <div v-show="tab === 'cells'" id="panel-cells" role="tabpanel" aria-labelledby="tab-cells" class="body">
-      <div class="comb" role="group" aria-label="Hive cells">
+      <button class="map-toggle" :aria-expanded="showMap" aria-controls="hive-map" @click="toggleMap">
+        <span>Hive map</span>
+        <span v-if="readyCount" class="ready">{{ readyCount }} ready</span>
+        <span class="chev" :class="{ open: showMap }" aria-hidden="true">▾</span>
+      </button>
+      <div v-show="showMap" id="hive-map" class="comb" role="group" aria-label="Hive cells">
         <button
           v-for="c in cells"
           :key="c.key"
@@ -153,7 +178,7 @@ function build(id: BuildingId) {
           </span>
         </button>
       </div>
-      <p class="hint hide-touch">
+      <p v-show="showMap" class="hint hide-touch">
         Move with <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span>, act with <span class="kbd">F</span>
       </p>
 
@@ -386,6 +411,33 @@ h3 {
   padding: 0 6px 6px;
 }
 /* Honeycomb map of the cells */
+.map-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 8px;
+  padding: 0 14px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  font-weight: 700;
+}
+.map-toggle .ready {
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: #e8553f;
+  color: #fff;
+  font-size: 0.8rem;
+}
+.map-toggle .chev {
+  margin-left: auto;
+  transition: transform 200ms var(--ease);
+}
+.map-toggle .chev.open {
+  transform: rotate(180deg);
+}
 .comb {
   position: relative;
   height: 330px;
