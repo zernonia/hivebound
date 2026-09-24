@@ -101,6 +101,8 @@ export const useGame = defineStore('game', {
     toasts: [] as Toast[],
     journalOpen: false,
     settingsOpen: false,
+    /** Quick build menu for the selected hive cell (B). */
+    buildMenuOpen: false,
     /** Alternates NW/SW (or NE/SE) so holding ← / → travels in a straight line. */
     lateralFlip: false,
     loaded: false,

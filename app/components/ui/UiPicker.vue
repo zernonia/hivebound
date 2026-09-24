@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /*
  * A small in-theme dropdown, used instead of a native <select> so it matches the rest of the
- * UI. The list opens inline under the button (so scrolling panels never clip it), and works
- * like a listbox: arrows move, Enter/Space picks, Esc closes. Keys it handles don't reach the
- * game, so arrowing through options never steers the bee.
+ * UI. The list floats over everything (teleported to <body>, fixed to the button), so opening
+ * it never shifts the layout or gets clipped by a scrolling panel; it opens upwards when
+ * there's no room below. Works like a listbox: arrows move, Enter/Space picks, Esc closes.
+ * Keys it handles don't reach the game, so arrowing through options never steers the bee.
  */
 export interface PickerOption {
   value: string
@@ -29,8 +30,35 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const open = ref(false)
 const active = ref(0)
+const root = ref<HTMLDivElement>()
 const btn = ref<HTMLButtonElement>()
 const list = ref<HTMLUListElement>()
+/** Where the floating list sits, from the button's position on screen. */
+const pos = ref({ left: 0, width: 0, top: 0 as number | null, bottom: null as number | null })
+
+function place() {
+  const r = btn.value?.getBoundingClientRect()
+  if (!r) return
+  const want = Math.min(260, props.options.length * 42 + 12)
+  const below = window.innerHeight - r.bottom
+  const up = below < want + 8 && r.top > below
+  pos.value = {
+    left: r.left,
+    width: r.width,
+    top: up ? null : r.bottom + 4,
+    bottom: up ? window.innerHeight - r.top + 4 : null,
+  }
+}
+// Follow the button if the panel scrolls or the window resizes while open.
+const follow = () => (open.value ? place() : undefined)
+onMounted(() => {
+  window.addEventListener('scroll', follow, true)
+  window.addEventListener('resize', follow)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', follow, true)
+  window.removeEventListener('resize', follow)
+})
 const id = useId()
 
 const current = computed(() => props.options.find(o => o.value === props.modelValue) ?? null)
@@ -45,6 +73,7 @@ function enabledIndex(from: number, step: number) {
 }
 
 async function show() {
+  place()
   open.value = true
   const sel = props.options.findIndex(o => o.value === props.modelValue && !o.disabled)
   active.value = sel >= 0 ? sel : enabledIndex(-1, 1)
@@ -99,12 +128,14 @@ function onListKey(e: KeyboardEvent) {
 }
 function onFocusOut(e: FocusEvent) {
   const next = e.relatedTarget as Node | null
-  if (!next || !(e.currentTarget as HTMLElement).contains(next)) open.value = false
+  // The list lives elsewhere in the page (teleported), so check both halves.
+  if (next && (root.value?.contains(next) || list.value?.contains(next))) return
+  open.value = false
 }
 </script>
 
 <template>
-  <div class="picker" :class="{ open }" @focusout="onFocusOut">
+  <div ref="root" class="picker" :class="{ open }" @focusout="onFocusOut">
     <button
       ref="btn"
       type="button"
@@ -122,7 +153,19 @@ function onFocusOut(e: FocusEvent) {
       <span v-if="current?.note" class="note">{{ current.note }}</span>
       <span class="chev" aria-hidden="true">▾</span>
     </button>
-    <ul v-if="open" :id="`${id}-list`" ref="list" role="listbox" :aria-label="label" class="list" @keydown="onListKey">
+    <Teleport to="body">
+    <ul
+      v-if="open"
+      :id="`${id}-list`"
+      ref="list"
+      role="listbox"
+      :aria-label="label"
+      class="picker-list"
+      :class="{ up: pos.bottom != null }"
+      :style="{ left: `${pos.left}px`, width: `${pos.width}px`, top: pos.top != null ? `${pos.top}px` : undefined, bottom: pos.bottom != null ? `${pos.bottom}px` : undefined }"
+      @keydown="onListKey"
+      @focusout="onFocusOut"
+    >
       <li
         v-for="(o, i) in options"
         :key="o.value"
@@ -140,6 +183,7 @@ function onFocusOut(e: FocusEvent) {
         <span v-if="o.value === modelValue" class="tick" aria-hidden="true">✓</span>
       </li>
     </ul>
+    </Teleport>
   </div>
 </template>
 
@@ -166,10 +210,6 @@ function onFocusOut(e: FocusEvent) {
 .trigger.on {
   background: var(--honey);
   border-color: var(--honey-deep);
-}
-.open .trigger {
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
 }
 .text {
   flex: 1;
@@ -199,18 +239,39 @@ function onFocusOut(e: FocusEvent) {
   border-radius: 4px;
   border: 2px solid;
 }
-.list {
+.picker-list {
+  position: fixed;
+  z-index: 60;
+  max-height: 260px;
+  overflow-y: auto;
   list-style: none;
-  margin: 3px 0 0;
+  margin: 0;
   padding: 4px;
-  border-radius: 4px 4px 12px 12px;
+  border-radius: 12px;
   border: 2px solid var(--line);
   background: var(--paper);
   box-shadow: var(--shadow);
   display: grid;
   gap: 2px;
+  font-family: var(--font-ui);
+  font-size: calc(16px * var(--text-scale));
+  color: var(--ink);
+  animation: pop-in 140ms var(--ease);
+  transform-origin: top center;
 }
-.list li {
+.picker-list.up {
+  transform-origin: bottom center;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+:global(html.rm) .picker-list {
+  animation: none;
+}
+.picker-list li {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -222,16 +283,16 @@ function onFocusOut(e: FocusEvent) {
   cursor: pointer;
   outline: none;
 }
-.list li.active {
+.picker-list li.active {
   background: var(--paper-2);
 }
-.list li:focus-visible {
+.picker-list li:focus-visible {
   box-shadow: 0 0 0 3px var(--honey-deep);
 }
-.list li.sel {
+.picker-list li.sel {
   background: color-mix(in srgb, var(--honey) 45%, var(--paper));
 }
-.list li.disabled {
+.picker-list li.disabled {
   opacity: 0.45;
   cursor: default;
 }

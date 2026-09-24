@@ -296,6 +296,9 @@ function build(id: BuildingId) {
         <!-- Empty: build menu -->
         <template v-else-if="sel.status.kind === 'empty'">
           <h3>Empty cell</h3>
+          <button class="chip-btn primary quick-build" @click="game.buildMenuOpen = true">
+            <span class="kbd hide-touch" aria-hidden="true">B</span> Build…
+          </button>
           <ul class="builds">
             <li v-for="id in BUILDING_LIST" :key="id" class="build">
               <div class="build-head">
@@ -619,6 +622,9 @@ h3 {
 .jobs button.on {
   background: var(--honey);
   border-color: var(--honey-deep);
+}
+.quick-build {
+  margin: 4px 0 10px;
 }
 .level {
   margin-left: 6px;

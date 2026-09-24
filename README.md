@@ -27,6 +27,7 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Fly home | `H` | Home button |
 | Action: enter the hive, befriend, talk to the Queen, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
 | Befriending dance: catch in the green | `F` (`Esc` backs away) | Tap the ring |
+| Inside the hive: quick build on an empty cell | `B` (then ↑/↓ or 1–5, `Enter`) | Build… button |
 | Inside the hive: pick a cell | Movement keys | Tap a cell or the cell map |
 | Performance overlay (dev, or `?perf`) | `` ` `` | × on the overlay |
 | Minimap size | `M` | Expand button |
