@@ -5,7 +5,11 @@ import type { Palette } from '~/utils/palette'
 import type { PoiId, Tile, World } from '~/utils/world'
 import { cushionHexGeometry, mixColor } from './geometry'
 import {
+  AMBER_CANOPY_COLORS,
+  AMBER_MUSHROOM_COLORS,
+  AMBER_PINE_COLORS,
   CANOPY_COLORS,
+  LAVENDER_COLORS,
   FLOWER_COLORS,
   LILY_COLORS,
   LOTUS_COLORS,
@@ -31,6 +35,8 @@ interface PropInstance {
   always?: boolean
   /** Fog puff: visible only while the tile is undiscovered. */
   fog?: boolean
+  /** A cloud of the mist ring round the first island: most drift away once it lifts. */
+  gate?: boolean
 }
 
 interface PlannedProp {
@@ -40,6 +46,7 @@ interface PlannedProp {
   color?: THREE.ColorRepresentation
   always?: boolean
   fog?: boolean
+  gate?: boolean
 }
 
 interface TileView {
@@ -103,6 +110,7 @@ export class WorldView {
   private reducedMotion = false
   private hive: THREE.Group
   private time = 0
+  private mistLifted = false
 
   constructor(private world: World, palette: Palette) {
     this.palette = palette
@@ -172,7 +180,7 @@ export class WorldView {
         im.setColorAt(index, tmpC.set(p.color ?? '#ffffff'))
         im.instanceColor!.needsUpdate = true
       }
-      v.props.push({ kind: p.kind, index, base: p.m, always: p.always, fog: p.fog, group: p.group })
+      v.props.push({ kind: p.kind, index, base: p.m, always: p.always, fog: p.fog, gate: p.gate, group: p.group })
     }
 
     if (v.tile.poi) {
@@ -232,7 +240,7 @@ export class WorldView {
     // Gatherable bits (each flower, lily pad, mushroom) get a group so they can thin out as
     // the tile is gathered; `group` is set while planning one of them.
     let group = -1
-    const add = (kind: PropKind, m: THREE.Matrix4, color?: THREE.ColorRepresentation, extra: { always?: boolean, fog?: boolean } = {}) =>
+    const add = (kind: PropKind, m: THREE.Matrix4, color?: THREE.ColorRepresentation, extra: { always?: boolean, fog?: boolean, gate?: boolean } = {}) =>
       view.planned.push({ kind, m, color, group, ...extra })
     const gatherable = (build: () => void) => {
       group = view.groups++
@@ -258,7 +266,7 @@ export class WorldView {
       const n = 1 + Math.floor(rng() * 2)
       for (let i = 0; i < n; i++) {
         const [px, pz] = spot(0.5)
-        add('cloud', mat(px, y + 0.25 + rng() * 0.35, pz, 0.9 + rng() * 0.6), undefined, { always: true })
+        add('cloud', mat(px, y + 0.25 + rng() * 0.35, pz, 0.9 + rng() * 0.6), undefined, { always: true, gate: !!t.gate && i > 0 })
       }
       return
     }
@@ -321,6 +329,35 @@ export class WorldView {
         }
         break
       }
+      // --- Beyond the mist ---
+      case 'lavender': {
+        const n = 2 + Math.floor(rng() * 3)
+        for (let i = 0; i < n; i++) {
+          const [px, pz] = spot(0.62)
+          const m = lean(mat(px, y, pz, 1 + rng() * 0.5), 0.1)
+          gatherable(() => add('lavender', m, tone(pick(LAVENDER_COLORS), 0.015, 0.08, 0.04)))
+        }
+        if (rng() < 0.4) { const [px, pz] = spot(); add('tuft', lean(mat(px, y, pz, 0.9), 0.15), tone(pick(TUFT_COLORS))) }
+        break
+      }
+      case 'amber': {
+        const n = rng() < 0.35 ? 2 : 1
+        for (let i = 0; i < n; i++) {
+          const [px, pz] = n === 1 ? spot(0.25) : spot(0.5)
+          const s = (n === 1 ? 1.3 : 0.95) * (0.85 + rng() * 0.3)
+          const m = lean(mat(px, y, pz, s), 0.06)
+          if (jit() < 0.25) add('pine', m, tone(pickJ(AMBER_PINE_COLORS), 0.015, 0.06, 0.05))
+          else add('tree', m, tone(pick(AMBER_CANOPY_COLORS), 0.02, 0.08, 0.05))
+        }
+        // Resin-gold mushrooms are what thin out as the tile is gathered.
+        const k = 1 + Math.floor(rng() * 2)
+        for (let i = 0; i < k; i++) {
+          const [px, pz] = spot(0.7)
+          const m = lean(mat(px, y, pz, 0.8 + rng() * 0.4), 0.12)
+          gatherable(() => add('mushroom', m, tone(pick(AMBER_MUSHROOM_COLORS), 0.02, 0.06, 0.04)))
+        }
+        break
+      }
       case 'water': {
         if (rng() < 0.55) {
           const [px, pz] = spot(0.5)
@@ -368,7 +405,8 @@ export class WorldView {
     for (const pr of v.props) {
       const im = this.propMeshes[pr.kind]
       let k: number
-      if (pr.always) k = 1
+      if (pr.gate && this.mistLifted) k = 0
+      else if (pr.always) k = 1
       else if (pr.fog) k = v.discovered ? (v.anim >= 0 ? Math.max(0, 1 - p * 2) : 0) : 1
       else k = v.discovered ? (v.anim >= 0 ? easeOutBack(Math.min(1, Math.max(0, p * 1.4 - 0.25))) : 1) : 0
       k *= Math.max(0, r)
@@ -447,7 +485,8 @@ export class WorldView {
       if (!v.discovered) continue
       for (const h of hexesInRange(v.tile, LOAD_RADIUS)) {
         const w = this.byKey.get(hexKey(h))
-        if (w && !w.loaded) this.loadTile(w, !initial)
+        // The land beyond the mist stays unbuilt (and unseen) until the mist lifts.
+        if (w && !w.loaded && (this.mistLifted || !w.tile.beyond)) this.loadTile(w, !initial)
       }
     }
     // Tile picking raycasts the caps, which first test the mesh's bounding sphere: keep it current.
@@ -465,6 +504,27 @@ export class WorldView {
       this.colorTile(v)
     }
     for (const v of this.sparkles) v.sparkle!.visible = v.discovered && !this.visitedPois.includes(v.tile.poi!)
+  }
+
+  /**
+   * Chapter two: thin the mist ring (most of its clouds drift off) and build the land beyond
+   * next to anything already discovered, so it's there when the bee looks through.
+   */
+  setMistLifted(lifted: boolean) {
+    if (this.mistLifted === lifted) return
+    this.mistLifted = lifted
+    const before = this.caps.count
+    if (lifted) {
+      for (const v of this.views) {
+        if (!v.discovered) continue
+        for (const h of hexesInRange(v.tile, LOAD_RADIUS)) {
+          const w = this.byKey.get(hexKey(h))
+          if (w && !w.loaded) this.loadTile(w, true)
+        }
+      }
+    }
+    if (this.caps.count !== before) this.caps.computeBoundingSphere()
+    for (const v of this.views) if (v.loaded && v.tile.gate) this.writeTile(v, 1)
   }
 
   setVisitedPois(visited: PoiId[]) {

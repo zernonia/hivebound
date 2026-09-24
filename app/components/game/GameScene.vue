@@ -43,6 +43,8 @@ const worldView = new WorldView(world, settings.colorVisionFriendly ? PALETTE_CV
 worldView.setReducedMotion(settings.reducedMotion)
 worldView.syncDiscovered(game.discovered, [])
 worldView.setVisitedPois(game.visitedPois)
+// Chapter two: when the feast lifts the mist, thin its clouds and build the land beyond.
+watch(() => useQueen().mistLifted, v => worldView.setMistLifted(v), { immediate: true })
 
 // `?bee=queen` / `?bee=nocturnal` previews a variant; anything else is the honey bee.
 const beeParam = new URLSearchParams(window.location.search).get('bee')

@@ -389,7 +389,33 @@ function cloudGeometry() {
   return mergeGeometries(parts)!
 }
 
+/** A clump of lavender: green stems, each topped with a spike of buds (the buds take the tint). */
+function lavenderGeometry() {
+  const parts: THREE.BufferGeometry[] = []
+  const stems = [[0, 0, 0.36, 0], [0.07, 0.04, 0.3, 0.18], [-0.06, 0.05, 0.32, -0.16], [0.03, -0.07, 0.28, 0.1], [-0.05, -0.05, 0.26, -0.12]] as const
+  for (const [x, z, h, lean] of stems) {
+    const stem = new THREE.CylinderGeometry(0.008, 0.011, h, 5)
+    stem.translate(0, h / 2, 0)
+    paint(stem, '#7aa864', 0, underShade(0, h * 0.4, 0.8))
+    const spike: THREE.BufferGeometry[] = [stem]
+    for (let i = 0; i < 6; i++) {
+      const b = new THREE.SphereGeometry(1, 7, 5)
+      const k = 1 - i / 8
+      b.scale(0.022 * k, 0.03 * k, 0.022 * k)
+      b.translate((i % 2 ? 1 : -1) * 0.006, h * 0.62 + i * 0.026, 0)
+      paint(b, i % 2 ? '#ffffff' : '#ece4ff', 1)
+      spike.push(b)
+    }
+    const g = merge(spike)
+    g.rotateZ(lean)
+    g.translate(x, 0, z)
+    parts.push(g)
+  }
+  return merge(parts)
+}
+
 export type PropKind =
+  | 'lavender'
   | 'tuft'
   | 'stem'
   | 'petals'
@@ -414,6 +440,7 @@ export interface PropKindDef {
 export function createPropKinds(): Record<PropKind, PropKindDef> {
   const P = MAT.painted
   return {
+    lavender: { geometry: lavenderGeometry(), material: P, castShadow: false, tinted: true },
     tuft: { geometry: tuftGeometry(), material: P, castShadow: false, tinted: true },
     stem: { geometry: stemGeometry(), material: P, castShadow: false },
     petals: { geometry: petalsGeometry(), material: P, castShadow: false, tinted: true },
@@ -438,6 +465,11 @@ export const TUFT_COLORS = ['#8fcf73', '#9ed97c', '#7fc56e']
 export const PEBBLE_COLORS = ['#d8cfc2', '#d6cedd', '#e2d6c4', '#cbc6c0']
 export const LILY_COLORS = ['#79c46b', '#86cf74', '#6dbb6c']
 export const LOTUS_COLORS = ['#ffc2dc', '#fff4f8', '#e3c8ff']
+/** Beyond the mist: lavender spikes, and the Amber Woods' autumn canopies. */
+export const LAVENDER_COLORS = ['#b99ae0', '#a88be0', '#c9b2ec', '#9f86d6']
+export const AMBER_CANOPY_COLORS = ['#f0a24a', '#e8913a', '#f5b85c', '#e57b3a', '#f2c46b']
+export const AMBER_PINE_COLORS = ['#d98a3c', '#c97a36', '#e09a4a']
+export const AMBER_MUSHROOM_COLORS = ['#ffcf6b', '#ffb347']
 /** Fruit and blossom dots for the occasional round tree. */
 export const TREE_BIT_COLORS = ['#ff7b7b', '#ffb38a', '#ffd1e3', '#fff1a8']
 
@@ -965,6 +997,78 @@ export function buildPoi(id: PoiId): THREE.Group {
       }
       g.add(mesh(mergeGeometries(wisps)!, MAT.cloud, false))
       for (const p of [...motes, ...wisps]) p.dispose()
+      break
+    }
+    case 'cottage': {
+      // A tiny round cottage with a lavender thatch, a round door and a glowing window.
+      const parts: THREE.BufferGeometry[] = []
+      const wall = lathe([[0.3, 0], [0.31, 0.04], [0.3, 0.3], [0.28, 0.34], [0.001, 0.34]], 20)
+      parts.push(paint(wall, '#fff4e0', 0, underShade(0, 0.2, 0.82)))
+      // Outline runs bottom-centre → eave → peak (the same winding as the walls), so its outside faces up.
+      const roof = lathe([[0.001, 0.3], [0.36, 0.3], [0.38, 0.34], [0.26, 0.46], [0.12, 0.58], [0.001, 0.62]], 20)
+      parts.push(paint(roof, '#b99ae0', 0, underShade(0.3, 0.2, 0.75)))
+      parts.push(blob(0, 0.63, 0, 0.05, '#9f86d6', 0))
+      const door = new THREE.ExtrudeGeometry(archShape(0.12, 0.17), { depth: 0.012, bevelEnabled: true, bevelSize: 0.005, bevelThickness: 0.005, bevelSegments: 1, curveSegments: 8 })
+      paint(door, '#8a5f3c', 0)
+      door.translate(0, 0.02, 0.305)
+      parts.push(door)
+      // Window box of lavender under the window.
+      const box = new THREE.BoxGeometry(0.14, 0.04, 0.04)
+      paint(box, '#c99a66', 0)
+      box.translate(-0.16, 0.14, 0.25)
+      box.rotateY(0.5)
+      parts.push(box)
+      for (let i = 0; i < 4; i++) parts.push(blob(-0.19 + i * 0.03, 0.18, 0.24 - i * 0.012, 0.022, '#a88be0', 0, 1.4, 7, 5))
+      // A path of stepping stones.
+      for (const [x, z] of [[0, 0.42], [0.04, 0.55]] as const) parts.push(blob(x, 0.005, z, 0.05, '#e2d6c4', 0, 0.3, 9, 5))
+      g.add(mesh(merge(parts), P))
+      const win = mesh(new THREE.SphereGeometry(0.04, 10, 6), MAT.glow, false)
+      win.scale.set(1, 1, 0.35)
+      win.position.set(-0.17, 0.22, 0.24)
+      win.rotation.y = -0.6
+      g.add(win)
+      break
+    }
+    case 'hollowoak': {
+      // An enormous amber oak with a glowing doorway in its trunk: an old hive lives inside.
+      const parts: THREE.BufferGeometry[] = []
+      const trunk = trunkGeometry(0.9, 0.24, 0.16, 5, 14)
+      paint(trunk, '#8a5f3c', 0, underShade(0, 0.5, 0.75))
+      parts.push(trunk)
+      for (const [x, y, z, r, c] of [[0, 1.12, 0, 0.55, '#f0a24a'], [-0.36, 0.92, 0.1, 0.36, '#e8913a'], [0.34, 0.96, -0.08, 0.38, '#f5b85c'], [0.05, 1.42, 0.05, 0.34, '#f2c46b'], [0.1, 0.9, 0.35, 0.3, '#e57b3a']] as const) {
+        parts.push(blob(x, y, z, r, c, 0, 0.9, 16, 10))
+      }
+      // Resin drips down the bark.
+      for (const [a, y] of [[0.9, 0.5], [-1.1, 0.62], [2.4, 0.4]] as const) {
+        const d = new THREE.SphereGeometry(0.035, 8, 6)
+        d.scale(1, 1.5, 1)
+        paint(d, '#ffb347', 0)
+        d.translate(Math.sin(a) * 0.19, y, Math.cos(a) * 0.19)
+        parts.push(d)
+      }
+      g.add(mesh(merge(parts), P))
+      const door = mesh(new THREE.ExtrudeGeometry(archShape(0.15, 0.22), { depth: 0.02, bevelEnabled: false, curveSegments: 8 }), MAT.glow, false)
+      door.position.set(0, 0.06, 0.2)
+      g.add(door)
+      break
+    }
+    case 'moonwell': {
+      // A round stone well full of still, sky-coloured water; a little moon glows above it.
+      const parts: THREE.BufferGeometry[] = []
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * TAU
+        parts.push(blob(Math.cos(a) * 0.3, 0.1, Math.sin(a) * 0.3, 0.1, i % 2 ? '#cfd6e6' : '#dde2ee', 0, 0.9, 10, 7, 0.8))
+      }
+      const water = new THREE.CylinderGeometry(0.26, 0.26, 0.02, 24)
+      paint(water, '#8cc2f0', 0)
+      water.translate(0, 0.15, 0)
+      parts.push(water)
+      parts.push(blob(0.34, 0.2, -0.08, 0.07, '#9ed48a', 0, 0.5))
+      g.add(mesh(merge(parts), P))
+      const moon = mesh(new THREE.SphereGeometry(0.07, 16, 12), MAT.glow, false)
+      moon.position.set(0, 0.72, 0)
+      moon.name = 'orb'
+      g.add(moon)
       break
     }
   }

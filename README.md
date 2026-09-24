@@ -80,6 +80,9 @@ app/
     noise.ts                 Seeded RNG + value noise
 ```
 
+### How the world is drawn
+- **World props** are procedural and instanced: each kind (tufts, flowers, tulips, lavender, round trees, pines, fruit, pebbles, mushrooms, lily pads and blooms, clouds) is one merged, vertex-coloured geometry drawn as a single `InstancedMesh`. A per-vertex `tint` attribute controls which parts take the per-instance colour, so petals and leaves vary while centres and trunks stay put. Tilt, hue and variants come from a seeded per-tile random stream, so the world looks the same on every load.
+
 ### How movement works
 - `game.queue` holds the hexes still to fly through. Taps call `travelTo()` (BFS path) and keys call `step()`, which buffers at most one extra hex so held keys don't overshoot.
 - `GameScene` runs a smooth flight model: an invisible "carrot" glides along the route at a constant speed and the bee chases it with exponential smoothing, so it curves through corners instead of stopping at each hex. It climbs from hover to cruise altitude while travelling, follows the terrain height, banks into turns and pitches with speed (bank and bob are off with reduced motion).
