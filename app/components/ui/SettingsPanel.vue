@@ -113,6 +113,7 @@ function reset() {
         <div><dt>Fly home</dt><dd><span class="kbd">H</span></dd></div>
         <div><dt>Action (enter hive, collect…)</dt><dd><span class="kbd">F</span></dd></div>
         <div><dt>Build on an empty cell (in the hive)</dt><dd><span class="kbd">B</span></dd></div>
+        <div><dt>Colony / Upgrades (in the hive)</dt><dd><span class="kbd">C</span> <span class="kbd">U</span></dd></div>
         <div><dt>Map size</dt><dd><span class="kbd">M</span></dd></div>
         <div><dt>Zoom</dt><dd><span class="kbd">+</span> <span class="kbd">−</span> · scroll · pinch</dd></div>
         <div><dt>Stop</dt><dd><span class="kbd">Space</span></dd></div>

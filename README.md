@@ -28,7 +28,8 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Action: enter the hive, befriend, talk to the Queen, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
 | Befriending dance: catch in the green | `F` (`Esc` backs away) | Tap the ring |
 | Inside the hive: quick build on an empty cell | `B` (then ↑/↓ or 1–5, `Enter`) | Build… button |
-| Inside the hive: pick a cell | Movement keys | Tap a cell or the cell map |
+| Inside the hive: colony / upgrades | `C` / `U` | Colony / Upgrades buttons |
+| Inside the hive: pick a cell | Movement keys | Tap a cell |
 | Performance overlay (dev, or `?perf`) | `` ` `` | × on the overlay |
 | Minimap size | `M` | Expand button |
 | Zoom | `+` / `−` | Scroll, pinch, +/− buttons |
@@ -97,12 +98,12 @@ app/
 - **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with 1 wax each, so the hive can spread out early. Upgrades: bigger pouch, stronger wings, quicker gathering.
 - Buildings run in real time and **catch up while the game is closed** (up to 8 hours); finished goods wait in each building's tray (10 max) until collected.
 - Each visit starts at the **doorway**; you steer the bee from there, and leave by coming back to the doorway (`F`). Nothing flies you around on its own.
-- Everything inside is also reachable from the hive panel's cell map, which is plain buttons for keyboard and screen readers.
+- The hive card (top right) shows the store and the cell you're looking at; the selected cell is announced to screen readers. Bigger pages open on demand: **B** build, **C** colony, **U** upgrades (or the buttons bottom-left).
 
 ### Helper bees
 - **Wild bees** hover over their home terrain: Bumbles on meadows, Masons on flowers, Dew Bees on water, Carpenters in forests. The Wild Nest always has a friendly Bumble for your first friend; elsewhere encounters come and go every few minutes.
 - **Befriend** one with `F`: a marker circles a ring, and you press `F` (or tap the ring) while it's inside the green arc. You get three tries; each species dances at its own speed. A soft tick plays as the marker enters the green, so it works by ear too. *Easier befriending* in Settings slows it down and widens the arc.
-- **Helpers** live in the hive. You start with 2 beds; each **Bee Room** adds 4, up to a colony of 20. Give each bee a job in the hive panel's **Colony** tab (nectar, pollen, water, resin, or rest); they fly to the nearest explored tile with that resource, gather, bring it home to the store, and take a little rest. Each species prefers its favourite (♥) and is a bit slower than you, so exploring yourself always gathers faster.
+- **Helpers** live in the hive. You start with 2 beds; each **Bee Room** adds 4, up to a colony of 20. Give each bee a job in the **Colony** page (`C` in the hive) (nectar, pollen, water, resin, or rest); they fly to the nearest explored tile with that resource, gather, bring it home to the store, and take a little rest. Each species prefers its favourite (♥) and is a bit slower than you, so exploring yourself always gathers faster.
 - **Building jobs:** a helper can also work at a Honey Press, Bee Bread Kitchen or Wax Works (2 per building): pick "Work at a building…" on its card, or "+ Add a helper" in the building's panel. Each helper makes batches quicker (1 helper 1.5×, 2 helpers 2×) and carries every batch straight to the store, so the tray never holds things up. They hover beside the building, bustling round it while it runs.
 - Helpers keep working while the game is closed (same 8-hour cap). They're drawn smaller than your bee (0.8×) and only when on screen. Inside the hive (now radius 3), idle bees wander between cells and resting bees sleep in the Bee Room beds.
 
