@@ -57,7 +57,7 @@ function cloneRig(src: BeeRig): BeeRig {
  * Builds every species' template and sends its textures to the GPU now, so the first time a
  * helper or wild bee flies into view costs no more than any other frame.
  */
-export function warmBees(renderer: THREE.WebGLRenderer) {
+export function warmBees(renderer: { initTexture: (texture: THREE.Texture) => unknown }) {
   for (const species of Object.keys(SPECIES) as SpeciesId[]) {
     template(species).root.traverse((o) => {
       const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined
