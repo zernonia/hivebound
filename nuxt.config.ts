@@ -13,10 +13,15 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no' },
         { name: 'description', content: 'A cozy bee exploration game. Hop hex to hex, grow your hive, and fill your journal.' },
-        { name: 'theme-color', content: '#fbe9c9' },
+        // Warm honey (--honey), matching the manifest so the installed app's title bar agrees.
+        { name: 'theme-color', content: '#ffb627' },
+        { name: 'apple-mobile-web-app-title', content: 'Hivebound' },
       ],
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        // Installable + offline: manifest here, service worker from plugins/sw.client.ts.
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' },
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Patrick+Hand&display=swap' },
