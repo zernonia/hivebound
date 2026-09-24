@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
+import { useColony } from '~/stores/colony'
 import { useSettings } from '~/stores/settings'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
 import { useWorldData } from '~/utils/world'
+import { minutesUntilChange, timeOfDay } from '~/utils/daylight'
 
 const game = useGame()
 const hive = useHive()
@@ -29,6 +31,17 @@ const here = computed(() => {
   return { resource: src.resource, left, max: src.max, regrow: left < src.max ? hive.tileRegrowIn(tile, now.value) : 0 }
 })
 
+const tod = computed(() => (void now.value, timeOfDay()))
+const todTitle = computed(() => (void now.value, tod.value === 'night' ? `Morning in about ${minutesUntilChange()} min` : `Night falls in about ${minutesUntilChange()} min`))
+
+const colony = useColony()
+/** The Build button: same rule as B, it needs an empty cell. */
+function openBuild() {
+  const key = hive.selected
+  if (key && hive.status(key).kind === 'empty') game.buildMenuOpen = true
+  else game.toast('Pick an empty cell to build on.')
+}
+
 function lookAround() {
   game.announce(game.describeHere())
   game.toast(game.describeHere())
@@ -48,6 +61,9 @@ function lookAround() {
         </p>
         <p class="sub">
           Day {{ game.day }} · {{ game.steps }} {{ game.steps === 1 ? 'hex' : 'hexes' }} flown
+          <template v-if="settings.dayNight">
+            · <span class="tod" :title="todTitle"><span aria-hidden="true">{{ tod === 'night' ? '☾' : '☀' }}</span> {{ tod }}</span>
+          </template>
         </p>
         <p v-if="here" class="here">
           <ResourceIcon :name="here.resource" />
@@ -56,6 +72,7 @@ function lookAround() {
         </p>
       </header>
       <PouchMeter v-if="!inHive" />
+      <QueenTracker v-if="!inHive" />
     </div>
 
     <!-- Top-right: minimap -->
@@ -87,6 +104,23 @@ function lookAround() {
           <UiIcon name="home" />
           <span>Home</span>
           <span class="kbd hide-touch" aria-hidden="true">H</span>
+        </button>
+      </template>
+      <template v-else>
+        <button class="chip-btn" :class="{ on: game.buildMenuOpen }" aria-label="Build on the selected cell" @click="game.buildMenuOpen ? (game.buildMenuOpen = false) : openBuild()">
+          <UiIcon name="build" />
+          <span>Build</span>
+          <span class="kbd hide-touch" aria-hidden="true">B</span>
+        </button>
+        <button class="chip-btn" :class="{ on: game.hiveSheet === 'colony' }" :aria-pressed="game.hiveSheet === 'colony'" :aria-label="`Colony, ${colony.bees.length} helpers`" @click="game.hiveSheet = game.hiveSheet === 'colony' ? null : 'colony'">
+          <UiIcon name="bee" />
+          <span>Colony</span>
+          <span class="kbd hide-touch" aria-hidden="true">C</span>
+        </button>
+        <button class="chip-btn" :class="{ on: game.hiveSheet === 'upgrades' }" :aria-pressed="game.hiveSheet === 'upgrades'" aria-label="Upgrades" @click="game.hiveSheet = game.hiveSheet === 'upgrades' ? null : 'upgrades'">
+          <UiIcon name="upgrade" />
+          <span>Upgrades</span>
+          <span class="kbd hide-touch" aria-hidden="true">U</span>
         </button>
       </template>
       <button class="chip-btn" aria-label="Settings" @click="game.settingsOpen = true">
@@ -201,6 +235,10 @@ function lookAround() {
   gap: 8px;
   max-width: calc(100vw - 230px);
 }
+.actions .chip-btn.on {
+  background: var(--honey);
+  border-color: var(--honey-deep);
+}
 .right {
   position: absolute;
   right: max(14px, env(safe-area-inset-right));
@@ -278,9 +316,6 @@ function lookAround() {
 }
 
 @media (max-width: 640px) {
-  .actions.in-hive {
-    bottom: calc(min(58vh, 520px) + max(20px, env(safe-area-inset-bottom)));
-  }
   .where {
     padding: 8px 14px 10px;
   }

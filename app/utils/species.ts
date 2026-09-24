@@ -1,4 +1,5 @@
 import { type BeeLook, HONEY_BEE } from '~/game/bee'
+import { NOCTURNAL_BEE } from '~/game/beeVariants'
 import type { RawResource } from './resources'
 import type { Terrain } from './world'
 
@@ -8,7 +9,7 @@ import type { Terrain } from './world'
  * dance: how fast the marker spins and how wide the green arc is.
  */
 
-export type SpeciesId = 'bumble' | 'mason' | 'dew' | 'carpenter'
+export type SpeciesId = 'bumble' | 'mason' | 'dew' | 'carpenter' | 'moon'
 
 export interface SpeciesDef {
   name: string
@@ -26,6 +27,8 @@ export interface SpeciesDef {
   secondsPerHex: number
   /** Seconds to gather one unit. */
   gatherSeconds: number
+  /** Only comes out at night (when day and night are on). */
+  nightOnly?: boolean
   dance: {
     /** Marker speed in full turns per second. */
     turns: number
@@ -98,6 +101,18 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
     secondsPerHex: 2.1,
     gatherSeconds: 7,
     dance: { turns: 1.1, arc: 44 },
+  },
+  moon: {
+    name: 'Moon Bee',
+    blurb: 'Deep blue with glowing antennae. Only hums over the soft grass at night, and flies faster than anyone.',
+    look: NOCTURNAL_BEE,
+    habitat: 'grass',
+    favourite: 'nectar',
+    carry: 3,
+    secondsPerHex: 1.5,
+    gatherSeconds: 5,
+    nightOnly: true,
+    dance: { turns: 1.15, arc: 42 },
   },
 }
 

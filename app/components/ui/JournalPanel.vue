@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { hexKey } from '~/utils/hex'
-import { POIS, useWorldData } from '~/utils/world'
+import { KEEPSAKES, KEEPSAKE_LIST, type KeepsakeSlot } from '~/utils/keepsakes'
+import { POIS, POI_BY_ID, useWorldData } from '~/utils/world'
 import { useGame } from '~/stores/game'
 
 const game = useGame()
 const world = useWorldData()
-const tab = ref<'entries' | 'places'>('entries')
+const tab = ref<'entries' | 'places' | 'keepsakes'>('entries')
 const selectedId = ref<string | null>(null)
 
 const entries = computed(() => [...game.journal].reverse())
@@ -20,6 +21,19 @@ watch(() => game.journalOpen, (open) => {
     game.markJournalRead()
   }
 })
+
+const SLOT_LABEL: Record<KeepsakeSlot, string> = { head: 'Head', face: 'Face', neck: 'Neck', side: 'Side', tail: 'Tail' }
+const keepsakes = computed(() => KEEPSAKE_LIST.map((id) => {
+  const def = KEEPSAKES[id]
+  const found = game.keepsakes.includes(id)
+  const where = def.from === 'queen' ? 'A gift from the Queen, one day.' : `Waiting at ${placeSeen(def.from) ? POI_BY_ID[def.from].name : 'a place you haven\'t found yet'}.`
+  return { id, def, found, worn: game.wearing[def.slot] === id, where }
+}))
+function placeSeen(id: keyof typeof POI_BY_ID) {
+  void game.revealTick
+  const loc = world.pois.find(x => x.id === id)
+  return !!loc && game.discovered.has(hexKey(loc.hex))
+}
 
 const places = computed(() => {
   void game.revealTick
@@ -39,6 +53,9 @@ const places = computed(() => {
       </button>
       <button role="tab" :aria-selected="tab === 'places'" :class="{ on: tab === 'places' }" @click="tab = 'places'">
         Places <span class="count">{{ game.visitedPois.length }}/{{ POIS.length }}</span>
+      </button>
+      <button role="tab" :aria-selected="tab === 'keepsakes'" :class="{ on: tab === 'keepsakes' }" @click="tab = 'keepsakes'">
+        Keepsakes <span class="count">{{ game.keepsakes.length }}/{{ KEEPSAKE_LIST.length }}</span>
       </button>
     </div>
 
@@ -66,6 +83,30 @@ const places = computed(() => {
           {{ selected.body }}
         </p>
       </article>
+    </div>
+
+    <div v-else-if="tab === 'keepsakes'" class="keepsakes" role="tabpanel">
+      <p class="hint">
+        Things to wear, found around the island. One per spot: head, face, neck, side and tail.
+      </p>
+      <ul>
+        <li v-for="k in keepsakes" :key="k.id" :class="{ found: k.found, worn: k.worn }">
+          <div class="meta">
+            <strong>{{ k.found ? k.def.name : '???' }}</strong>
+            <span class="slot">{{ SLOT_LABEL[k.def.slot] }}</span>
+            <span>{{ k.found ? k.def.blurb : k.where }}</span>
+          </div>
+          <button
+            v-if="k.found"
+            class="chip-btn"
+            :class="{ primary: !k.worn }"
+            :aria-pressed="k.worn"
+            @click="game.toggleWear(k.id)"
+          >
+            {{ k.worn ? 'Take off' : 'Wear' }}
+          </button>
+        </li>
+      </ul>
     </div>
 
     <div v-else class="places" role="tabpanel">
@@ -103,6 +144,47 @@ const places = computed(() => {
   background: var(--honey);
   border-color: var(--honey-deep);
   color: #3a2618;
+}
+.keepsakes .hint {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+}
+.keepsakes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.keepsakes li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 2px dashed var(--line);
+  background: var(--paper);
+}
+.keepsakes li.found {
+  border-style: solid;
+}
+.keepsakes li.worn {
+  border-color: var(--honey-deep);
+  background: color-mix(in srgb, var(--honey) 25%, var(--paper));
+}
+.keepsakes .meta {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+.keepsakes .slot {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--honey-deep);
 }
 .count {
   opacity: 0.7;

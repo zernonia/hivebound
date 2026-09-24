@@ -47,6 +47,13 @@ const color = computed(() => RESOURCE_INFO[props.name].color)
         <path :fill="color" d="M4 14c0-4.2 3.6-7 8-7s8 2.8 8 7v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5z" />
         <path d="M9 10.5 8 13.5M12.5 10 12 13M16 10.5l.6 3" fill="none" />
       </template>
+      <!-- Golden pollen: a four-point sparkle round a glowing ball -->
+      <template v-else-if="name === 'golden'">
+        <path fill="#fff6c9" d="M12 1.8 13.6 8.4 20.2 10 13.6 11.6 12 18.2 10.4 11.6 3.8 10 10.4 8.4z" />
+        <circle cx="12" cy="13.5" r="5.2" :fill="color" />
+        <circle cx="10.4" cy="12" r="1.3" fill="#fff" stroke="none" />
+        <path d="M18.5 17.5l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8z" fill="#fff6c9" stroke-width="1" />
+      </template>
       <!-- Wax: a hexagon -->
       <template v-else>
         <path :fill="color" d="M12 3.2 19.6 7.6v8.8L12 20.8 4.4 16.4V7.6z" />

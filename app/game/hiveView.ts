@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { buildBeeVariant } from './beeVariants'
 import { BeePool, animateBee } from './beePool'
+import { ReadySign } from './readySign'
 import { type BeeRoomModel, type BuildingModel, buildBuilding } from './buildings'
 import { cushionHexGeometry, hexRingGeometry } from './geometry'
 import { type Hex, hexDistance, hexKey, hexToWorld } from '~/utils/hex'
@@ -53,6 +54,8 @@ export class HiveView {
   private selectRing: THREE.Mesh
   private hoverRing: THREE.Mesh
   private queen = buildBeeVariant('queen')
+  /** Bobs over the Queen when her request is ready to hand in. */
+  private queenSign = new ReadySign(0.75)
   private motes: THREE.Points
   private moteBase: Float32Array
   private reducedMotion = false
@@ -164,6 +167,8 @@ export class HiveView {
       this.group.add(this.queen.root)
       this.queen.root.traverse(o => (o.userData.cellKey = queenKey))
       this.pickables.push(cushion, this.queen.root)
+      this.queenSign.place(this.queen.root.position.clone().add(tmpV.set(0, 1.2, 0)))
+      this.group.add(this.queenSign.sprite)
     }
 
     // --- selection / hover rings ---
@@ -392,7 +397,13 @@ export class HiveView {
     this.colonyPool.end()
   }
 
+  /** Show the "ready to hand in" sign over the Queen. */
+  setQueenReady(v: boolean) {
+    this.queenSign.setReady(v)
+  }
+
   update(dt: number, time: number) {
+    this.queenSign.update(dt, time, this.reducedMotion)
     const rm = this.reducedMotion
     for (const c of this.cells.values()) {
       const progress = c.ring.userData.progress as number | null | undefined

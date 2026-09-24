@@ -6,7 +6,7 @@ const game = useGame()
 const settings = useSettings()
 const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
 
-type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend'
+type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
 const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'reducedMotion', label: 'Reduce motion', hint: 'Calmer camera, no bouncing or pop-ins.' },
   { key: 'highContrast', label: 'High contrast', hint: 'Stronger text and outlines on panels.' },
@@ -15,6 +15,7 @@ const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'showMinimap', label: 'Show minimap', hint: '' },
   { key: 'showPad', label: 'On-screen movement pad', hint: 'Six big buttons for hex directions.' },
   { key: 'easyBefriend', label: 'Easier befriending', hint: 'Slower marker and a wider green area in the dance.' },
+  { key: 'dayNight', label: 'Day and night', hint: 'A slow day and night every 24 minutes. Off keeps it always day (Moon Bees still visit).' },
   { key: 'showHints', label: 'Show tips', hint: '' },
 ]
 const textSizes: { v: TextScale, label: string }[] = [
@@ -91,12 +92,12 @@ function reset() {
       </h3>
       <div class="slider">
         <label for="vol-music">Music</label>
-        <input id="vol-music" v-model.number="settings.musicVolume" type="range" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.musicVolume)">
+        <input id="vol-music" v-model.number="settings.musicVolume" type="range" :style="{ '--fill': `${settings.musicVolume * 100}%` }" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.musicVolume)">
         <span class="val" aria-hidden="true">{{ pct(settings.musicVolume) }}</span>
       </div>
       <div class="slider">
         <label for="vol-sfx">Sound effects</label>
-        <input id="vol-sfx" v-model.number="settings.sfxVolume" type="range" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.sfxVolume)">
+        <input id="vol-sfx" v-model.number="settings.sfxVolume" type="range" :style="{ '--fill': `${settings.sfxVolume * 100}%` }" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.sfxVolume)">
         <span class="val" aria-hidden="true">{{ pct(settings.sfxVolume) }}</span>
       </div>
     </section>
@@ -111,6 +112,8 @@ function reset() {
         <div><dt>Journal</dt><dd><span class="kbd">J</span></dd></div>
         <div><dt>Fly home</dt><dd><span class="kbd">H</span></dd></div>
         <div><dt>Action (enter hive, collect…)</dt><dd><span class="kbd">F</span></dd></div>
+        <div><dt>Build on an empty cell (in the hive)</dt><dd><span class="kbd">B</span></dd></div>
+        <div><dt>Colony / Upgrades (in the hive)</dt><dd><span class="kbd">C</span> <span class="kbd">U</span></dd></div>
         <div><dt>Map size</dt><dd><span class="kbd">M</span></dd></div>
         <div><dt>Zoom</dt><dd><span class="kbd">+</span> <span class="kbd">−</span> · scroll · pinch</dd></div>
         <div><dt>Stop</dt><dd><span class="kbd">Space</span></dd></div>
@@ -277,7 +280,47 @@ h3 {
 .slider input[type='range'] {
   width: 100%;
   height: 32px;
-  accent-color: var(--honey-deep);
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  /* Filled part of the track, set from the value inline. */
+  --fill: 50%;
+}
+.slider input[type='range']::-webkit-slider-runnable-track {
+  height: 12px;
+  border-radius: 99px;
+  border: 2px solid var(--line);
+  background: linear-gradient(90deg, var(--honey) var(--fill), var(--paper-2) var(--fill));
+}
+.slider input[type='range']::-moz-range-track {
+  height: 12px;
+  border-radius: 99px;
+  border: 2px solid var(--line);
+  background: linear-gradient(90deg, var(--honey) var(--fill), var(--paper-2) var(--fill));
+}
+.slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: #fffaf0;
+  box-shadow: 0 2px 0 rgba(91, 58, 36, 0.25);
+}
+.slider input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: #fffaf0;
+}
+.slider input[type='range']:focus-visible {
+  outline: 3px solid var(--honey-deep);
+  outline-offset: 2px;
+  border-radius: 99px;
 }
 .slider .val {
   text-align: right;

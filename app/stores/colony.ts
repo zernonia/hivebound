@@ -7,6 +7,7 @@ import { HOME, type Tile, WORLD_SEED, useWorldData } from '~/utils/world'
 import { useGame } from './game'
 import { useHive } from './hive'
 import { useSettings } from './settings'
+import { isNight } from '~/utils/daylight'
 
 /*
  * Helper bees: meeting wild bees, befriending them with a little timing dance, giving them a
@@ -26,6 +27,8 @@ const DANCE_TRIES = 3
 /** A little rest at home between trips (they potter about the hive meanwhile). */
 const REST_BETWEEN_TRIPS_MS = 8000
 const SAVE_KEY = 'hivebound:colony:v1'
+/** Gathering time multiplier when a helper is on its favourite job. */
+export const FAVOURITE_GATHER = 0.6
 
 /** Gather a resource, work at a building in a hive cell (`cell:<key>`), or rest (null). */
 export type BeeJob = RawResource | `cell:${string}` | null
@@ -160,6 +163,8 @@ export const useColony = defineStore('colony', {
       if (tile.poi === 'nest' && !this.bees.length) return 'bumble'
       const species = SPECIES_BY_HABITAT[tile.terrain]
       if (!species) return null
+      // Night bees only show up after dark (always, if day and night are switched off).
+      if (SPECIES[species].nightOnly && useSettings().dayNight && !isNight(now)) return null
       const window = Math.floor(now / ENCOUNTER_WINDOW_MS)
       return hash2(tile.q * 7 + window, tile.r * 13 - window, WORLD_SEED + 404) < WILD_RATE ? species : null
     },
@@ -349,7 +354,9 @@ export const useColony = defineStore('colony', {
       const hexes = Math.max(1, hexDistance(tile, HOME))
       const flight = hexes * def.secondsPerHex * 1000
       bee.blocked = null
-      bee.trip = { tile: tile.key, resource, startAt: at, outMs: flight, gatherMs: carry * def.gatherSeconds * 1000, backMs: flight, carry }
+      // Bees gather their favourite a good deal quicker.
+      const gatherMs = carry * def.gatherSeconds * 1000 * (resource === def.favourite ? FAVOURITE_GATHER : 1)
+      bee.trip = { tile: tile.key, resource, startAt: at, outMs: flight, gatherMs, backMs: flight, carry }
     },
 
     /** Unloads a returning bee at `at`, then (if still employed) goes again. */

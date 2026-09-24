@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ name: 'journal' | 'settings' | 'look' | 'home' | 'plus' | 'minus' | 'map' | 'close' | 'arrow' | 'expand' | 'shrink' }>()
+defineProps<{ name: 'journal' | 'settings' | 'look' | 'home' | 'plus' | 'minus' | 'map' | 'close' | 'arrow' | 'expand' | 'shrink' | 'build' | 'bee' | 'upgrade' }>()
 </script>
 
 <template>
@@ -22,6 +22,19 @@ defineProps<{ name: 'journal' | 'settings' | 'look' | 'home' | 'plus' | 'minus' 
       <path d="M12 3.5c-4 0-7 3.3-7 7.5 0 3.6 0 7.5 0 9h14c0-1.5 0-5.4 0-9 0-4.2-3-7.5-7-7.5z" />
       <path d="M5.5 9h13M5 13.5h14" />
       <path d="M10 20v-3a2 2 0 0 1 4 0v3" />
+    </template>
+    <template v-else-if="name === 'build'">
+      <path d="M12 2.8 19.8 7.3v9.4L12 21.2l-7.8-4.5V7.3z" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </template>
+    <template v-else-if="name === 'bee'">
+      <rect x="6" y="8" width="12" height="11" rx="3" />
+      <path d="M6 12.5h12M6 16h12" />
+      <path d="M9.5 8C8 5.5 5 5 4.5 7.5M14.5 8C16 5.5 19 5 19.5 7.5" />
+    </template>
+    <template v-else-if="name === 'upgrade'">
+      <path d="M12 20V5M6 11l6-6 6 6" />
+      <path d="M8 20h8" />
     </template>
     <template v-else-if="name === 'plus'">
       <path d="M12 5v14M5 12h14" />
