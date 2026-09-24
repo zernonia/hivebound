@@ -143,6 +143,12 @@ app/
 ### Performance overlay
 - In dev (or any build opened with `?perf`, e.g. a Cloudflare preview on a phone), `` ` `` toggles an overlay with FPS, a frame-time graph, **main-thread busy %** (the game's frame work as a share of time; browsers don't expose real CPU usage), long tasks, JS heap (Chromium), draw calls, triangles and loaded tiles. Low FPS with a mostly idle main thread is flagged as GPU-bound.
 
+## Your save
+Your journey lives in your browser. Open **Settings → Your save** to **Copy save code** or **Download save file** (a small `.txt`), and keep it somewhere safe. To carry on elsewhere, choose **Load a save** and paste the code or pick the file. Loading replaces the game in that browser, so Hivebound asks first.
+
+## Install / offline
+Hivebound is installable: use your browser's **Install app** or **Add to Home Screen**. After your first visit it also opens offline, since the game is cached on your device. When you're online it always loads the newest version. Offline it uses the copy you last played, with the fallback fonts.
+
 ## Accessibility built in
 - **Reduce motion** (follows the OS setting by default): no bob, squash, pop-ins or springy UI, and a calmer camera.
 - **High contrast** (follows `prefers-contrast`), **text size** (100 / 120 / 140%), and a **colour-vision-friendly palette**. Terrain and minimap markers differ by shape and brightness as well as hue.
@@ -155,7 +161,6 @@ app/
 - Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
 - A Beedex page per species, and species perks for building work
-- Chapter two: past the mist, with new requests and places
 
 ## Deploy (Cloudflare Workers, auto-deploy from GitHub)
 
