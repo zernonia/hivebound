@@ -38,6 +38,10 @@ export const useQueen = defineStore('queen', {
     brought: {} as Amounts,
     /** Little wishes done before chapter two existed (older saves), still counted in the level. */
     extraLevels: 0,
+    /** The end-of-story thank-you has been shown (saved, so it only ever appears once). */
+    thanked: false,
+    /** UI: the thank-you card is open. Not saved. */
+    showThanks: false,
   }),
 
   getters: {
@@ -55,6 +59,10 @@ export const useQueen = defineStore('queen', {
     mistLifted(s) {
       return s.done >= CHAPTER_ONE.length
     },
+    /** Both chapters handed in: only little wishes remain. */
+    storyDone(s) {
+      return s.done >= STORY.length
+    },
   },
 
   actions: {
@@ -62,7 +70,8 @@ export const useQueen = defineStore('queen', {
       try {
         const raw = localStorage.getItem(SAVE_KEY)
         if (raw) {
-          const d = JSON.parse(raw) as { v?: number, done?: number, revealed?: string[], brought?: Amounts, extraLevels?: number }
+          const d = JSON.parse(raw) as { v?: number, done?: number, revealed?: string[], brought?: Amounts, extraLevels?: number, thanked?: boolean }
+          this.thanked = d.thanked ?? false
           this.done = d.done ?? 0
           this.revealed = d.revealed ?? []
           this.brought = d.brought ?? {}
@@ -77,11 +86,13 @@ export const useQueen = defineStore('queen', {
         }
       }
       catch { /* start fresh */ }
+      // Finished the story before the thank-you existed: show it once now.
+      if (this.storyDone && !this.thanked) this.finishStory()
       this.startCurrent()
     },
     save() {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, done: this.done, revealed: this.revealed, brought: this.brought, extraLevels: this.extraLevels }))
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, done: this.done, revealed: this.revealed, brought: this.brought, extraLevels: this.extraLevels, thanked: this.thanked }))
       }
       catch { /* ignore */ }
     },
@@ -94,6 +105,8 @@ export const useQueen = defineStore('queen', {
       this.revealed = []
       this.brought = {}
       this.extraLevels = 0
+      this.thanked = false
+      this.showThanks = false
       this.startCurrent()
     },
 
@@ -190,12 +203,27 @@ export const useQueen = defineStore('queen', {
       this.done++
       this.brought = {}
       if (this.done === CHAPTER_ONE.length) this.liftMist()
+      if (this.done === STORY.length) this.finishStory()
       game.toast(`The Queen is delighted!${gifts.length ? ` ${gifts.join(', ')}.` : ''}`)
       game.announce(`The Queen says: "${req.thanks}"${gifts.length ? ` You received ${gifts.join(', ')}.` : ''}`)
       this.startCurrent()
       hive.changed()
       this.save()
       return true
+    },
+
+    /** The last story request is in: a thank-you card, and a closing page in the journal. */
+    finishStory() {
+      this.thanked = true
+      this.showThanks = true
+      useGame().addJournal({
+        id: 'the-end',
+        title: 'The end (for now)',
+        body: 'The meadow, the heath, the Amber Woods, and one very big family. The Queen says the little wishes will keep coming whenever I have time, and I think I will always have time. Thank you for flying with me.',
+        icon: 'hive',
+        subject: 'hive',
+      }, false)
+      this.save()
     },
 
     /** End of chapter one: the mist ring thins and the land beyond opens. */
