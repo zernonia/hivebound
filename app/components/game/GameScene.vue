@@ -7,7 +7,7 @@ import { gameAudio } from '~/audio/engine'
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { WorldView } from '~/game/worldView'
-import { type Hex, findPath, hexKey, hexToWorld, hexesInRange, worldToHex } from '~/utils/hex'
+import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, neighbor, worldToHex } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
 import { useWorldData } from '~/utils/world'
@@ -99,9 +99,8 @@ gatherMotes.visible = false
 
 // Everything outside lives on one layer so the hive can take over the screen.
 const worldLayer = new THREE.Group()
-// Badges over nearby tiles showing what can be gathered there.
-const MARKER_RADIUS = 5
-const markers = new ResourceMarkers(hexesInRange({ q: 0, r: 0 }, MARKER_RADIUS).length)
+// Badges only where you can act next: the six tiles round the bee, plus the one under the mouse.
+const markers = new ResourceMarkers(8)
 worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group)
 const hiveView = new HiveView(HIVE_CELLS, QUEEN_CELL)
 
@@ -513,7 +512,7 @@ function updateTransition(dt: number, rm: boolean): number {
     bee.root.position.lerpVectors(t.from, beeGoal, e)
   }
   else {
-    // Out through the door, then round the skep back to the tile the bee came in from.
+    // Out through the door and onto the doorstep in front of it.
     worldPos(game.pos, beeGoal).add(tmpV.set(0, HOVER_ALT, 0))
     roundHive(t.from, beeGoal, u, bee.root.position)
   }
@@ -590,11 +589,16 @@ watch(() => settings.reducedMotion, (v) => {
   markers.setReducedMotion(v)
 }, { immediate: true })
 
-/** Picks the badges to show: discovered resource tiles near the bee (not the one it's on). */
+/**
+ * Picks the badges to show: discovered resource tiles next to the bee, and the hovered tile.
+ * The tile the bee is on is left to the HUD line.
+ */
 function refreshMarkers() {
   const list = []
-  for (const h of hexesInRange(game.pos, MARKER_RADIUS)) {
-    const tile = world.byKey.get(hexKey(h))
+  const keys = new Set(DIRECTION_LIST.map(d => hexKey(neighbor(game.pos, d))))
+  if (game.hoverKey) keys.add(game.hoverKey)
+  for (const key of keys) {
+    const tile = world.byKey.get(key)
     if (!tile || !game.discovered.has(tile.key)) continue
     const src = tileSource(tile)
     if (src) list.push({ tile, resource: src.resource })
@@ -603,7 +607,27 @@ function refreshMarkers() {
   markers.refresh(list, t => hive.tileAmount(t, now), hexKey(game.pos))
 }
 refreshMarkers()
-watch(() => [game.pos, game.revealTick, hive.rev, hive.pouchTotal], refreshMarkers)
+watch(() => [game.pos, game.hoverKey, game.revealTick, hive.rev, hive.pouchTotal], refreshMarkers)
+
+/**
+ * Gathered tiles visibly thin out (flowers, lily pads, mushrooms) and regrow over time.
+ * Only tiles that have been dipped into can differ from full, so only those are tracked.
+ */
+const thinned = new Set<string>()
+function syncFullness() {
+  const now = Date.now()
+  for (const key of new Set([...Object.keys(hive.tiles), ...thinned])) {
+    const tile = world.byKey.get(key)
+    const src = tileSource(tile)
+    if (!tile || !src) continue
+    const full = hive.tileAmount(tile, now) / src.max
+    worldView.setFullness(key, full)
+    if (full < 1) thinned.add(key)
+    else thinned.delete(key)
+  }
+}
+syncFullness()
+watch(() => [hive.pouchTotal, hive.rev], syncFullness)
 let markersIn = 0
 
 /* ------------------------------------------------------------------ */
@@ -798,6 +822,7 @@ onBeforeRender(({ delta }) => {
     if (markersIn <= 0) {
       markersIn = 0.5
       refreshMarkers()
+      syncFullness()
     }
     markers.update(time)
   }

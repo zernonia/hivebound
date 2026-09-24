@@ -102,7 +102,7 @@ export class ResourceMarkers {
   private reducedMotion = false
 
   constructor(capacity: number) {
-    const geo = new THREE.PlaneGeometry(0.82, 0.82)
+    const geo = new THREE.PlaneGeometry(0.58, 0.58)
     for (const r of RAW_RESOURCES) {
       const map = badgeTexture(r)
       const make = (opacity: number) => {
@@ -136,7 +136,7 @@ export class ResourceMarkers {
       if (tile.key === skipKey) continue
       const { x, z } = hexToWorld(tile)
       // Float above the tallest things on the tile (trees in the woods).
-      const lift = tile.terrain === 'forest' ? 2.05 : tile.poi ? 2.2 : 1.1
+      const lift = tile.terrain === 'forest' ? 1.9 : tile.poi ? 2.1 : 0.85
       this.shown.push({
         m: { tile, resource, base: new THREE.Vector3(x, tile.height + lift, z), phase: tile.rand * 6.28 },
         full: amount(tile) > 0,

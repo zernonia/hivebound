@@ -52,7 +52,7 @@ app/
     beeVariants.ts           Named variants (honey, queen, nocturnal); preview with ?bee=queen
     accessories.ts           Accessories that attach to the bee's anchors (crown…)
     hiveView.ts              Inside the hive: comb cells, Queen, walls, motes, trays
-    resourceMarkers.ts       Floating badges over nearby tiles showing what can be gathered
+    resourceMarkers.ts       Floating badges over neighbouring / hovered tiles showing what can be gathered
     buildings.ts             Hive building models (press, kitchen, wax works, larder)
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
@@ -78,7 +78,8 @@ app/
 
 ### Gathering and the hive
 - **Gather** by stopping on a resource tile: meadow gives nectar, flower patches pollen, water water, forest resin (bigger landmarks hold more). The bee hovers and gathers one unit at a time into its pouch. Tiles regrow over time.
-- **Badges** float over nearby tiles you can gather from: each resource has its own shape and colour; a faded, smaller badge means the tile is picked clean and regrowing.
+- **Badges** float over the tiles next to the bee (and the one under the mouse) that you can gather from: each resource has its own shape and colour; a faded, smaller badge means the tile is picked clean and regrowing.
+- **Gathered tiles thin out:** each flower, lily pad or mushroom on a tile is part of its supply, so they disappear as you gather and grow back as the tile regrows; the tile's colour also dulls slightly while it's low.
 - **Unload** by reaching any of the six tiles around the hive; **go inside** with `F` (or tap the floating prompt / the hive). The bee flies in through the skep door; an iris wipe hides the scene swap.
 - **One action key:** `F` does whatever the floating prompt over the tile says: enter the hive, collect a building's tray, unseal a cell, or leave through the doorway.
 - **Inside**, cells around the Queen hold buildings: the Honey Press (nectar → honey), Bee Bread Kitchen (pollen + water → bee bread), Wax Works (resin + honey → wax) and Larder Comb (more storage). Sealed outer cells open with wax. Upgrades: bigger pouch, stronger wings, quicker gathering.

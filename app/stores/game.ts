@@ -353,6 +353,13 @@ export const useGame = defineStore('game', {
     /** Called by the scene at the moment the iris is fully closed. */
     swapScene() {
       this.scene = this.transition === 'enter' ? 'hive' : 'world'
+      if (this.scene === 'world') {
+        // Out through the door onto the doorstep, whichever side the bee came in from.
+        this.pos = { ...DOORSTEP }
+        this.queue = []
+        this.moving = false
+        this.save()
+      }
       if (this.scene === 'hive') {
         const hive = useHive()
         if (!hive.selected || hive.selected === HIVE_DOOR) hive.selected = STARTER_CELL
