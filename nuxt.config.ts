@@ -16,6 +16,13 @@ export default defineNuxtConfig({
         // Warm honey (--honey), matching the manifest so the installed app's title bar agrees.
         { name: 'theme-color', content: '#ffb627' },
         { name: 'apple-mobile-web-app-title', content: 'Hivebound' },
+        // Link previews when the game is shared.
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: 'Hivebound' },
+        { property: 'og:description', content: 'A cozy bee exploration game. Hop hex to hex, befriend wild bees, grow your hive, and fill your journal.' },
+        { property: 'og:url', content: 'https://hivebound.zernonia.workers.dev/' },
+        { property: 'og:image', content: 'https://hivebound.zernonia.workers.dev/icons/icon-512.png' },
+        { name: 'twitter:card', content: 'summary' },
       ],
       link: [
         // Installable + offline: manifest here, service worker from plugins/sw.client.ts.

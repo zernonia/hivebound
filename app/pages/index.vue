@@ -90,7 +90,7 @@ function onKeyDown(e: KeyboardEvent) {
     togglePerf()
     return
   }
-  const modal = game.journalOpen || game.settingsOpen || !!welcome.summary.value || game.buildMenuOpen || !!game.hiveSheet
+  const modal = game.journalOpen || game.settingsOpen || !!welcome.summary.value || game.buildMenuOpen || !!game.hiveSheet || queen.showThanks
   if (modal) {
     // Native <dialog> handles Esc; J toggles the journal closed.
     if (e.code === 'KeyJ' && game.journalOpen) game.journalOpen = false
@@ -248,6 +248,7 @@ watch(() => game.journalOpen || game.settingsOpen, open => open && held.clear())
     <HiveIris />
     <BefriendDance />
     <WelcomeBack />
+    <ThanksCard />
     <BuildMenu />
     <HiveSheet />
     <PerfOverlay v-if="perfAvailable" />

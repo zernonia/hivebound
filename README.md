@@ -127,7 +127,7 @@ app/
 ### Chapter two: past the mist
 - Handing in the feast (the end of chapter one) lifts the mist ring round the island. Beyond it lies new land: **Lavender Heath** (rich nectar) and the **Amber Woods** (rich resin), with meadows and pools between.
 - Three new places, each with a keepsake: **Lavender Cottage** (Lavender Sprig), **the Hollow Oak** (Amber Leaf Cape, worn on the back) and **the Moonwell** (Moon Locket). Two new species: **Lavender Bees** on the heath and **Ember Bees** in the Amber Woods.
-- Six chapter-two requests lead through it all and end with the Queen's **Star Pin**; then the little wishes carry on.
+- Six chapter-two requests lead through it all and end with the Queen's **Star Pin**. Finishing the story shows a one-time **Thank you for playing** card with a few numbers from your journey (and a closing journal page); then the little wishes carry on.
 - The first island generates exactly as before (the new ring is appended after it), so existing saves keep every tile and place. Saves that were already on little wishes start chapter two, keeping those wishes as hive levels.
 
 ### Coming back
