@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type CellStatus, HIVE_CELLS, HIVE_DOOR, HIVE_RADIUS, QUEEN_CELL, useHive } from '~/stores/hive'
+import { useQueen } from '~/stores/queen'
 import { MAX_WORKERS, type ColonyBee, useColony, workCell } from '~/stores/colony'
 import { SPECIES } from '~/utils/species'
 import { useGame } from '~/stores/game'
@@ -25,6 +26,15 @@ const hive = useHive()
 const game = useGame()
 
 const tab = ref<'cells' | 'colony' | 'upgrades'>('cells')
+const queen = useQueen()
+const queenLines = computed(() => {
+  void hive.rev
+  void colony.rev
+  void game.visitedPois.length
+  void queen.done
+  return queen.lines()
+})
+const queenReady = computed(() => queenLines.value.every(l => l.done))
 const colony = useColony()
 const jobs: { v: RawResource | null, label: string }[] = [...RAW_RESOURCES.map(r => ({ v: r as RawResource, label: RESOURCE_INFO[r].name })), { v: null, label: 'Rest' }]
 
@@ -232,10 +242,23 @@ function build(id: BuildingId) {
       <div v-else-if="sel" class="detail" aria-live="polite">
         <!-- Queen -->
         <template v-if="sel.key === QUEEN_CELL">
-          <h3>The Queen</h3>
-          <p class="blurb">
-            She hums while you work and asks about every flower you visit. Bring back plenty so the hive can grow.
+          <h3>The Queen <span class="level">Hive level {{ queen.hiveLevel }}</span></h3>
+          <p class="request-title">
+            ♛ {{ queen.current.title }}
           </p>
+          <p class="blurb">
+            “{{ queen.current.ask }}”
+          </p>
+          <ul class="q-lines">
+            <li v-for="l in queenLines" :key="l.label" :class="{ done: l.done }">
+              <ResourceIcon v-if="l.resource" :name="l.resource" />
+              <span>{{ l.done ? '✓' : '·' }} {{ l.label }}</span>
+              <span v-if="l.need > 1" class="n">{{ l.have }}/{{ l.need }}</span>
+            </li>
+          </ul>
+          <button class="chip-btn primary" :disabled="!queenReady" @click="queen.talk()">
+            <span class="kbd hide-touch" aria-hidden="true">F</span> {{ queenReady ? 'Give to the Queen' : 'Not ready yet' }}
+          </button>
         </template>
 
         <!-- Sealed -->
@@ -384,12 +407,12 @@ function build(id: BuildingId) {
               role="radio"
               :aria-checked="b.job === j.v"
               :class="{ on: b.job === j.v, fav: j.v === SPECIES[b.species].favourite }"
-              :title="j.v === SPECIES[b.species].favourite ? `${j.label} (favourite)` : j.label"
+              :title="j.v === SPECIES[b.species].favourite ? `${j.label} (favourite: gathers it faster)` : j.label"
               @click="colony.setJob(b.id, j.v)"
             >
               <ResourceIcon v-if="j.v" :name="j.v" />
               <span v-else>Rest</span>
-              <span v-if="j.v" class="sr-only">{{ j.label }}</span>
+              <span v-if="j.v" class="sr-only">{{ j.label }}{{ j.v === SPECIES[b.species].favourite ? ', favourite' : '' }}</span>
             </button>
           </div>
           <select
@@ -600,6 +623,36 @@ h3 {
 .jobs button.on {
   background: var(--honey);
   border-color: var(--honey-deep);
+}
+.level {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--honey-deep);
+}
+.request-title {
+  margin: 4px 0 2px;
+  font-weight: 700;
+}
+.q-lines {
+  list-style: none;
+  margin: 6px 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 0.9rem;
+}
+.q-lines li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+}
+.q-lines li.done {
+  color: #3f8f35;
+}
+.q-lines .n {
+  margin-left: auto;
 }
 .work,
 .assign {

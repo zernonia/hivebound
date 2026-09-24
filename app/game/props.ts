@@ -370,3 +370,12 @@ export function buildSparkle() {
   g.add(gem)
   return g
 }
+
+/** Clouds glow softly by day; at night (n → 1) they dim and take on the moonlight. */
+const CLOUD_DAY = new THREE.Color('#ffffff')
+const CLOUD_NIGHT = new THREE.Color('#aab6dc')
+export function setCloudNight(n: number) {
+  const m = MAT.cloud as THREE.MeshStandardMaterial
+  m.color.copy(CLOUD_DAY).lerp(CLOUD_NIGHT, n)
+  m.emissiveIntensity = 0.25 * (1 - n) + 0.03 * n
+}

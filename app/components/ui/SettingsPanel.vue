@@ -6,7 +6,7 @@ const game = useGame()
 const settings = useSettings()
 const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
 
-type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend'
+type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
 const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'reducedMotion', label: 'Reduce motion', hint: 'Calmer camera, no bouncing or pop-ins.' },
   { key: 'highContrast', label: 'High contrast', hint: 'Stronger text and outlines on panels.' },
@@ -15,6 +15,7 @@ const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'showMinimap', label: 'Show minimap', hint: '' },
   { key: 'showPad', label: 'On-screen movement pad', hint: 'Six big buttons for hex directions.' },
   { key: 'easyBefriend', label: 'Easier befriending', hint: 'Slower marker and a wider green area in the dance.' },
+  { key: 'dayNight', label: 'Day and night', hint: 'A slow day and night every 24 minutes. Off keeps it always day (Moon Bees still visit).' },
   { key: 'showHints', label: 'Show tips', hint: '' },
 ]
 const textSizes: { v: TextScale, label: string }[] = [

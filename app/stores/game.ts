@@ -14,9 +14,11 @@ import {
   neighbor,
 } from '~/utils/hex'
 import { useColony } from './colony'
-import { HIVE_DOOR, STARTER_CELL, useHive } from './hive'
+import { HIVE_DOOR, QUEEN_CELL, useHive } from './hive'
+import { useQueen } from './queen'
 import { useSettings } from './settings'
 import { RESOURCE_INFO, UNLOCK_CELL_COST, tileSource } from '~/utils/resources'
+import { KEEPSAKES, KEEPSAKE_BY_POI, type KeepsakeId, type KeepsakeSlot } from '~/utils/keepsakes'
 import { SPECIES } from '~/utils/species'
 import { DOORSTEP, HOME, POI_BY_ID, type PoiId, REVEAL_RADIUS, TERRAIN_LABEL, type Terrain, useWorldData } from '~/utils/world'
 
@@ -33,7 +35,7 @@ export interface JournalEntry {
   unread: boolean
 }
 
-export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal' | 'befriend'
+export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal' | 'befriend' | 'queen'
 
 export interface Toast {
   id: number
@@ -68,6 +70,8 @@ interface SaveData {
   seenTerrain: Terrain[]
   journal: JournalEntry[]
   steps: number
+  keepsakes?: KeepsakeId[]
+  wearing?: Partial<Record<KeepsakeSlot, KeepsakeId>>
 }
 
 let toastSeq = 0
@@ -88,6 +92,9 @@ export const useGame = defineStore('game', {
     seenTerrain: [] as Terrain[],
     journal: [] as JournalEntry[],
     steps: 0,
+    /** Keepsakes found, and which one is worn in each slot. */
+    keepsakes: [] as KeepsakeId[],
+    wearing: {} as Partial<Record<KeepsakeSlot, KeepsakeId>>,
     hoverKey: null as string | null,
     announcement: '',
     announceTick: 0,
@@ -137,6 +144,10 @@ export const useGame = defineStore('game', {
       const key = hive.selected
       if (!key) return null
       if (key === HIVE_DOOR) return { id: 'leave', label: 'Leave hive' }
+      if (key === QUEEN_CELL) {
+        void hive.rev
+        return { id: 'queen', label: useQueen().ready() ? 'Give to the Queen' : 'Talk to the Queen' }
+      }
       const output = hive.cells[key]?.output ?? 0
       if (output > 0) return { id: 'collect', label: `Collect ${output}` }
       if (hive.canUnlock(key) && hive.has(UNLOCK_CELL_COST)) return { id: 'unseal', label: 'Unseal' }
@@ -162,6 +173,8 @@ export const useGame = defineStore('game', {
           this.seenTerrain = data.seenTerrain ?? []
           this.journal = data.journal ?? []
           this.steps = data.steps ?? 0
+          this.keepsakes = data.keepsakes ?? []
+          this.wearing = data.wearing ?? {}
         }
       }
       catch { /* corrupt or unavailable storage: start fresh */ }
@@ -175,6 +188,11 @@ export const useGame = defineStore('game', {
           subject: 'hive',
         }, false)
       }
+      // Places visited before keepsakes existed still hand theirs over.
+      for (const id of this.visitedPois) {
+        const k = KEEPSAKE_BY_POI[id]
+        if (k && !this.keepsakes.includes(k)) this.keepsakes.push(k)
+      }
       this.reveal(this.pos, true)
       this.loaded = true
     },
@@ -187,6 +205,8 @@ export const useGame = defineStore('game', {
         seenTerrain: this.seenTerrain,
         journal: this.journal,
         steps: this.steps,
+        keepsakes: this.keepsakes,
+        wearing: this.wearing,
       }
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data))
@@ -207,6 +227,8 @@ export const useGame = defineStore('game', {
       this.seenTerrain = []
       this.journal = []
       this.steps = 0
+      this.keepsakes = []
+      this.wearing = {}
       this.scene = 'world'
       this.transition = null
       this.irisClosed = false
@@ -214,6 +236,7 @@ export const useGame = defineStore('game', {
       useHive().reset()
       useColony().reset()
       this.load()
+      useQueen().reset()
       this.announce('Progress reset. You are back at the Home Hive.')
     },
 
@@ -350,6 +373,7 @@ export const useGame = defineStore('game', {
         case 'collect': return hive.collect(hive.selected!) > 0
         case 'unseal': return hive.unlock(hive.selected!)
         case 'befriend': return useColony().startDance(hexKey(this.pos))
+        case 'queen': return useQueen().talk()
       }
     },
 
@@ -420,6 +444,8 @@ export const useGame = defineStore('game', {
         if (tile.poi && !this.visitedPois.includes(tile.poi)) this.visitPoi(tile.poi)
         else if (!this.seenTerrain.includes(tile.terrain)) this.firstTerrain(tile.terrain)
       }
+      // Golden pollen is picked up just by flying over it.
+      if (tile) useHive().pickGolden(tile)
       const besideHome = hexDistance(next, HOME) === 1
       if (besideHome) useHive().deposit()
       if (!this.queue.length) {
@@ -443,6 +469,27 @@ export const useGame = defineStore('game', {
       this.visitedPois.push(id)
       const def = POI_BY_ID[id]
       this.addJournal({ id: `poi:${id}`, ...def.journal, icon: 'poi', subject: id })
+      const k = KEEPSAKE_BY_POI[id]
+      if (k) this.giveKeepsake(k)
+    },
+
+    // ---------- keepsakes ----------
+    giveKeepsake(id: KeepsakeId) {
+      if (this.keepsakes.includes(id)) return
+      this.keepsakes.push(id)
+      const def = KEEPSAKES[id]
+      this.toast(`Keepsake found: ${def.name}!`)
+      this.announce(`You found a keepsake: ${def.name}. Wear it from the Keepsakes page in your journal.`)
+      this.save()
+    },
+
+    /** Puts a keepsake on (replacing whatever is in its slot), or takes it off if worn. */
+    toggleWear(id: KeepsakeId) {
+      if (!this.keepsakes.includes(id)) return
+      const slot = KEEPSAKES[id].slot
+      if (this.wearing[slot] === id) delete this.wearing[slot]
+      else this.wearing[slot] = id
+      this.save()
     },
 
     firstTerrain(t: Terrain) {

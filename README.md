@@ -25,7 +25,7 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Look around (narrated) | `L` | Look button |
 | Journal | `J` | Journal button |
 | Fly home | `H` | Home button |
-| Action: enter the hive, befriend, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
+| Action: enter the hive, befriend, talk to the Queen, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
 | Befriending dance: catch in the green | `F` (`Esc` backs away) | Tap the ring |
 | Inside the hive: pick a cell | Movement keys | Tap a cell or the cell map |
 | Performance overlay (dev, or `?perf`) | `` ` `` | × on the overlay |
@@ -52,10 +52,11 @@ app/
     props.ts                 Tuft/flower/tree/cloud kinds, hive, point-of-interest set pieces
     bee.ts                   Procedural bee: `BeeLook` presets + accessory anchors
     beeVariants.ts           Named variants (honey, queen, nocturnal); preview with ?bee=queen
-    accessories.ts           Accessories that attach to the bee's anchors (crown…)
+    accessories.ts           Accessories for the bee: the Queen's crown and all the wearable keepsakes
     hiveView.ts              Inside the hive: comb cells, Queen, walls, motes, trays
     resourceMarkers.ts       Floating badges over neighbouring / hovered tiles showing what can be gathered
     buildings.ts             Hive building models (press, kitchen, wax works, larder, bee room)
+    goldenSparkles.ts        Glowing golden pollen spots out in the world
     beePool.ts               Pooled models for other bees (0.8× scale) + frustum check
     geometry.ts              Rounded "cushion" hex, rings, blob shadow
   stores/
@@ -63,11 +64,16 @@ app/
     settings.ts              Accessibility & comfort settings (persisted)
     hive.ts                  Pouch, store, tile supplies, buildings, upgrades, offline catch-up
     colony.ts                Wild encounters, befriending dance, helper bees, jobs + trips
+    queen.ts                 The Queen's requests: progress, handing in, rewards, map reveals
   utils/
     hex.ts                   Axial flat-top hex math, BFS pathfinding
     world.ts                 Seeded world generation, terrain, points of interest + journal text
     resources.ts             Resources, which tiles yield them, buildings, recipes, upgrades
     species.ts               Wild bee species: look, habitat, favourite job, speed, dance
+    requests.ts              Chapter one of the Queen's requests + endless "little wishes"
+    keepsakes.ts             Wearable keepsakes: where each is found, and its slot
+    golden.ts                Which far-off tiles sparkle with golden pollen
+    daylight.ts              The 24-minute day and night clock
     palette.ts               Default + colour-vision-friendly palettes
     noise.ts                 Seeded RNG + value noise
 ```
@@ -99,6 +105,23 @@ app/
 - **Building jobs:** a helper can also work at a Honey Press, Bee Bread Kitchen or Wax Works (2 per building): pick "Work at a building…" on its card, or "+ Add a helper" in the building's panel. Each helper makes batches quicker (1 helper 1.5×, 2 helpers 2×) and carries every batch straight to the store, so the tray never holds things up. They hover beside the building, bustling round it while it runs.
 - Helpers keep working while the game is closed (same 8-hour cap). They're drawn smaller than your bee (0.8×) and only when on screen. Inside the hive (now radius 3), idle bees wander between cells and resting bees sleep in the Bee Room beds.
 
+### The Queen's requests
+- The Queen always has one request, shown in a small card under the location panel (tap to fold it away) and in her panel inside the hive. Hand it in by visiting her and pressing `F`.
+- **Chapter one** walks through the whole game: fly home nectar, press honey, befriend a bee, bake bee bread, make wax, build a Bee Room, a bigger colony, find golden pollen, visit the old honeycomb, and a hive feast. Some requests mark a place on your map when they start. Rewards are more room in the store, gifts, and the Royal Ribbon.
+- After that come endless **little wishes** (honey, bee bread, wax, golden pollen) that grow slowly, each giving something back. The hive level counts requests completed.
+
+### Exploring pays off
+- **Golden pollen** sparkles on about 25 tiles 7 or more hexes from home. Only your own bee can pick it up (just fly over it); it goes straight to the store and the spot sparkles again after 30 minutes.
+- **Keepsakes:** every place on the island gives a wearable keepsake the first time you visit (specs, sunflower clip, lily-pad hat, dandelion puff, acorn cap, satchel, ancient crown, mist scarf), plus the Queen's ribbon. Wear one per slot (head, face, neck, side, tail) from the journal's **Keepsakes** page.
+
+### Day and night
+- A slow day on the real clock: 24 minutes for a full day, about a quarter of it night. The light turns moonlit blue and the sky deepens; the location card shows the time of day.
+- **Moon Bees** hover over soft grass only at night. They're the fastest helpers, with a tricky dance. *Day and night* in Settings turns it off (always day; Moon Bees then visit any time).
+
+### Coming back
+- If you've been away for 2 minutes or more (closed the game or left the tab) and the hive made something, a **Welcome back** card lists what came in and who was busy.
+- Helpers on their **favourite** job (♥) gather it faster.
+
 ### Music and sound
 - Everything is synthesised live with the Web Audio API (`app/audio/engine.ts`): a generative, never-quite-repeating piece (soft pad, bass, kalimba melody) that turns slower and warmer inside the hive, a wing buzz that follows flight speed, and one-shots for gathering, a full pouch, unloading, discoveries, the hive door, collecting and building.
 - Audio starts on the first key press or tap (browser autoplay rules) and pauses while the tab is hidden. Music and effect volumes are in Settings.
@@ -118,6 +141,7 @@ app/
 - Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
 - A Beedex page per species, and species perks for building work
+- Chapter two: past the mist, with new requests and places
 
 ## Deploy (Cloudflare Workers, auto-deploy from GitHub)
 

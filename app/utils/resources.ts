@@ -7,12 +7,15 @@ import type { Tile } from './world'
 
 export type RawResource = 'nectar' | 'pollen' | 'water' | 'resin'
 export type Product = 'honey' | 'beebread' | 'wax'
-export type Resource = RawResource | Product
+/** Rare finds only the player's own bee can pick up (never helpers, never a pouch). */
+export type Treasure = 'golden'
+export type Resource = RawResource | Product | Treasure
 export type Amounts = Partial<Record<Resource, number>>
 
 export const RAW_RESOURCES: RawResource[] = ['nectar', 'pollen', 'water', 'resin']
 export const PRODUCTS: Product[] = ['honey', 'beebread', 'wax']
-export const ALL_RESOURCES: Resource[] = [...RAW_RESOURCES, ...PRODUCTS]
+export const TREASURES: Treasure[] = ['golden']
+export const ALL_RESOURCES: Resource[] = [...RAW_RESOURCES, ...PRODUCTS, ...TREASURES]
 
 export const RESOURCE_INFO: Record<Resource, { name: string, color: string, blurb: string }> = {
   nectar: { name: 'Nectar', color: '#ff9fb8', blurb: 'Sweet and runny, from meadow flowers.' },
@@ -22,6 +25,7 @@ export const RESOURCE_INFO: Record<Resource, { name: string, color: string, blur
   honey: { name: 'Honey', color: '#ffae1f', blurb: 'Made from nectar in the Honey Press.' },
   beebread: { name: 'Bee Bread', color: '#e0a15a', blurb: 'Pollen and water, baked soft.' },
   wax: { name: 'Wax', color: '#fff0b8', blurb: 'For building and expanding the hive.' },
+  golden: { name: 'Golden Pollen', color: '#ffd84a', blurb: 'Sparkling pollen from far-off flowers. Only you can find it.' },
 }
 
 export function formatAmounts(a: Amounts) {

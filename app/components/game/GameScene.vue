@@ -2,12 +2,17 @@
 import * as THREE from 'three'
 import { useLoop, useTres } from '@tresjs/core'
 import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
+import { buildKeepsake } from '~/game/accessories'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
 import { gameAudio } from '~/audio/engine'
 import { perfAvailable, perfFrameEnd, perfFrameStart } from '~/utils/perfMonitor'
 import { BeePool, animateBee, inView, updateFrustum, warmBees } from '~/game/beePool'
 import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
+import { GoldenSparkles } from '~/game/goldenSparkles'
+import { isGoldenSpot } from '~/utils/golden'
+import { nightAmount } from '~/utils/daylight'
+import { setCloudNight } from '~/game/props'
 import { WorldView } from '~/game/worldView'
 import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, hexesInRange, neighbor, worldToHex } from '~/utils/hex'
 import type { SpeciesId } from '~/utils/species'
@@ -39,6 +44,17 @@ worldView.setVisitedPois(game.visitedPois)
 // `?bee=queen` / `?bee=nocturnal` previews a variant; anything else is the honey bee.
 const beeParam = new URLSearchParams(window.location.search).get('bee')
 const bee = buildBeeVariant(isBeeVariantId(beeParam) ? beeParam : 'honey')
+
+// Keepsakes the player is wearing, rebuilt whenever the outfit changes.
+const worn = new THREE.Group()
+bee.body.add(worn)
+watch(() => Object.values(game.wearing).join(','), () => {
+  for (const c of [...worn.children]) worn.remove(c)
+  for (const id of Object.values(game.wearing)) {
+    const obj = id ? buildKeepsake(id) : null
+    if (obj) worn.add(obj)
+  }
+}, { immediate: true })
 const HOVER_ALT = 0.55
 
 // Soft blob shadow under the bee: reads better than a real shadow while flying.
@@ -110,11 +126,38 @@ const outdoorBees = new BeePool()
 
 // Badges only where you can act next: the six tiles round the bee, plus the one under the mouse.
 const markers = new ResourceMarkers(8)
-worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group, outdoorBees.group)
+const golden = new GoldenSparkles()
+worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group, outdoorBees.group, golden.group)
 const hiveView = new HiveView(HIVE_CELLS, QUEEN_CELL)
 
 const rig = new THREE.Group()
-rig.add(worldLayer, hiveView.group, bee.root, blob, sun, sun.target)
+const hemi = new THREE.HemisphereLight('#fff6e6', '#b9d9a4', 1.15)
+const ambient = new THREE.AmbientLight('#ffe9d6', 0.25)
+rig.add(worldLayer, hiveView.group, bee.root, blob, sun, sun.target, hemi, ambient)
+
+/*
+ * Day and night: every light eases between its daytime and moonlit setting. Inside the hive
+ * it's always the warm day lighting (the lamp is lit).
+ */
+const DAY = { sun: new THREE.Color('#fff0d6'), sunI: 2.1, sky: new THREE.Color('#fff6e6'), ground: new THREE.Color('#b9d9a4'), hemiI: 1.15, amb: new THREE.Color('#ffe9d6'), ambI: 0.25, fog: new THREE.Color('#f7ecd8') }
+const NIGHT = { sun: new THREE.Color('#a9bcff'), sunI: 0.7, sky: new THREE.Color('#7c8cc4'), ground: new THREE.Color('#34465e'), hemiI: 0.65, amb: new THREE.Color('#8f9fd8'), ambI: 0.35, fog: new THREE.Color('#2c3760') }
+let nightNow = -1
+function applyDaylight(dt: number) {
+  const target = game.scene === 'world' && settings.dayNight ? nightAmount() : 0
+  // Start at the right time of day; after that ease, so toggling the setting doesn't snap.
+  if (nightNow < 0) nightNow = target
+  nightNow += (target - nightNow) * (1 - Math.exp(-dt * 2))
+  const n = nightNow
+  sun.color.copy(DAY.sun).lerp(NIGHT.sun, n)
+  sun.intensity = THREE.MathUtils.lerp(DAY.sunI, NIGHT.sunI, n)
+  hemi.color.copy(DAY.sky).lerp(NIGHT.sky, n)
+  hemi.groundColor.copy(DAY.ground).lerp(NIGHT.ground, n)
+  hemi.intensity = THREE.MathUtils.lerp(DAY.hemiI, NIGHT.hemiI, n)
+  ambient.color.copy(DAY.amb).lerp(NIGHT.amb, n)
+  ambient.intensity = THREE.MathUtils.lerp(DAY.ambI, NIGHT.ambI, n)
+  if (game.scene === 'world') fog.color.copy(DAY.fog).lerp(NIGHT.fog, n)
+  setCloudNight(n)
+}
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                            */
@@ -597,7 +640,17 @@ watch(() => [hive.selected, game.scene], syncHive)
 watch(() => settings.reducedMotion, (v) => {
   hiveView.setReducedMotion(v)
   markers.setReducedMotion(v)
+  golden.setReducedMotion(v)
 }, { immediate: true })
+
+/** Golden pollen sparkles on discovered golden spots that have pollen right now. */
+const goldenTiles = world.tiles.filter(t => isGoldenSpot(t))
+function refreshGolden() {
+  const now = Date.now()
+  golden.refresh(goldenTiles.filter(t => game.discovered.has(t.key) && hive.goldenHere(t, now)))
+}
+refreshGolden()
+watch(() => [game.revealTick, hive.rev], refreshGolden)
 
 /**
  * Picks the badges to show: discovered resource tiles next to the bee, and the hovered tile.
@@ -820,6 +873,7 @@ if (perfAvailable) {
 onBeforeRender(({ delta }) => {
   const dt = Math.max(1e-4, Math.min(delta, 1 / 20))
   time += dt
+  applyDaylight(dt)
   const rm = settings.reducedMotion
   // World units per second (one hex centre-to-centre is ~1.73 units).
   const speed = (1.732 / (settings.secondsPerHex * 1.1)) * hive.wingBoost
@@ -928,11 +982,14 @@ onBeforeRender(({ delta }) => {
       syncFullness()
     }
     markers.update(time)
+    golden.update(time)
     // Wild bees move to new tiles every few minutes.
     wildIn -= dt
     if (wildIn <= 0) {
       wildIn = 2
       refreshWild()
+      // Picked golden spots sparkle again after a while.
+      refreshGolden()
     }
     updateOutdoorBees(time, rm)
   }
@@ -1008,7 +1065,5 @@ function updateWorldFlight(dt: number, rm: boolean, speed: number) {
 
 <template>
   <TresPerspectiveCamera ref="camRef" :fov="34" :near="0.5" :far="120" />
-  <TresHemisphereLight :args="['#fff6e6', '#b9d9a4', 1.15]" />
-  <TresAmbientLight :intensity="0.25" color="#ffe9d6" />
   <primitive :object="rig" />
 </template>

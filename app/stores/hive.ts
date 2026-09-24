@@ -18,9 +18,11 @@ import {
   formatAmounts,
   tileSource,
 } from '~/utils/resources'
+import { GOLDEN_REGROW_MS, isGoldenSpot } from '~/utils/golden'
 import type { Tile } from '~/utils/world'
 import { useColony } from './colony'
 import { useGame } from './game'
+import { useQueen } from './queen'
 
 /* ------------------------------------------------------------------ */
 /* Hive layout: a radius-2 honeycomb of cells around the Queen        */
@@ -66,6 +68,8 @@ interface SaveData {
   unlocked: string[]
   upgrades: Record<UpgradeId, number>
   firsts: string[]
+  golden?: Record<string, number>
+  bonusStorage?: number
 }
 
 const emptyAmounts = <K extends string>(keys: readonly K[]) =>
@@ -82,6 +86,10 @@ function freshState() {
     upgrades: { pouch: 0, wings: 0, gathering: 0 } as Record<UpgradeId, number>,
     /** One-off moments already celebrated in the journal. */
     firsts: [] as string[],
+    /** Golden spots picked, and when (they sparkle again later). */
+    golden: {} as Record<string, number>,
+    /** Extra room in the store, from the Queen's thanks. */
+    bonusStorage: 0,
   }
 }
 
@@ -114,7 +122,7 @@ export const useHive = defineStore('hive', {
     },
     storageCap(s) {
       const larders = Object.values(s.cells).filter(c => c.building === 'larder').length
-      return BASE_STORAGE + larders * (BUILDINGS.larder.storage ?? 0)
+      return BASE_STORAGE + larders * (BUILDINGS.larder.storage ?? 0) + s.bonusStorage
     },
   },
 
@@ -133,6 +141,8 @@ export const useHive = defineStore('hive', {
           this.unlocked = d.unlocked ?? f.unlocked
           this.upgrades = { ...f.upgrades, ...d.upgrades }
           this.firsts = d.firsts ?? []
+          this.golden = d.golden ?? {}
+          this.bonusStorage = d.bonusStorage ?? 0
         }
       }
       catch { /* corrupt or unavailable: start fresh */ }
@@ -149,6 +159,8 @@ export const useHive = defineStore('hive', {
         unlocked: this.unlocked,
         upgrades: this.upgrades,
         firsts: this.firsts,
+        golden: this.golden,
+        bonusStorage: this.bonusStorage,
       }
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data))
@@ -258,6 +270,39 @@ export const useHive = defineStore('hive', {
       return src.resource
     },
 
+    /* ---------------- golden pollen ---------------- */
+    /** Is there golden pollen sparkling on this tile right now? */
+    goldenHere(tile: Tile | undefined, now = Date.now()) {
+      if (!isGoldenSpot(tile)) return false
+      const picked = this.golden[tile.key]
+      return picked == null || now - picked >= GOLDEN_REGROW_MS
+    },
+
+    /** Picks up golden pollen (straight into the store). Returns true if some was taken. */
+    pickGolden(tile: Tile, now = Date.now()) {
+      if (!this.goldenHere(tile, now)) return false
+      if (this.stock.golden >= this.storageCap) {
+        useGame().announce('The store has no room for more golden pollen.')
+        return false
+      }
+      this.golden[tile.key] = now
+      this.stock.golden++
+      const game = useGame()
+      game.toast('Golden pollen! It went straight to the store.')
+      game.announce('You found golden pollen. It went straight to the store.')
+      if (this.first('golden')) {
+        game.addJournal({
+          id: 'first-golden',
+          title: 'Something golden',
+          body: 'Out here, far from home, some flowers sparkle. Their pollen is warm and glittery and hums a tiny tune. I tucked it safely away for the Queen.',
+          icon: 'hive',
+          subject: 'hive',
+        }, false)
+      }
+      this.changed()
+      return true
+    },
+
     /**
      * Takes up to `n` units from a tile at time `at` (helper bees, including offline catch-up).
      * Returns how many were taken.
@@ -296,6 +341,7 @@ export const useHive = defineStore('hive', {
       }
       const any = Object.keys(moved).length > 0
       if (any) {
+        useQueen().noteBrought(moved)
         const game = useGame()
         const left = this.pouchTotal
         const msg = `Unloaded ${formatAmounts(moved)} into the hive.${left ? ` The store is full, so ${left} stayed in your pouch.` : ''}`

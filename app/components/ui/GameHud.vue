@@ -4,6 +4,7 @@ import { useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
 import { useWorldData } from '~/utils/world'
+import { minutesUntilChange, timeOfDay } from '~/utils/daylight'
 
 const game = useGame()
 const hive = useHive()
@@ -29,6 +30,9 @@ const here = computed(() => {
   return { resource: src.resource, left, max: src.max, regrow: left < src.max ? hive.tileRegrowIn(tile, now.value) : 0 }
 })
 
+const tod = computed(() => (void now.value, timeOfDay()))
+const todTitle = computed(() => (void now.value, tod.value === 'night' ? `Morning in about ${minutesUntilChange()} min` : `Night falls in about ${minutesUntilChange()} min`))
+
 function lookAround() {
   game.announce(game.describeHere())
   game.toast(game.describeHere())
@@ -48,6 +52,9 @@ function lookAround() {
         </p>
         <p class="sub">
           Day {{ game.day }} · {{ game.steps }} {{ game.steps === 1 ? 'hex' : 'hexes' }} flown
+          <template v-if="settings.dayNight">
+            · <span class="tod" :title="todTitle"><span aria-hidden="true">{{ tod === 'night' ? '☾' : '☀' }}</span> {{ tod }}</span>
+          </template>
         </p>
         <p v-if="here" class="here">
           <ResourceIcon :name="here.resource" />
@@ -56,6 +63,7 @@ function lookAround() {
         </p>
       </header>
       <PouchMeter v-if="!inHive" />
+      <QueenTracker v-if="!inHive" />
     </div>
 
     <!-- Top-right: minimap -->

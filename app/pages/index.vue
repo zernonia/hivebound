@@ -1,31 +1,65 @@
 <script setup lang="ts">
 import type { Direction } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
+import { nightAmount } from '~/utils/daylight'
 import { perfAvailable, togglePerf } from '~/utils/perfMonitor'
 import { useGame } from '~/stores/game'
 import { useColony } from '~/stores/colony'
 import { useHive } from '~/stores/hive'
+import { useQueen } from '~/stores/queen'
 import { useSettings } from '~/stores/settings'
 
 const game = useGame()
 const hive = useHive()
 const colony = useColony()
+const queen = useQueen()
 const settings = useSettings()
 const held = useHeldDirection()
 
 settings.load()
 game.load()
 hive.load()
+// Snapshot before the colony and buildings catch up, for the welcome-back card.
+beginAway()
 colony.load()
 // Buildings catch up after the colony, since helpers set their pace.
 hive.tick()
+endAway()
+queen.load()
+const welcome = useWelcomeBack()
 useGameAudio()
 
 // Persist settings whenever they change.
 watch(() => settings.$state, () => settings.save(), { deep: true })
 
 // Reflect accessibility settings on <html>.
-const sky = computed(() => (settings.colorVisionFriendly ? PALETTE_CVD : PALETTE_DEFAULT).sky)
+// The sky behind the island fades to a deep blue at night (checked every few seconds).
+const night = ref(0)
+const updateNight = () => {
+  night.value = settings.dayNight && game.scene === 'world' ? nightAmount() : 0
+  if (night.value > 0.5 && hive.first('night')) {
+    game.addJournal({
+      id: 'first-night',
+      title: 'The meadow at night',
+      body: 'The sky went deep blue and the flowers folded up like little tents. Something with glowing antennae is humming over the soft grass. A Moon Bee? I should say hello.',
+      icon: 'terrain',
+      subject: 'grass',
+    })
+  }
+}
+updateNight()
+watch(() => [settings.dayNight, game.scene], updateNight)
+const NIGHT_SKY: [string, string] = ['#1f2850', '#46558c']
+const mixHex = (a: string, b: string, t: number) => {
+  const pa = Number.parseInt(a.slice(1), 16)
+  const pb = Number.parseInt(b.slice(1), 16)
+  const ch = (s: number) => Math.round(((pa >> s) & 255) * (1 - t) + ((pb >> s) & 255) * t)
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`
+}
+const sky = computed(() => {
+  const day = (settings.colorVisionFriendly ? PALETTE_CVD : PALETTE_DEFAULT).sky
+  return [mixHex(day[0], NIGHT_SKY[0], night.value), mixHex(day[1], NIGHT_SKY[1], night.value)]
+})
 useHead({
   htmlAttrs: {
     class: computed(() => [settings.highContrast && 'hc', settings.reducedMotion && 'rm'].filter(Boolean).join(' ')),
@@ -56,7 +90,7 @@ function onKeyDown(e: KeyboardEvent) {
     togglePerf()
     return
   }
-  const modal = game.journalOpen || game.settingsOpen
+  const modal = game.journalOpen || game.settingsOpen || !!welcome.summary.value
   if (modal) {
     // Native <dialog> handles Esc; J toggles the journal closed.
     if (e.code === 'KeyJ' && game.journalOpen) game.journalOpen = false
@@ -150,13 +184,18 @@ const saveNow = () => {
   game.save()
   hive.save()
   colony.save()
+  queen.save()
 }
 // Buildings run on real time: advance them every second, and catch up when the tab returns.
 let hiveClock: ReturnType<typeof setInterval> | undefined
 const catchUp = () => {
-  if (document.visibilityState !== 'visible') return
+  if (document.visibilityState !== 'visible') {
+    beginAway(Date.now())
+    return
+  }
   hive.tick()
   colony.tick()
+  endAway()
 }
 
 onMounted(() => {
@@ -164,10 +203,15 @@ onMounted(() => {
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('blur', held.clear)
   window.addEventListener('pagehide', saveNow)
+  window.addEventListener('pagehide', () => markSeen())
   document.addEventListener('visibilitychange', catchUp)
+  let beat = 0
   hiveClock = setInterval(() => {
     hive.tick()
     colony.tick()
+    updateNight()
+    // Remember roughly when we were last here, for "while you were away".
+    if (++beat % 10 === 0 && document.visibilityState === 'visible') markSeen()
   }, 1000)
 })
 onBeforeUnmount(() => {
@@ -203,6 +247,7 @@ watch(() => game.journalOpen || game.settingsOpen, open => open && held.clear())
     <Announcer />
     <HiveIris />
     <BefriendDance />
+    <WelcomeBack />
     <PerfOverlay v-if="perfAvailable" />
   </main>
 </template>

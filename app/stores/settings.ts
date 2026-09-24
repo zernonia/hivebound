@@ -21,6 +21,7 @@ export interface SettingsState {
   sfxVolume: number
   /** Slower marker and a wider green arc in the befriending dance. */
   easyBefriend: boolean
+  dayNight: boolean
 }
 
 const STORAGE_KEY = 'hivebound:settings:v1'
@@ -59,6 +60,8 @@ export const useSettings = defineStore('settings', {
     musicVolume: 0.4,
     sfxVolume: 0.6,
     easyBefriend: false,
+    /** Slow day and night cycle (off = always day). */
+    dayNight: true,
   }),
   getters: {
     /** Seconds to fly one hex. */
