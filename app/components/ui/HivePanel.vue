@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { type CellStatus, HIVE_CELLS, HIVE_DOOR, HIVE_RADIUS, QUEEN_CELL, useHive } from '~/stores/hive'
-import { type BeeJob, useColony } from '~/stores/colony'
+import { MAX_WORKERS, type ColonyBee, useColony, workCell } from '~/stores/colony'
 import { SPECIES } from '~/utils/species'
 import { useGame } from '~/stores/game'
 import { RAW_RESOURCES } from '~/utils/resources'
@@ -12,6 +12,7 @@ import {
   BUILDING_LIST,
   type BuildingId,
   RESOURCE_INFO,
+  type RawResource,
   type Resource,
   TRAY_CAP,
   UNLOCK_CELL_COST,
@@ -25,7 +26,39 @@ const game = useGame()
 
 const tab = ref<'cells' | 'colony' | 'upgrades'>('cells')
 const colony = useColony()
-const jobs: { v: BeeJob, label: string }[] = [...RAW_RESOURCES.map(r => ({ v: r as BeeJob, label: RESOURCE_INFO[r].name })), { v: null, label: 'Rest' }]
+const jobs: { v: RawResource | null, label: string }[] = [...RAW_RESOURCES.map(r => ({ v: r as RawResource, label: RESOURCE_INFO[r].name })), { v: null, label: 'Rest' }]
+
+/** Buildings that make something, as places a helper can work ("Honey Press 2" when there are several). */
+const workplaces = computed(() => {
+  void hive.rev
+  void colony.rev
+  const list = Object.entries(hive.cells)
+    .filter(([, c]) => c.building && BUILDINGS[c.building].recipe)
+    .map(([key, c]) => ({ key, id: c.building!, name: BUILDINGS[c.building!].name }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key))
+  const seen: Record<string, number> = {}
+  return list.map((w) => {
+    const n = (seen[w.id] = (seen[w.id] ?? 0) + 1)
+    const many = list.filter(o => o.id === w.id).length > 1
+    return { ...w, label: many ? `${w.name} ${n}` : w.name, workers: colony.workersAt(w.key).length }
+  })
+})
+
+function onWorkPick(bee: ColonyBee, ev: Event) {
+  const key = (ev.target as HTMLSelectElement).value
+  if (key) colony.setJob(bee.id, `cell:${key}`)
+}
+
+/** Bees that could be sent to the selected building (anyone not already there). */
+function freeBees(key: string) {
+  return colony.bees.filter(b => workCell(b.job) !== key)
+}
+function onAssign(key: string, ev: Event) {
+  const el = ev.target as HTMLSelectElement
+  const id = Number(el.value)
+  el.value = ''
+  if (id) colony.setJob(id, `cell:${key}`)
+}
 
 // The comb map (layout + unsealing) is tucked away until asked for; the choice is remembered.
 const MAP_KEY = 'hivebound:hive-map'
@@ -276,7 +309,32 @@ function build(id: BuildingId) {
               <template v-for="(n, r) in selBuilding.recipe.out" :key="r">
                 <ResourceIcon :name="r" />{{ n }}
               </template>
-              <span class="secs">· {{ selBuilding.recipe.seconds }}s each</span>
+              <span class="secs">· {{ Math.round(((void now, hive.batchMs(sel.key)) / 1000)) }}s each</span>
+            </p>
+            <div class="helpers" role="group" :aria-label="`Helpers at the ${selBuilding.name}`">
+              <span class="label">Helpers {{ colony.workersAt(sel.key).length }}/{{ MAX_WORKERS }}</span>
+              <span v-for="b in colony.workersAt(sel.key)" :key="b.id" class="helper">
+                <span class="swatch" :style="{ background: SPECIES[b.species].look.colors.body, borderColor: SPECIES[b.species].look.colors.stripe }" aria-hidden="true" />
+                {{ b.name }}
+                <button class="unassign" :aria-label="`Send ${b.name} to rest`" @click="colony.setJob(b.id, null)">×</button>
+              </span>
+              <select
+                v-if="colony.workersAt(sel.key).length < MAX_WORKERS && freeBees(sel.key).length"
+                class="assign"
+                :aria-label="`Add a helper to the ${selBuilding.name}`"
+                @change="onAssign(sel.key, $event)"
+              >
+                <option value="">
+                  + Add a helper
+                </option>
+                <option v-for="b in freeBees(sel.key)" :key="b.id" :value="b.id">
+                  {{ b.name }} ({{ SPECIES[b.species].name }})
+                </option>
+              </select>
+              <span v-else-if="!colony.bees.length" class="note">Befriend a wild bee to help here.</span>
+            </div>
+            <p v-if="colony.workersAt(sel.key).length" class="note">
+              Helpers speed it up and carry each batch to the store for you.
             </p>
             <p class="status">
               {{ statusText(sel.status, 0).replace(/^./, m => m.toUpperCase()) }}.
@@ -334,6 +392,26 @@ function build(id: BuildingId) {
               <span v-if="j.v" class="sr-only">{{ j.label }}</span>
             </button>
           </div>
+          <select
+            v-if="workplaces.length"
+            class="work"
+            :class="{ on: workCell(b.job) }"
+            :value="workCell(b.job) ?? ''"
+            :aria-label="`Where ${b.name} works in the hive`"
+            @change="onWorkPick(b, $event)"
+          >
+            <option value="" disabled>
+              Work at a building…
+            </option>
+            <option
+              v-for="w in workplaces"
+              :key="w.key"
+              :value="w.key"
+              :disabled="w.workers >= MAX_WORKERS && workCell(b.job) !== w.key"
+            >
+              {{ w.label }} ({{ w.workers }}/{{ MAX_WORKERS }})
+            </option>
+          </select>
         </li>
       </ul>
     </div>
@@ -522,6 +600,68 @@ h3 {
 .jobs button.on {
   background: var(--honey);
   border-color: var(--honey-deep);
+}
+.work,
+.assign {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.work.on {
+  background: var(--honey);
+  border-color: var(--honey-deep);
+}
+.helpers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+.helpers .label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin: 0;
+}
+.helper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 2px 2px 8px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 2px solid var(--line);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.helper .swatch {
+  width: 14px;
+  height: 13px;
+  border-width: 2px;
+  border-radius: 4px;
+}
+.unassign {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+.helpers .assign {
+  width: auto;
+  flex: 1;
+  margin: 0;
 }
 .jobs button.fav::after {
   content: '♥';

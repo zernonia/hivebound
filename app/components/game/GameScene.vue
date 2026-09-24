@@ -15,7 +15,7 @@ import type { Tile } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
 import { useWorldData } from '~/utils/world'
-import { useColony } from '~/stores/colony'
+import { useColony, workCell } from '~/stores/colony'
 import { useGame } from '~/stores/game'
 import { HIVE_CELLS, QUEEN_CELL, useHive } from '~/stores/hive'
 import { useSettings } from '~/stores/settings'
@@ -910,7 +910,7 @@ onBeforeRender(({ delta }) => {
       syncHive()
     }
     hiveView.update(dt, time)
-    hiveView.updateColony(colony.bees.filter(b => !b.trip).map(b => ({ id: b.id, species: b.species, resting: !b.job })), dt, time)
+    hiveView.updateColony(colony.bees.filter(b => !b.trip).map(b => ({ id: b.id, species: b.species, resting: !b.job, work: workCell(b.job) })), dt, time)
   }
   else {
     // --- rings pulse ---

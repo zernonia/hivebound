@@ -317,10 +317,11 @@ export class HiveView {
   }
 
   /**
-   * Draws the colony bees that are home. Resting bees (no job) settle onto Bee Room beds when
-   * there are any; everyone else drifts from cell to cell, pausing now and then.
+   * Draws the colony bees that are home. Bees working at a building hover beside it, bustling
+   * round it while it runs; resting bees (no job) settle onto Bee Room beds when there are any;
+   * everyone else drifts from cell to cell, pausing now and then.
    */
-  updateColony(bees: { id: number, species: SpeciesId, resting: boolean }[], dt: number, time: number) {
+  updateColony(bees: { id: number, species: SpeciesId, resting: boolean, work: string | null }[], dt: number, time: number) {
     const rm = this.reducedMotion
     const beds: THREE.Vector3[] = []
     for (const c of this.cells.values()) {
@@ -328,6 +329,7 @@ export class HiveView {
       if (model?.beds) for (const b of model.beds) beds.push(b.clone().add(c.pos))
     }
     let bed = 0
+    const slots = new Map<string, number>()
     this.colonyPool.begin()
     const seen = new Set<number>()
     for (const b of bees) {
@@ -339,7 +341,17 @@ export class HiveView {
         this.wanderers.set(b.id, w)
       }
       const sleeping = b.resting && bed < beds.length
-      if (sleeping) {
+      const site = b.work ? this.cells.get(b.work) : undefined
+      if (site) {
+        // Two spots either side of the building; a slow loop round it while it's busy.
+        const slot = slots.get(b.work!) ?? 0
+        slots.set(b.work!, slot + 1)
+        const busy = site.ring.userData.progress != null
+        // (Sides, not front: the front right is where your own bee hovers.)
+        const a = (slot === 0 ? -1.7 : 1.7) + (busy && !rm ? Math.sin(time * 0.9 + slot * 2) * 0.45 : 0)
+        w.target.copy(site.pos).add(tmpV.set(Math.sin(a) * 0.72, busy ? 1.05 : 0.95, Math.cos(a) * 0.72))
+      }
+      else if (sleeping) {
         w.target.copy(beds[bed++]!)
       }
       else if (w.pos.distanceTo(w.target) < 0.15) {
@@ -350,11 +362,16 @@ export class HiveView {
         }
       }
       const before = tmpV.copy(w.pos)
-      w.pos.lerp(w.target, 1 - Math.exp(-dt * (rm ? 3 : 1.1)))
+      w.pos.lerp(w.target, 1 - Math.exp(-dt * (rm ? 3 : site ? 2.2 : 1.1)))
       const dx = w.pos.x - before.x
       const dz = w.pos.z - before.z
       const moving = Math.min(1, Math.hypot(dx, dz) / Math.max(dt, 1e-4) / 1.5)
-      if (moving > 0.05) w.yaw = Math.atan2(dx, dz)
+      if (site && moving < 0.3) {
+        // Face the building they're tending.
+        const want = Math.atan2(site.pos.x - w.pos.x, site.pos.z - w.pos.z)
+        w.yaw += Math.atan2(Math.sin(want - w.yaw), Math.cos(want - w.yaw)) * (1 - Math.exp(-dt * 4))
+      }
+      else if (moving > 0.05) w.yaw = Math.atan2(dx, dz)
       else if (!sleeping) w.yaw += Math.atan2(Math.sin(-w.yaw), Math.cos(-w.yaw)) * (1 - Math.exp(-dt * 1.5))
       const rig = this.colonyPool.take(b.species)
       rig.root.position.copy(w.pos)

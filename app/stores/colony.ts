@@ -27,7 +27,16 @@ const DANCE_TRIES = 3
 const REST_BETWEEN_TRIPS_MS = 8000
 const SAVE_KEY = 'hivebound:colony:v1'
 
-export type BeeJob = RawResource | null
+/** Gather a resource, work at a building in a hive cell (`cell:<key>`), or rest (null). */
+export type BeeJob = RawResource | `cell:${string}` | null
+
+/** Most helpers that can work at one building at once. */
+export const MAX_WORKERS = 2
+
+/** The resource a gathering job fetches, or null for any other job. */
+export const gatherJob = (job: BeeJob): RawResource | null => (job && !job.startsWith('cell:') ? job as RawResource : null)
+/** The hive cell a building job works at, or null. */
+export const workCell = (job: BeeJob): string | null => (job?.startsWith('cell:') ? job.slice(5) : null)
 
 export interface Trip {
   tile: string
@@ -44,7 +53,7 @@ export interface ColonyBee {
   id: number
   species: SpeciesId
   name: string
-  /** What it gathers; null = resting in the hive. */
+  /** What it gathers or where it works; null = resting in the hive. */
   job: BeeJob
   trip: Trip | null
   /** When an idle-but-employed bee next tries to find work (nothing nearby, store full…). */
@@ -264,12 +273,35 @@ export const useColony = defineStore('colony', {
 
     setJob(id: number, job: BeeJob) {
       const bee = this.bees.find(b => b.id === id)
-      if (!bee || bee.job === job) return
+      if (!bee || bee.job === job) return false
+      const cell = workCell(job)
+      if (cell && !this.canWorkAt(cell)) return false
+      const hive = useHive()
+      // Settle the building being left at its old pace, and the new one before it speeds up.
+      hive.tick()
       bee.job = job
       bee.blocked = null
-      // A bee already out finishes its trip; otherwise it looks for work right away.
-      if (!bee.trip) bee.retryAt = job ? Date.now() : null
+      // A bee already out finishes its trip; otherwise a gatherer looks for work right away.
+      if (!bee.trip) bee.retryAt = gatherJob(job) ? Date.now() : null
+      if (cell) {
+        const b = hive.cells[cell]?.building
+        if (b) useGame().announce(`${bee.name} is now working at the ${BUILDINGS[b].name}.`)
+      }
+      hive.changed()
       this.changed()
+      return true
+    },
+
+    /* ---------------- building jobs ---------------- */
+    /** Helpers whose job is this cell's building (including any still finishing a trip). */
+    workersAt(key: string) {
+      return this.bees.filter(b => b.job === `cell:${key}`)
+    },
+
+    /** Is there a building here that makes something, with a free spot for a helper? */
+    canWorkAt(key: string) {
+      const b = useHive().cells[key]?.building
+      return !!b && !!BUILDINGS[b].recipe && this.workersAt(key).length < MAX_WORKERS
     },
 
     /* ---------------- gathering trips ---------------- */
@@ -300,8 +332,9 @@ export const useColony = defineStore('colony', {
     /** Sends a bee out at `at` if there's work; otherwise schedules a retry. */
     startTrip(bee: ColonyBee, at: number) {
       bee.retryAt = null
-      if (!bee.job) return
-      const tile = this.findTile(bee.job, at, bee.id)
+      const resource = gatherJob(bee.job)
+      if (!resource) return
+      const tile = this.findTile(resource, at, bee.id)
       if (!tile) {
         bee.blocked = 'no-tiles'
         bee.retryAt = at + 30_000
@@ -316,7 +349,7 @@ export const useColony = defineStore('colony', {
       const hexes = Math.max(1, hexDistance(tile, HOME))
       const flight = hexes * def.secondsPerHex * 1000
       bee.blocked = null
-      bee.trip = { tile: tile.key, resource: bee.job, startAt: at, outMs: flight, gatherMs: carry * def.gatherSeconds * 1000, backMs: flight, carry }
+      bee.trip = { tile: tile.key, resource, startAt: at, outMs: flight, gatherMs: carry * def.gatherSeconds * 1000, backMs: flight, carry }
     },
 
     /** Unloads a returning bee at `at`, then (if still employed) goes again. */
@@ -338,7 +371,7 @@ export const useColony = defineStore('colony', {
         }
       }
       bee.blocked = null
-      bee.retryAt = bee.job ? at + REST_BETWEEN_TRIPS_MS : null
+      bee.retryAt = gatherJob(bee.job) ? at + REST_BETWEEN_TRIPS_MS : null
     },
 
     /**
@@ -397,9 +430,24 @@ export const useColony = defineStore('colony', {
         return `Bringing home ${bee.trip.carry} ${what} · ${left}s`
       }
       if (!bee.job) return 'Resting in the hive'
+      const cell = workCell(bee.job)
+      if (cell) {
+        const hive = useHive()
+        const b = hive.cells[cell]?.building
+        if (!b) return 'Resting in the hive'
+        const where = BUILDINGS[b].name
+        const st = hive.status(cell, now)
+        if (st.kind === 'working') return `Working the ${where} · ${st.remaining}s`
+        if (st.kind === 'full') return `${where} paused: the store is full`
+        if (st.kind === 'waiting') {
+          const need = Object.keys(st.missing).map(r => RESOURCE_INFO[r as keyof typeof RESOURCE_INFO].name.toLowerCase())
+          return `Waiting for ${need.join(' and ')} at the ${where}`
+        }
+        return `Tending the ${where}`
+      }
       if (bee.retryAt && !bee.blocked) return 'Having a little rest'
       if (bee.blocked === 'store-full') return 'Waiting for room in the store'
-      if (bee.blocked === 'no-tiles') return `No ${RESOURCE_INFO[bee.job].name.toLowerCase()} nearby right now`
+      if (bee.blocked === 'no-tiles') return `No ${RESOURCE_INFO[gatherJob(bee.job)!].name.toLowerCase()} nearby right now`
       return 'Getting ready to fly'
     },
   },

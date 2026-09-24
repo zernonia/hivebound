@@ -17,6 +17,8 @@ settings.load()
 game.load()
 hive.load()
 colony.load()
+// Buildings catch up after the colony, since helpers set their pace.
+hive.tick()
 useGameAudio()
 
 // Persist settings whenever they change.

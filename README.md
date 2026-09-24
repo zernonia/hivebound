@@ -96,6 +96,7 @@ app/
 - **Wild bees** hover over their home terrain: Bumbles on meadows, Masons on flowers, Dew Bees on water, Carpenters in forests. The Wild Nest always has a friendly Bumble for your first friend; elsewhere encounters come and go every few minutes.
 - **Befriend** one with `F`: a marker circles a ring, and you press `F` (or tap the ring) while it's inside the green arc. You get three tries; each species dances at its own speed. A soft tick plays as the marker enters the green, so it works by ear too. *Easier befriending* in Settings slows it down and widens the arc.
 - **Helpers** live in the hive. You start with 2 beds; each **Bee Room** adds 4, up to a colony of 20. Give each bee a job in the hive panel's **Colony** tab (nectar, pollen, water, resin, or rest); they fly to the nearest explored tile with that resource, gather, bring it home to the store, and take a little rest. Each species prefers its favourite (♥) and is a bit slower than you, so exploring yourself always gathers faster.
+- **Building jobs:** a helper can also work at a Honey Press, Bee Bread Kitchen or Wax Works (2 per building): pick "Work at a building…" on its card, or "+ Add a helper" in the building's panel. Each helper makes batches quicker (1 helper 1.5×, 2 helpers 2×) and carries every batch straight to the store, so the tray never holds things up. They hover beside the building, bustling round it while it runs.
 - Helpers keep working while the game is closed (same 8-hour cap). They're drawn smaller than your bee (0.8×) and only when on screen. Inside the hive (now radius 3), idle bees wander between cells and resting bees sleep in the Bee Room beds.
 
 ### Music and sound
@@ -116,7 +117,7 @@ app/
 - Swap procedural props for Blender GLBs (same instancing approach; keep materials soft and slightly rough)
 - Balance pass on resource yields, recipe times and upgrade costs after playtesting
 - Chapter 1 quest line and NPC critters, feeding into the journal
-- Helper bees for processing jobs (running buildings), and a Beedex page per species
+- A Beedex page per species, and species perks for building work
 
 ## Deploy (Cloudflare Workers, auto-deploy from GitHub)
 
