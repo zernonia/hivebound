@@ -1,17 +1,31 @@
 # Hivebound 🐝
 
-A cozy, relaxing bee exploration game for the browser. Fly hex to hex across a soft diorama meadow, uncover the map, and fill your journal.
+A cozy, relaxing 3D bee game for the browser. Fly hex to hex across a soft diorama island, gather nectar, befriend wild bees, build a humming hive for the Queen, and find out what's past the mist.
 
-This is the **feel-first scaffold**: art direction, movement, camera, minimap, journal and accessibility. Combat, catching, breeding and the quest line come later.
+**▶ Play free: [hivebound.zernonia.workers.dev](https://hivebound.zernonia.workers.dev)** (no install, no account; your save stays in your browser)
 
-## Run it
+Built with [Nuxt](https://nuxt.com) and [TresJS](https://tresjs.org). Everything you see and hear is made in code: procedural models, synthesised music, no asset files.
+
+## Run it locally
+
+You'll need [Node.js](https://nodejs.org) 22 (see `.node-version`).
 
 ```bash
+git clone https://github.com/zernonia/hivebound.git
+cd hivebound
 npm install
 npm run dev        # http://localhost:3000
-npm run build      # production build (.output/)
-npm run typecheck
 ```
+
+Other scripts:
+
+```bash
+npm run typecheck  # vue-tsc over the whole app
+npm run generate   # static build into .output/public (what production serves)
+npm run build      # production build (.output/)
+```
+
+In dev, `window.__hivebound` exposes the game's stores and renderer for poking around from the console, and `?bee=queen` (or another variant) previews a bee look.
 
 Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is client-only (`routeRules['/'].ssr = false`), so other pages like a landing page or Beedex can still be server-rendered later.
 
@@ -159,11 +173,11 @@ Hivebound is installable: use your browser's **Install app** or **Add to Home Sc
 - Everything is playable with the **keyboard alone**. Dialogs are native `<dialog>` elements, so focus is trapped and `Esc` closes them. Touch targets are at least 44–56px.
 - The **on-screen hex pad** is on by default for touch screens, and anyone can turn it on for motor accessibility.
 
-## Next steps
-- Swap procedural props for Blender GLBs (same instancing approach; keep materials soft and slightly rough)
-- Balance pass on resource yields, recipe times and upgrade costs after playtesting
-- Chapter 1 quest line and NPC critters, feeding into the journal
+## Ideas for later
+- A third chapter, and more places, keepsakes and species past the mist
+- NPC critters around the island, feeding into the journal
 - A Beedex page per species, and species perks for building work
+- A balance pass on resource yields, recipe times and upgrade costs after more playtesting
 
 ## Deploy (Cloudflare Workers, auto-deploy from GitHub)
 
@@ -184,3 +198,9 @@ Every push to `main` then deploys to production automatically.
 Each pull request then gets a comment with a stable Preview URL for its branch.
 
 Manual deploy: `npm run deploy`.
+
+## Contributing
+Issues and pull requests are welcome, whether it's a bug, an idea, or an accessibility improvement. Before opening a PR, please run `npm run typecheck` and `npm run generate` to make sure it builds. Keep the game's feel in mind: calm, cozy, no pressure, and playable with keyboard, mouse, touch and a screen reader.
+
+## License
+[MIT](LICENSE) © zernonia
