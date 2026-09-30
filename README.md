@@ -163,9 +163,6 @@ app/
 ## Your save
 Your journey lives in your browser. Open **Settings → Your save** to **Copy save code** or **Download save file** (a small `.txt`), and keep it somewhere safe. To carry on elsewhere, choose **Load a save** and paste the code or pick the file. Loading replaces the game in that browser, so Hivebound asks first.
 
-## Analytics and privacy
-The live site uses [Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/) for simple traffic numbers (visits, pages, countries, referrers, devices). It sets no cookies and doesn't identify players; your save never leaves your browser. It's off unless a build sets `NUXT_PUBLIC_CF_ANALYTICS_TOKEN`, so local and forked builds send nothing.
-
 ## Install / offline
 Hivebound is installable: use your browser's **Install app** or **Add to Home Screen**. After your first visit it also opens offline, since the game is cached on your device. When you're online it always loads the newest version. Offline it uses the copy you last played, with the fallback fonts.
 
