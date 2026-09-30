@@ -53,10 +53,14 @@ function workOptions(bee: ColonyBee): PickerOption[] {
 
 /* ---------------- dismissing ---------------- */
 const dismissing = ref<ColonyBee | null>(null)
+// Kept after the dialog closes so its text doesn't blank out mid-fade.
+const dismissName = ref('')
+watch(dismissing, b => b && (dismissName.value = b.name))
 const onlyBee = computed(() => colony.bees.length <= 1)
 function confirmDismiss() {
   if (dismissing.value) colony.dismiss(dismissing.value.id)
   dismissing.value = null
+  nextTick(() => panel.value?.focus())
 }
 
 /* ---------------- upgrades ---------------- */
@@ -126,6 +130,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
           <p v-if="!colony.bees.length" class="blurb">
             No helpers yet. Wild bees hover over meadows, flower patches, water and woods: fly onto one and press <span class="kbd">F</span> to try the befriending dance. There's always a friendly Bumble at the Wild Nest.
           </p>
+          <p v-if="onlyBee" id="only-bee-note" class="note">
+            You need at least one bee at home.
+          </p>
           <ul class="colony">
             <li v-for="b in colony.bees" :key="b.id" class="friend">
               <div class="friend-head">
@@ -134,8 +141,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
                 <button
                   class="chip-btn dismiss"
                   :disabled="onlyBee"
-                  :title="onlyBee ? 'You need at least one bee at home.' : undefined"
-                  :aria-label="onlyBee ? `Dismiss ${b.name} (you need at least one bee at home)` : `Dismiss ${b.name}`"
+                  :aria-label="`Dismiss ${b.name}`"
+                  :aria-describedby="onlyBee ? 'only-bee-note' : undefined"
                   @click="dismissing = b"
                 >
                   Dismiss
@@ -209,13 +216,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
     </section>
   </Transition>
 
-  <UiDialog :open="!!dismissing" :title="`Dismiss ${dismissing?.name ?? ''}?`" @close="dismissing = null">
+  <UiDialog :open="!!dismissing" :title="`Dismiss ${dismissName}?`" @close="dismissing = null">
     <p class="blurb">
-      Send {{ dismissing?.name }} back to the meadow? You can find them near the hive and befriend them again.
+      Send {{ dismissName }} back to the meadow? You can find them near the hive and befriend them again.
     </p>
     <div class="confirm">
       <button class="chip-btn" @click="dismissing = null">
-        Keep {{ dismissing?.name }}
+        Keep {{ dismissName }}
       </button>
       <button class="chip-btn primary" @click="confirmDismiss">
         Dismiss
@@ -302,6 +309,7 @@ h2 {
 }
 .friend-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }

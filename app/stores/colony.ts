@@ -120,6 +120,9 @@ export const useColony = defineStore('colony', {
       const rooms = Object.values(hive.cells).filter(c => c.building === 'room').length
       return Math.min(MAX_COLONY, BASE_HOUSING + rooms * (BUILDINGS.room.housing ?? 0))
     },
+    releasedByTile(): Map<string, ReleasedBee> {
+      return new Map(this.released.map(r => [r.tileKey, r]))
+    },
     hasRoom(): boolean {
       return this.bees.length < this.capacity
     },
@@ -134,7 +137,9 @@ export const useColony = defineStore('colony', {
           const d = JSON.parse(raw) as Partial<SaveData>
           this.bees = d.bees ?? []
           this.used = d.used ?? []
-          this.released = d.released ?? []
+          this.released = Array.isArray(d.released)
+            ? d.released.filter(r => r && typeof r.tileKey === 'string' && typeof r.name === 'string' && r.species in SPECIES)
+            : []
           this.nextId = d.nextId ?? this.bees.length + 1
         }
       }
@@ -174,12 +179,12 @@ export const useColony = defineStore('colony', {
       if (this.used.includes(encounterKey(tile.key, now))) return null
       // The Wild Nest always has a friendly Bumble waiting, until the first friend joins.
       if (tile.poi === 'nest' && !this.bees.length) return 'bumble'
+      const released = this.released.length ? this.releasedByTile.get(tile.key) : undefined
+      const species = released?.species ?? SPECIES_BY_HABITAT[tile.terrain]
+      if (!species) return null
       // Night bees only show up after dark (always, if day and night are switched off).
-      const after = (s: SpeciesId) => !SPECIES[s].nightOnly || !useSettings().dayNight || isNight(now)
-      const released = this.released.find(r => r.tileKey === tile.key)
-      if (released) return after(released.species) ? released.species : null
-      const species = SPECIES_BY_HABITAT[tile.terrain]
-      if (!species || !after(species)) return null
+      if (SPECIES[species].nightOnly && useSettings().dayNight && !isNight(now)) return null
+      if (released) return species
       const window = Math.floor(now / ENCOUNTER_WINDOW_MS)
       return hash2(tile.q * 7 + window, tile.r * 13 - window, WORLD_SEED + 404) < WILD_RATE ? species : null
     },
@@ -262,7 +267,9 @@ export const useColony = defineStore('colony', {
       const now = Date.now()
       const taken = this.bees.map(b => b.name)
       const back = this.released.find(r => r.tileKey === tileKey && r.species === species)
-      const name = back && !taken.includes(back.name) ? back.name : pickName(taken, this.nextId * 7 + now)
+      const name = back && !taken.includes(back.name)
+        ? back.name
+        : pickName([...taken, ...this.released.map(r => r.name)], this.nextId * 7 + now)
       if (back) this.released = this.released.filter(r => r !== back)
       const def = SPECIES[species]
       this.bees.push({
@@ -278,7 +285,7 @@ export const useColony = defineStore('colony', {
         joinedAt: now,
       })
       this.used.push(encounterKey(tileKey, now))
-      track('bee_befriended', { species, friends: this.bees.length })
+      track('bee_befriended', { species, friends: this.bees.length, returning: !!back })
       // Forget encounters from old windows so the list stays small.
       const current = Math.floor(now / ENCOUNTER_WINDOW_MS)
       this.used = this.used.filter(k => Number(k.split(':')[0]) >= current - 1)
@@ -344,24 +351,30 @@ export const useColony = defineStore('colony', {
     },
 
     dismiss(id: number) {
-      const bee = this.bees.find(b => b.id === id)
-      if (!bee) return false
       const game = useGame()
-      if (this.bees.length <= 1) {
-        const msg = 'You need at least one bee at home.'
+      const refuse = (msg: string) => {
         game.toast(msg)
         game.announce(msg)
         return false
       }
+      if (!this.bees.some(b => b.id === id)) return false
+      if (this.bees.length <= 1) return refuse('You need at least one bee at home.')
       const hive = useHive()
-      // Settle the buildings at their old pace before this bee stops working.
+      // Settle finished trips and the buildings at their old pace before this bee stops working.
       hive.tick()
-      if (bee.holding > 0 && bee.holdingRes) hive.addStock(bee.holdingRes, bee.holding)
+      this.tick()
+      const bee = this.bees.find(b => b.id === id)
+      if (!bee) return false
       const tileKey = this.releaseSpot(bee.species)
+      if (!tileKey) return refuse('There\'s no free meadow near the hive right now.')
+      const cargo = [{ res: bee.holdingRes, n: bee.holding }]
+      if (bee.trip) cargo.push({ res: bee.trip.resource, n: bee.trip.carry })
+      const lostRes = cargo.filter(c => c.res && c.n > hive.addStock(c.res, c.n)).map(c => c.res!)
       this.bees = this.bees.filter(b => b !== bee)
-      if (tileKey) this.released.push({ tileKey, species: bee.species, name: bee.name })
+      this.released.push({ tileKey, species: bee.species, name: bee.name })
       track('bee_dismissed', { species: bee.species, friends: this.bees.length })
-      const msg = `${bee.name} the ${SPECIES[bee.species].name} flew back to the meadow.`
+      let msg = `${bee.name} the ${SPECIES[bee.species].name} flew back to the meadow.`
+      if (lostRes[0]) msg += ` Some ${RESOURCE_INFO[lostRes[0]].name.toLowerCase()} had no room and was left behind.`
       game.toast(msg)
       game.announce(msg)
       hive.changed()
