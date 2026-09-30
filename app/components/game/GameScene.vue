@@ -132,13 +132,13 @@ function flatRing(inner: number, outer: number, color: string, opacity: number, 
   gatherRing.add(mesh)
   return mat
 }
-const gatherShadowMat = flatRing(0.455, 0.7, '#5b3a24', 0.2, -0.008, 1)
-flatRing(0.48, 0.66, '#fffaf0', 0.95, -0.004, 2)
+const gatherShadowMat = flatRing(0.47, 0.68, '#5b3a24', 0.1, -0.008, 1)
+flatRing(0.49, 0.65, '#fffaf0', 0.7, -0.004, 2)
 // The filled arc gets a thin edge in a deeper shade of its own colour, so light colours
 // (pollen yellow) still read on the cream band. It fills in step with the ring above it.
-const gatherEdgeGeo = new THREE.RingGeometry(0.5, 0.64, 48, 1)
+const gatherEdgeGeo = new THREE.RingGeometry(0.505, 0.635, 48, 1)
 gatherEdgeGeo.rotateX(-Math.PI / 2)
-const gatherEdgeMat = new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 1, depthWrite: false })
+const gatherEdgeMat = new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.85, depthWrite: false })
 const gatherEdge = new THREE.Mesh(gatherEdgeGeo, gatherEdgeMat)
 gatherEdge.renderOrder = 3
 gatherEdge.position.y = -0.002
@@ -502,8 +502,8 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
   if (tile && src) {
     const col = RESOURCE_INFO[src.resource].color
     ;(gatherRing.material as THREE.MeshBasicMaterial).color.set(col)
-    gatherEdgeMat.color.set(col).offsetHSL(0, 0.05, -0.22)
-    gatherShadowMat.opacity = settings.highContrast ? 0.45 : 0.2
+    gatherEdgeMat.color.set(col).offsetHSL(0, 0.03, -0.14)
+    gatherShadowMat.opacity = settings.highContrast ? 0.4 : 0.1
     ;(gatherMotes.material as THREE.MeshBasicMaterial).color.set(col)
     worldPos(game.pos, gatherRing.position)
     gatherRing.position.y += 0.05
