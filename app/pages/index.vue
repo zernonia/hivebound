@@ -144,8 +144,9 @@ function onKeyDown(e: KeyboardEvent) {
       game.journalOpen = true
       break
     case 'KeyL':
+      // Always read out for screen readers; shown on screen only with narration on.
       game.announce(game.describeHere())
-      game.toast(game.describeHere())
+      if (settings.narration) game.toast(game.describeHere())
       break
     case 'KeyH':
       game.flyHome()

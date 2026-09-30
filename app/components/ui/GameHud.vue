@@ -97,7 +97,8 @@ function lookAround() {
         <span v-if="game.unreadCount" class="badge" aria-hidden="true">{{ game.unreadCount }}</span>
       </button>
       <template v-if="!inHive">
-        <button class="chip-btn" aria-label="Look around" @click="lookAround">
+        <!-- Look around is a narration tool, so it's shown with Screen reader narration on. -->
+        <button v-if="settings.narration" class="chip-btn" aria-label="Look around" @click="lookAround">
           <UiIcon name="look" />
           <span>Look</span>
           <span class="kbd hide-touch" aria-hidden="true">L</span>

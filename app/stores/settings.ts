@@ -9,6 +9,8 @@ export interface SettingsState {
   highContrast: boolean
   colorVisionFriendly: boolean
   narration: boolean
+  /** Set once narration's default became off, so a saved value is a real choice. */
+  narrationOptIn: boolean
   showMinimap: boolean
   largeMinimap: boolean
   showHints: boolean
@@ -50,7 +52,9 @@ export const useSettings = defineStore('settings', {
     textScale: 1,
     highContrast: systemPrefersContrast(),
     colorVisionFriendly: false,
-    narration: true,
+    /** Extra spoken detail, plus the Look around button. Off by default: turned on by those who want it. */
+    narration: false,
+    narrationOptIn: true,
     showMinimap: true,
     largeMinimap: false,
     showHints: true,
@@ -79,6 +83,9 @@ export const useSettings = defineStore('settings', {
         // Saves from before the flight rewrite called this setting `hopSpeed`.
         if (data.hopSpeed && !data.flightSpeed) data.flightSpeed = data.hopSpeed
         delete data.hopSpeed
+        // Narration used to be on for everyone and was saved that way, so older settings can't
+        // tell a choice from the old default: start them at the new default (off) once.
+        if (!data.narrationOptIn) delete data.narration
         this.$patch(data)
       }
       catch { /* storage unavailable: keep defaults */ }

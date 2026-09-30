@@ -17,7 +17,7 @@ const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'reducedMotion', label: 'Reduce motion', hint: 'Calmer camera, no bouncing or pop-ins.' },
   { key: 'highContrast', label: 'High contrast', hint: 'Stronger text and outlines on panels.' },
   { key: 'colorVisionFriendly', label: 'Colour-friendly palette', hint: 'Terrain differs by brightness, not just hue.' },
-  { key: 'narration', label: 'Screen reader narration', hint: 'Describe where you fly and what is nearby.' },
+  { key: 'narration', label: 'Screen reader narration', hint: 'Describe where you fly and what is nearby, and add a Look around button (L).' },
   { key: 'showMinimap', label: 'Show minimap', hint: '' },
   { key: 'showPad', label: 'On-screen movement pad', hint: 'Six big buttons for hex directions.' },
   { key: 'easyBefriend', label: 'Easier befriending', hint: 'Slower marker and a wider green area in the dance.' },
