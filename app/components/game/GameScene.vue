@@ -76,8 +76,9 @@ const hoverRing = new THREE.Mesh(
 )
 hoverRing.visible = false
 hoverRing.renderOrder = 3
+// Same band as the gathering track, so on arrival one can turn into the other.
 const destRing = new THREE.Mesh(
-  hexRingGeometry(0.9, 0.12),
+  hexTrackGeometry(0.79, 0.95, 72),
   new THREE.MeshBasicMaterial({ color: '#ffb627', transparent: true, opacity: 0.95, depthWrite: false }),
 )
 destRing.visible = false
@@ -136,11 +137,13 @@ function gatherMesh(geo: THREE.BufferGeometry, mat: THREE.Material, order: numbe
 const gatherCap = (r: number) => new THREE.CircleGeometry(r, 20).rotateX(-Math.PI / 2)
 gatherMesh(hexTrackGeometry(0.77, 0.965, GATHER_SEGMENTS), gatherShadowMat, 1, 0).position.z = 0.02
 const gatherTrackMat = gatherMat('#fffaf0', 0.7)
-gatherMesh(hexTrackGeometry(0.79, 0.95, GATHER_SEGMENTS), gatherTrackMat, 2, 0.001)
+const gatherTrack = gatherMesh(hexTrackGeometry(0.79, 0.95, GATHER_SEGMENTS), gatherTrackMat, 2, 0.001)
 const gatherEdge = gatherMesh(hexTrackGeometry(0.778, 0.962, GATHER_SEGMENTS), gatherEdgeMat, 3, 0.002)
 const gatherArc = gatherMesh(hexTrackGeometry(0.8, 0.94, GATHER_SEGMENTS), gatherArcMat, 4, 0.003)
-hexOutlinePoint(0, GATHER_MID, gatherMesh(gatherCap(0.092), gatherEdgeMat, 3, 0.002).position)
-hexOutlinePoint(0, GATHER_MID, gatherMesh(gatherCap(0.07), gatherArcMat, 4, 0.003).position)
+const gatherTailEdge = gatherMesh(gatherCap(0.092), gatherEdgeMat, 3, 0.002)
+const gatherTail = gatherMesh(gatherCap(0.07), gatherArcMat, 4, 0.003)
+hexOutlinePoint(0, GATHER_MID, gatherTailEdge.position)
+hexOutlinePoint(0, GATHER_MID, gatherTail.position)
 const gatherHeadEdge = gatherMesh(gatherCap(0.092), gatherEdgeMat, 3, 0.002)
 const gatherHead = gatherMesh(gatherCap(0.07), gatherArcMat, 4, 0.004)
 const GATHER_MOTES = 10
@@ -229,8 +232,19 @@ watch(() => game.revealTick, () => {
 watch(() => game.visitedPois.length, () => worldView.setVisitedPois(game.visitedPois))
 watch(() => settings.colorVisionFriendly, v => worldView.setPalette(v ? PALETTE_CVD : PALETTE_DEFAULT))
 watch(() => settings.reducedMotion, v => worldView.setReducedMotion(v))
+/** Tile the destination outline stays on after arrival, until the gathering track takes it over. */
+let handoffKey: string | null = null
+let destKey: string | null = null
+function gatherable(h: Hex) {
+  const t = world.byKey.get(hexKey(h))
+  return !!t && !!tileSource(t) && hive.tileAmount(t) > 0 && !hive.pouchFull
+}
 watch(() => [game.queue.length, game.queue[game.queue.length - 1]], () => {
-  placeRing(destRing, game.destination)
+  const dest = game.destination
+  const landed = !dest && destRing.visible && destKey === hexKey(game.pos) && gatherable(game.pos)
+  handoffKey = landed ? destKey : null
+  if (!landed) placeRing(destRing, dest)
+  destKey = dest ? hexKey(dest) : null
   layoutDots(dots, game.queue)
   previewDots.count = 0
 })
@@ -439,9 +453,14 @@ const shortestAngle = (a: number, b: number) => {
 /* ------------------------------------------------------------------ */
 let gatherT = 0
 let gatheringKey: string | null = null
-/** The ring stays on the tile it was filling and fades out there, rather than following the bee. */
-let ringFade = 0
+/** Tile the gathering track is on. It stays there when the bee leaves, rather than following it. */
+let ringKey: string | null = null
+/** How much of the track is drawn: it zips in from the top, and unwinds back to it on leaving. */
+let trackT = 0
+/** 0 while the track still wears the destination outline's colour, easing to 1 (cream). */
+let settle = 1
 let ringT = 0
+const TRACK_CREAM = new THREE.Color('#fffaf0')
 /** Tile we last said something about, so arrival messages play once per visit. */
 let notedKey: string | null = null
 /** The "pouch full" message has been shown for the current full pouch. */
@@ -500,28 +519,54 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
 
   // Progress ring round the tile, and motes drifting up into the bee.
   gatherMotes.visible = active && !rm
-  if (active && src) {
+  if (active && src && here) {
+    if (ringKey !== here.key) {
+      ringKey = here.key
+      worldPos(here, gatherRing.position)
+      gatherRing.position.y += 0.05
+      // Landing on the tile you flew to: the destination outline becomes the track. Otherwise
+      // (starting again where you stand) the track zips in from the top.
+      const handoff = handoffKey === here.key
+      trackT = handoff || rm ? 1 : 0
+      settle = handoff && !rm ? 0 : 1
+    }
+    if (handoffKey === here.key) {
+      handoffKey = null
+      destRing.visible = false
+    }
     const col = RESOURCE_INFO[src.resource].color
     gatherArcMat.color.set(col).offsetHSL(0, 0.12, -0.05)
     gatherEdgeMat.color.set(col).offsetHSL(0, 0.05, -0.22)
     ;(gatherMotes.material as THREE.MeshBasicMaterial).color.set(col)
-    worldPos(game.pos, gatherRing.position)
-    gatherRing.position.y += 0.05
     ringT = gatherT
+    trackT = Math.min(1, trackT + dt * 3)
+    settle = Math.min(1, settle + dt * 2.5)
   }
-  ringFade = active ? Math.min(1, ringFade + dt * 8) : Math.max(0, ringFade - dt * 4)
-  gatherRing.visible = ringFade > 0
+  else {
+    trackT = rm ? 0 : Math.max(0, trackT - dt * 3)
+    if (trackT === 0) ringKey = null
+  }
+  // Landed but not gathering after all: the outline has nothing to hand over to.
+  if (handoffKey && idle && !active) {
+    handoffKey = null
+    destRing.visible = false
+  }
+  gatherRing.visible = trackT > 0
   if (gatherRing.visible) {
-    gatherShadowMat.opacity = (settings.highContrast ? 0.4 : 0.13) * ringFade
-    gatherTrackMat.opacity = 0.7 * ringFade
-    gatherEdgeMat.opacity = ringFade
-    gatherArcMat.opacity = ringFade
+    const e = settle * settle * (3 - 2 * settle)
+    const destMat = destRing.material as THREE.MeshBasicMaterial
+    gatherTrackMat.color.copy(destMat.color).lerp(TRACK_CREAM, e)
+    gatherTrackMat.opacity = destMat.opacity + (0.7 - destMat.opacity) * e
+    gatherShadowMat.opacity = (settings.highContrast ? 0.4 : 0.13) * e
+    gatherTrack.geometry.setDrawRange(0, Math.ceil(trackT * GATHER_SEGMENTS) * 6)
     // The band fills whole segments; the round head glides smoothly and covers the step.
-    const shown = Math.floor(ringT * GATHER_SEGMENTS)
+    const p = Math.min(ringT, trackT)
+    const shown = Math.floor(p * GATHER_SEGMENTS)
     gatherArc.geometry.setDrawRange(0, shown * 6)
     gatherEdge.geometry.setDrawRange(0, shown * 6)
-    hexOutlinePoint(ringT, GATHER_MID, gatherHead.position)
-    hexOutlinePoint(ringT, GATHER_MID, gatherHeadEdge.position)
+    hexOutlinePoint(p, GATHER_MID, gatherHead.position)
+    hexOutlinePoint(p, GATHER_MID, gatherHeadEdge.position)
+    for (const cap of [gatherHead, gatherHeadEdge, gatherTail, gatherTailEdge]) cap.visible = p > 0.002
   }
   if (gatherMotes.visible) {
     for (let i = 0; i < GATHER_MOTES; i++) {
