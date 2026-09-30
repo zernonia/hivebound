@@ -11,31 +11,7 @@ const settings = useSettings()
 const world = useWorldData()
 
 const canvas = ref<HTMLCanvasElement>()
-const NARROW_QUERY = '(max-width: 640px), (max-height: 500px)'
-const narrow = ref(import.meta.client ? window.matchMedia(NARROW_QUERY).matches : false)
-// Read the real screen size up front, so the first drawing isn't made for a placeholder size.
-const vw = ref(import.meta.client ? window.innerWidth : 1024)
-const vh = ref(import.meta.client ? window.innerHeight : 768)
-function measure() {
-  vw.value = window.innerWidth
-  vh.value = window.innerHeight
-}
-onMounted(() => {
-  const mq = window.matchMedia(NARROW_QUERY)
-  narrow.value = mq.matches
-  mq.addEventListener('change', e => (narrow.value = e.matches))
-  measure()
-  window.addEventListener('resize', measure)
-})
-onBeforeUnmount(() => window.removeEventListener('resize', measure))
-// On phones the big map takes the top of the screen (the HUD hides the cards under it), so it
-// fills the width it has; the footer row and hint need about 130px below it.
-const size = computed(() => {
-  if (!settings.largeMinimap) return narrow.value ? 112 : 156
-  if (!narrow.value) return 260
-  // Short landscape screens also keep clear of the zoom buttons below it.
-  return Math.round(Math.max(140, Math.min(360, vw.value - 52, vh.value - (vh.value <= 500 ? 240 : 150))))
-})
+const size = computed(() => (settings.largeMinimap ? 260 : 156))
 
 // Large map shows the whole island (and the land beyond the mist, once it lifts); small map
 // is a local view around the bee.

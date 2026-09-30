@@ -8,6 +8,8 @@ import { exportSave, importSave, parseSave, saveFileName } from '~/utils/saveTra
 
 const game = useGame()
 const settings = useSettings()
+// The minimap isn't shown on phones, so its switch would do nothing there.
+const compact = useCompactScreen()
 const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
 
 type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
@@ -22,6 +24,7 @@ const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'dayNight', label: 'Day and night', hint: 'A slow day and night every 24 minutes. Off keeps it always day (Moon Bees still visit).' },
   { key: 'showHints', label: 'Show tips', hint: '' },
 ]
+const shownToggles = computed(() => (compact.value ? toggles.filter(t => t.key !== 'showMinimap') : toggles))
 const textSizes: { v: TextScale, label: string }[] = [
   { v: 1, label: 'Normal' },
   { v: 1.2, label: 'Large' },
@@ -171,7 +174,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
         Comfort &amp; accessibility
       </h3>
       <ul class="toggles">
-        <li v-for="t in toggles" :key="t.key">
+        <li v-for="t in shownToggles" :key="t.key">
           <button
             role="switch"
             :aria-checked="settings[t.key]"

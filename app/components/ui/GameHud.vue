@@ -10,6 +10,7 @@ import { minutesUntilChange, timeOfDay } from '~/utils/daylight'
 const game = useGame()
 const hive = useHive()
 const settings = useSettings()
+const compact = useCompactScreen()
 const world = useWorldData()
 
 const inHive = computed(() => game.scene === 'hive')
@@ -49,7 +50,7 @@ function lookAround() {
 </script>
 
 <template>
-  <div class="hud" :class="{ 'sheet-open': !!game.hiveSheet, 'map-big': settings.largeMinimap && settings.showMinimap && !inHive }">
+  <div class="hud" :class="{ 'sheet-open': !!game.hiveSheet }">
     <!-- Top-left: where am I -->
     <div class="left-col">
       <header class="where panel">
@@ -76,7 +77,8 @@ function lookAround() {
     </div>
 
     <!-- Top-right: minimap -->
-    <div v-if="!inHive" class="map-slot">
+    <!-- Phones leave the minimap out: too small to read there, and the journal's Places page covers it. -->
+    <div v-if="!inHive && !compact" class="map-slot">
       <Minimap v-if="settings.showMinimap" />
     </div>
 
@@ -337,7 +339,7 @@ function lookAround() {
     bottom: max(80px, calc(env(safe-area-inset-bottom) + 72px));
   }
   .left-col {
-    max-width: calc(100vw - 180px);
+    max-width: calc(100vw - 28px);
   }
   .tip {
     top: auto;
@@ -377,25 +379,6 @@ function lookAround() {
   }
   .toasts {
     bottom: max(72px, calc(env(safe-area-inset-bottom) + 60px));
-  }
-}
-/* Big map on a phone: it takes the top of the screen, and the cards it would cover step aside
-   until it's made small again. */
-@media (max-width: 640px), (max-height: 500px) {
-  .map-big .left-col,
-  .map-big .tip {
-    visibility: hidden;
-  }
-  /* Above the floating action prompt, which would otherwise draw over the map. */
-  .map-big .map-slot {
-    z-index: 6;
-  }
-}
-@media (max-width: 640px) {
-  .map-big .map-slot {
-    left: max(14px, env(safe-area-inset-left));
-    display: flex;
-    justify-content: center;
   }
 }
 /* Colony / Upgrades open: on a small screen they'd land on top of the hive card, so it steps aside. */
