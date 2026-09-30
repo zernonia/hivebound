@@ -36,7 +36,7 @@ Stack: **Nuxt 4 · TresJS 5 · three.js r186 · Pinia 4**. The game route is cli
 | Fly one hex | `Q` `W` `E` / `A` `S` `D` (hex directions), arrow keys (← → zig-zag straight) | On-screen hex pad |
 | Fly to a tile | — | Tap/click a tile or the minimap |
 | Stop route | `Space` | — |
-| Look around (narrated) | `L` | Look button |
+| Look around (narrated) | `L` | Look button (shown with narration on) |
 | Journal | `J` | Journal button |
 | Fly home | `H` | Home button |
 | Action: enter the hive, befriend, talk to the Queen, collect, unseal, leave | `F` | The floating prompt over the tile, or tap the hive |
@@ -74,7 +74,7 @@ app/
     buildings.ts             Hive building models (press, kitchen, wax works, larder, bee room)
     goldenSparkles.ts        Glowing golden pollen spots out in the world
     beePool.ts               Pooled models for other bees (0.8× scale) + frustum check
-    geometry.ts              Rounded "cushion" hex, rings, blob shadow
+    geometry.ts              Rounded "cushion" hex, rings, hex progress track, blob shadow
   stores/
     game.ts                  Position, route queue, discovery, journal, narration, save/load
     settings.ts              Accessibility & comfort settings (persisted)
