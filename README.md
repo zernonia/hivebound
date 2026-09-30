@@ -163,6 +163,9 @@ app/
 ## Your save
 Your journey lives in your browser. Open **Settings → Your save** to **Copy save code** or **Download save file** (a small `.txt`), and keep it somewhere safe. To carry on elsewhere, choose **Load a save** and paste the code or pick the file. Loading replaces the game in that browser, so Hivebound asks first.
 
+## Analytics and privacy
+The live site sends a few anonymous numbers to [PostHog](https://posthog.com): page views, and game milestones like befriending a bee, visiting a place, building, finishing a request, the mist lifting and finishing the story. It never records sessions or clicks, sets no cookies, creates no player profiles, and respects Do Not Track; your save never leaves your browser. Only `hivebound.zernonia.workers.dev` reports (see `app/plugins/posthog.client.ts`), so local, preview and forked builds send nothing.
+
 ## Install / offline
 Hivebound is installable: use your browser's **Install app** or **Add to Home Screen**. After your first visit it also opens offline, since the game is cached on your device. When you're online it always loads the newest version. Offline it uses the copy you last played, with the fallback fonts.
 

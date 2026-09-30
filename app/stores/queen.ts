@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { track } from '~/utils/analytics'
 import { hexDistance, hexKey } from '~/utils/hex'
 import { isGoldenSpot } from '~/utils/golden'
 import { KEEPSAKES } from '~/utils/keepsakes'
@@ -202,8 +203,15 @@ export const useQueen = defineStore('queen', {
       }
       this.done++
       this.brought = {}
-      if (this.done === CHAPTER_ONE.length) this.liftMist()
-      if (this.done === STORY.length) this.finishStory()
+      track('request_completed', { request: req.id, number: this.done, story: chapter, day: game.day })
+      if (this.done === CHAPTER_ONE.length) {
+        this.liftMist()
+        track('mist_lifted', { day: game.day })
+      }
+      if (this.done === STORY.length) {
+        this.finishStory()
+        track('story_finished', { day: game.day, steps: game.steps })
+      }
       game.toast(`The Queen is delighted!${gifts.length ? ` ${gifts.join(', ')}.` : ''}`)
       game.announce(`The Queen says: "${req.thanks}"${gifts.length ? ` You received ${gifts.join(', ')}.` : ''}`)
       this.startCurrent()

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { track } from '~/utils/analytics'
 import { type Hex, hexDistance, hexKey, parseKey } from '~/utils/hex'
 import { hash2 } from '~/utils/noise'
 import { BUILDINGS, OFFLINE_CAP_MS, RESOURCE_INFO, type RawResource, tileSource } from '~/utils/resources'
@@ -260,6 +261,7 @@ export const useColony = defineStore('colony', {
         joinedAt: now,
       })
       this.used.push(encounterKey(tileKey, now))
+      track('bee_befriended', { species, friends: this.bees.length })
       // Forget encounters from old windows so the list stays small.
       const current = Math.floor(now / ENCOUNTER_WINDOW_MS)
       this.used = this.used.filter(k => Number(k.split(':')[0]) >= current - 1)

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { track } from '~/utils/analytics'
 import { markRaw } from 'vue'
 import {
   type Direction,
@@ -485,6 +486,7 @@ export const useGame = defineStore('game', {
 
     visitPoi(id: PoiId) {
       this.visitedPois.push(id)
+      track('place_visited', { place: id, places: this.visitedPois.length, day: this.day })
       const def = POI_BY_ID[id]
       this.addJournal({ id: `poi:${id}`, ...def.journal, icon: 'poi', subject: id })
       const k = KEEPSAKE_BY_POI[id]

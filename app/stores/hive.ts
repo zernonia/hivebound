@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { track } from '~/utils/analytics'
 import { type Direction, type Hex, hexKey, hexesInRange, hexDistance, neighbor, parseKey } from '~/utils/hex'
 import {
   ALL_RESOURCES,
@@ -493,6 +494,7 @@ export const useHive = defineStore('hive', {
       if (!this.has(def.cost)) return false
       this.pay(def.cost)
       this.cells[key] = { building: id, startedAt: null, output: 0 }
+      track('building_built', { building: id })
       useGame().announce(`Built a ${def.name}.`)
       this.tick()
       this.changed()
