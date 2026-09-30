@@ -511,6 +511,21 @@ export const useColony = defineStore('colony', {
       return { tile, leg: 'back', u: Math.min(1, (e - t.outMs - t.gatherMs) / t.backMs) }
     },
 
+    /** A shorter status with no countdowns, for tight spots like a dropdown. */
+    briefStatus(bee: ColonyBee, now = Date.now()) {
+      const phase = this.tripPhase(bee, now)
+      if (phase && bee.trip) {
+        const what = RESOURCE_INFO[bee.trip.resource].name.toLowerCase()
+        if (phase.leg === 'out') return `Flying out for ${what}`
+        if (phase.leg === 'gather') return `Gathering ${what}`
+        return `Bringing home ${what}`
+      }
+      const cell = workCell(bee.job)
+      const b = cell ? useHive().cells[cell]?.building : null
+      if (b) return `Working the ${BUILDINGS[b].name}`
+      return bee.job ? 'Getting ready to fly' : 'Resting'
+    },
+
     /** Short status for the colony list. */
     statusText(bee: ColonyBee, now = Date.now()) {
       const phase = this.tripPhase(bee, now)

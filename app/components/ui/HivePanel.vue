@@ -29,11 +29,11 @@ const queenReady = computed(() => queenLines.value.every(l => l.done))
 function freeBees(key: string) {
   return colony.bees.filter(b => workCell(b.job) !== key)
 }
-function helperOptions(key: string): PickerOption[] {
+function helperOptions(key: string, at: number): PickerOption[] {
   return freeBees(key).map(b => ({
     value: String(b.id),
     label: b.name,
-    note: SPECIES[b.species].name,
+    sub: `${SPECIES[b.species].name} · ${colony.briefStatus(b, at)}`,
     swatch: { fill: SPECIES[b.species].look.colors.body, border: SPECIES[b.species].look.colors.stripe },
   }))
 }
@@ -194,7 +194,7 @@ const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, 
               <UiPicker
                 v-if="colony.workersAt(sel.key).length < MAX_WORKERS && freeBees(sel.key).length"
                 class="assign"
-                :options="helperOptions(sel.key)"
+                :options="helperOptions(sel.key, now)"
                 :model-value="null"
                 placeholder="+ Add a helper"
                 :label="`Add a helper to the ${selBuilding.name}`"

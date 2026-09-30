@@ -11,6 +11,8 @@ export interface PickerOption {
   label: string
   /** Small extra text on the right, e.g. "1/2". */
   note?: string
+  /** A second line under the label in the list; long text is cut with an ellipsis. */
+  sub?: string
   disabled?: boolean
   /** A colour swatch shown before the label (e.g. a bee's body colour). */
   swatch?: { fill: string, border: string }
@@ -178,7 +180,11 @@ function onFocusOut(e: FocusEvent) {
         @mousemove="!o.disabled && (active = i)"
       >
         <span v-if="o.swatch" class="swatch" :style="{ background: o.swatch.fill, borderColor: o.swatch.border }" aria-hidden="true" />
-        <span class="text">{{ o.label }}</span>
+        <span v-if="o.sub" class="stack">
+          <span class="text">{{ o.label }}</span>
+          <span class="sub">{{ o.sub }}</span>
+        </span>
+        <span v-else class="text">{{ o.label }}</span>
         <span v-if="o.note" class="note">{{ o.note }}</span>
         <span v-if="o.value === modelValue" class="tick" aria-hidden="true">✓</span>
       </li>
@@ -217,6 +223,20 @@ function onFocusOut(e: FocusEvent) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.stack {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.2;
+}
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
 }
 .placeholder {
   color: var(--ink-soft);
