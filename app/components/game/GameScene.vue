@@ -11,6 +11,7 @@ import { HiveView } from '~/game/hiveView'
 import { ResourceMarkers } from '~/game/resourceMarkers'
 import { GoldenSparkles } from '~/game/goldenSparkles'
 import { Fireflies } from '~/game/fireflies'
+import { BeeTags, type TagBee } from '~/game/beeTags'
 import { ReadySign } from '~/game/readySign'
 import { useQueen } from '~/stores/queen'
 import { isGoldenSpot } from '~/utils/golden'
@@ -18,7 +19,7 @@ import { nightAmount } from '~/utils/daylight'
 import { setCloudNight } from '~/game/props'
 import { WorldView } from '~/game/worldView'
 import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, hexesInRange, neighbor, worldToHex } from '~/utils/hex'
-import type { SpeciesId } from '~/utils/species'
+import { SPECIES, type SpeciesId } from '~/utils/species'
 import type { Tile } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
@@ -135,6 +136,12 @@ const golden = new GoldenSparkles()
 const fireflies = new Fireflies()
 worldLayer.add(worldView.group, hoverRing, destRing, dots, previewDots, gatherRing, gatherMotes, markers.group, outdoorBees.group, golden.group, fireflies.group)
 const hiveView = new HiveView(HIVE_CELLS, QUEEN_CELL)
+
+// Name labels and hover tooltip for helpers: a plain DOM layer inside the canvas wrapper.
+const tagHost = renderer.domElement.closest<HTMLElement>('.canvas-wrap') ?? renderer.domElement.parentElement!
+const tags = new BeeTags(tagHost)
+const tagBees = new Map<number, TagBee>()
+watch(() => settings.showBeeNames, v => { tags.showNames = v }, { immediate: true })
 
 const rig = new THREE.Group()
 const hemi = new THREE.HemisphereLight('#fff6e6', '#b9d9a4', 1.15)
@@ -286,6 +293,8 @@ function onPointerMove(ev: PointerEvent) {
     }
   }
   if (ev.pointerType === 'mouse') {
+    const r = renderer.domElement.getBoundingClientRect()
+    tags.setPointer(ev.clientX - r.left, ev.clientY - r.top)
     if (game.scene === 'hive') {
       const key = game.transition ? null : pickCell(ev)
       hiveView.hover(key)
@@ -319,6 +328,7 @@ function onPointerUp(ev: PointerEvent) {
 }
 
 function onPointerLeave() {
+  tags.clearPointer()
   game.hoverKey = null
   hiveView.hover(null)
 }
@@ -350,6 +360,7 @@ onBeforeUnmount(() => {
   el.removeEventListener('pointerleave', onPointerLeave)
   el.removeEventListener('wheel', onWheel)
   worldView.dispose()
+  tags.dispose()
 })
 
 /* ------------------------------------------------------------------ */
@@ -817,6 +828,14 @@ watch(queenReady, (v) => {
 const beeSpot = new THREE.Vector3()
 const beeAim = new THREE.Vector3()
 
+let tagging = false
+function tagBee(b: { id: number, name: string, species: SpeciesId }): TagBee {
+  let t = tagBees.get(b.id)
+  if (!t) tagBees.set(b.id, t = { id: b.id, name: b.name, species: SPECIES[b.species].name })
+  t.name = b.name
+  return t
+}
+
 function updateOutdoorBees(time: number, rm: boolean) {
   outdoorBees.begin()
   const now = Date.now()
@@ -861,6 +880,7 @@ function updateOutdoorBees(time: number, rm: boolean) {
     if (!inView(beeSpot)) continue
     const rig = outdoorBees.take(b.species)
     rig.root.position.copy(beeSpot)
+    if (tagging) tags.track(tagBee(b), beeSpot)
     if (ph.leg === 'gather') rig.root.rotation.y = -(time * 1.4 + b.id)
     else {
       const to = ph.leg === 'out' ? beeAim : HIVE_TOP
@@ -968,6 +988,7 @@ onBeforeRender(({ delta }) => {
     updatePrompt(cam)
     cam.updateMatrixWorld()
     updateFrustum(cam)
+    tagging = tags.begin(cam, renderer.domElement.clientWidth, renderer.domElement.clientHeight)
   }
 
   // --- light follows the action ---
@@ -981,7 +1002,8 @@ onBeforeRender(({ delta }) => {
       syncHive()
     }
     hiveView.update(dt, time)
-    hiveView.updateColony(colony.bees.filter(b => !b.trip).map(b => ({ id: b.id, species: b.species, resting: !b.job, work: workCell(b.job) })), dt, time)
+    hiveView.updateColony(colony.bees.filter(b => !b.trip).map(b => ({ id: b.id, species: b.species, resting: !b.job, work: workCell(b.job) })), dt, time,
+      tagging ? trackHomeBee : undefined)
   }
   else {
     // --- rings pulse ---
@@ -1012,7 +1034,18 @@ onBeforeRender(({ delta }) => {
     }
     updateOutdoorBees(time, rm)
   }
+  tags.end(t => statusFor(t.id))
 })
+
+function trackHomeBee(id: number, pos: THREE.Vector3) {
+  const b = colony.bees.find(x => x.id === id)
+  if (b) tags.track(tagBee(b), pos)
+}
+
+function statusFor(id: number) {
+  const b = colony.bees.find(x => x.id === id)
+  return b ? colony.statusText(b) : ''
+}
 
 /** Inside: the bee drifts over to whichever cell is selected and hovers there. */
 function updateHiveBee(dt: number, rm: boolean) {
