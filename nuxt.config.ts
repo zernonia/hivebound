@@ -42,6 +42,13 @@ export default defineNuxtConfig({
   // Always emit a plain static site, even inside Cloudflare's CI (which would otherwise
   // auto-select the cloudflare-module preset and override wrangler.jsonc).
   nitro: { preset: 'static' },
+  runtimeConfig: {
+    public: {
+      // Cloudflare Web Analytics site token (public by design). Set NUXT_PUBLIC_CF_ANALYTICS_TOKEN
+      // in the build environment; with no token, no analytics script is loaded.
+      cfAnalyticsToken: '',
+    },
+  },
   tres: { devtools: true },
   typescript: { strict: true },
 })
