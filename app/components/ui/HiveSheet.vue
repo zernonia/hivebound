@@ -3,6 +3,7 @@ import { MAX_WORKERS, type ColonyBee, useColony, workCell } from '~/stores/colon
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { ALL_RESOURCES, type Amounts, BUILDINGS, RAW_RESOURCES, RESOURCE_INFO, type RawResource, UPGRADES, UPGRADE_LIST } from '~/utils/resources'
+import { useSettings } from '~/stores/settings'
 import { SPECIES } from '~/utils/species'
 import type { PickerOption } from './UiPicker.vue'
 
@@ -13,6 +14,7 @@ import type { PickerOption } from './UiPicker.vue'
  */
 const game = useGame()
 const hive = useHive()
+const settings = useSettings()
 const colony = useColony()
 const sheet = computed(() => game.hiveSheet)
 const panel = ref<HTMLElement>()
@@ -219,6 +221,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
   <UiDialog :open="!!dismissing" :title="`Dismiss ${dismissName}?`" @close="dismissing = null">
     <p class="blurb">
       Send {{ dismissName }} back to the meadow? You can find them near the hive and befriend them again.
+      <template v-if="dismissing && SPECIES[dismissing.species].nightOnly && settings.dayNight">
+        {{ SPECIES[dismissing.species].name }}s only come out at night.
+      </template>
     </p>
     <div class="confirm">
       <button class="chip-btn" @click="dismissing = null">

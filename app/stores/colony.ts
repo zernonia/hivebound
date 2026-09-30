@@ -138,7 +138,7 @@ export const useColony = defineStore('colony', {
           this.bees = d.bees ?? []
           this.used = d.used ?? []
           this.released = Array.isArray(d.released)
-            ? d.released.filter(r => r && typeof r.tileKey === 'string' && typeof r.name === 'string' && r.species in SPECIES)
+            ? d.released.filter(r => r && typeof r.tileKey === 'string' && typeof r.name === 'string' && typeof r.species === 'string' && Object.hasOwn(SPECIES, r.species))
             : []
           this.nextId = d.nextId ?? this.bees.length + 1
         }
@@ -331,13 +331,14 @@ export const useColony = defineStore('colony', {
       const game = useGame()
       const taken = new Set(this.released.map(r => r.tileKey))
       const habitat = SPECIES[species].habitat
+      const now = Date.now()
       for (const range of [4, 8]) {
         let best: Tile | null = null
         let bestScore = Infinity
         for (const h of hexesInRange(HOME, range)) {
           const tile = world.byKey.get(hexKey(h))
           if (!tile || !tile.walkable || tile.poi || tile.gate || tile.beyond) continue
-          if (!game.discovered.has(tile.key) || taken.has(tile.key)) continue
+          if (!game.discovered.has(tile.key) || taken.has(tile.key) || this.used.includes(encounterKey(tile.key, now))) continue
           if ((tile.q === HOME.q && tile.r === HOME.r) || (tile.q === DOORSTEP.q && tile.r === DOORSTEP.r)) continue
           const score = hexDistance(tile, HOME) + (tile.terrain === habitat ? 0 : 20) + hash2(tile.q, tile.r, WORLD_SEED + 505) * 0.9
           if (score < bestScore) {
