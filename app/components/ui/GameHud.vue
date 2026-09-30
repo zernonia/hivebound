@@ -305,6 +305,12 @@ function lookAround() {
   font-weight: 600;
   text-align: center;
   line-height: 1.35;
+  /* Two lines at most, so one note can't take over the screen (the announcer reads it all). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   box-shadow: 0 10px 28px rgba(74, 44, 28, 0.22);
 }
 .toast-enter-active,

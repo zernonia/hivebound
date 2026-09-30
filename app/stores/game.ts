@@ -83,9 +83,12 @@ interface SaveData {
   wearing?: Partial<Record<KeepsakeSlot, KeepsakeId>>
 }
 
-/** Toasts on screen at once; older ones make way. */
-const MAX_TOASTS = 3
+/** Toasts on screen at once; more wait their turn. */
+const MAX_TOASTS = 2
+/** Toasts waiting to show; in a flood the oldest waiting ones are dropped. */
+const MAX_WAITING = 4
 let toastSeq = 0
+const toastQueue: string[] = []
 
 export const useGame = defineStore('game', {
   state: () => ({
@@ -538,16 +541,29 @@ export const useGame = defineStore('game', {
 
     // ---------- narration & UI ----------
     /**
-     * A short visual note (the announcer covers screen readers). Saying the same thing again
-     * restarts its timer instead of stacking a copy; only the newest few stay, and longer notes
-     * stay up a little longer so there's time to read them.
+     * A short visual note (the announcer covers screen readers). At most two are on screen;
+     * the rest wait in a short queue and appear as earlier ones leave, so a burst never fills
+     * the screen. The same message is never shown or queued twice, and longer notes stay up a
+     * little longer so there's time to read them.
      */
     toast(text: string) {
+      if (this.toasts.some(t => t.text === text) || toastQueue.includes(text)) return
+      if (this.toasts.length >= MAX_TOASTS) {
+        toastQueue.push(text)
+        if (toastQueue.length > MAX_WAITING) toastQueue.shift()
+        return
+      }
+      this.showToast(text)
+    },
+    showToast(text: string) {
       const id = ++toastSeq
-      this.toasts = [...this.toasts.filter(t => t.text !== text), { id, text }].slice(-MAX_TOASTS)
+      this.toasts = [...this.toasts, { id, text }]
       const ms = Math.min(7000, 3500 + text.length * 35)
       setTimeout(() => {
         this.toasts = this.toasts.filter(t => t.id !== id)
+        const next = toastQueue.shift()
+        // A short breath between one leaving and the next arriving.
+        if (next) setTimeout(() => this.showToast(next), 250)
       }, ms)
     },
 
