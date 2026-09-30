@@ -285,7 +285,7 @@ export const useColony = defineStore('colony', {
         joinedAt: now,
       })
       this.used.push(encounterKey(tileKey, now))
-      track('bee_befriended', { species, friends: this.bees.length, returning: !!back })
+      track('bee_befriended', { species, friends: this.bees.length })
       // Forget encounters from old windows so the list stays small.
       const current = Math.floor(now / ENCOUNTER_WINDOW_MS)
       this.used = this.used.filter(k => Number(k.split(':')[0]) >= current - 1)
@@ -367,13 +367,12 @@ export const useColony = defineStore('colony', {
       const bee = this.bees.find(b => b.id === id)
       if (!bee) return false
       const tileKey = this.releaseSpot(bee.species)
-      if (!tileKey) return refuse('There\'s no free meadow near the hive right now.')
+      if (!tileKey) return refuse(`There's no free meadow near the hive right now.`)
       const cargo = [{ res: bee.holdingRes, n: bee.holding }]
       if (bee.trip) cargo.push({ res: bee.trip.resource, n: bee.trip.carry })
       const lostRes = cargo.filter(c => c.res && c.n > hive.addStock(c.res, c.n)).map(c => c.res!)
       this.bees = this.bees.filter(b => b !== bee)
       this.released.push({ tileKey, species: bee.species, name: bee.name })
-      track('bee_dismissed', { species: bee.species, friends: this.bees.length })
       let msg = `${bee.name} the ${SPECIES[bee.species].name} flew back to the meadow.`
       if (lostRes[0]) msg += ` Some ${RESOURCE_INFO[lostRes[0]].name.toLowerCase()} had no room and was left behind.`
       game.toast(msg)
