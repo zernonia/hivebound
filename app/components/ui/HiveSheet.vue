@@ -3,6 +3,7 @@ import { BEE_NAME_MAX, MAX_COLONY, MAX_WORKERS, type ColonyBee, useColony, workC
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { ALL_RESOURCES, type Amounts, BUILDINGS, RAW_RESOURCES, RESOURCE_INFO, type RawResource, UPGRADES, UPGRADE_LIST } from '~/utils/resources'
+import { useSettings } from '~/stores/settings'
 import { SPECIES } from '~/utils/species'
 import type { PickerOption } from './UiPicker.vue'
 
@@ -13,6 +14,7 @@ import type { PickerOption } from './UiPicker.vue'
  */
 const game = useGame()
 const hive = useHive()
+const settings = useSettings()
 const colony = useColony()
 const sheet = computed(() => game.hiveSheet)
 const panel = ref<HTMLElement>()
@@ -56,7 +58,6 @@ const editingId = ref<number | null>(null)
 const draft = ref('')
 const nameInput = ref<HTMLInputElement[]>()
 function startRename(bee: ColonyBee) {
-  confirmId.value = null
   editingId.value = bee.id
   draft.value = bee.name
   nextTick(() => {
@@ -74,16 +75,19 @@ function cancelRename() {
   editingId.value = null
 }
 
-/* Letting a bee go asks first, right on its card. */
-const confirmId = ref<number | null>(null)
-function release(bee: ColonyBee) {
-  confirmId.value = null
-  colony.release(bee.id)
+watch(() => game.hiveSheet, () => (editingId.value = null))
+
+/* ---------------- dismissing ---------------- */
+const dismissing = ref<ColonyBee | null>(null)
+// Kept after the dialog closes so its text doesn't blank out mid-fade.
+const dismissName = ref('')
+watch(dismissing, b => b && (dismissName.value = b.name))
+const onlyBee = computed(() => colony.bees.length <= 1)
+function confirmDismiss() {
+  if (dismissing.value) colony.dismiss(dismissing.value.id)
+  dismissing.value = null
+  nextTick(() => panel.value?.focus())
 }
-watch(() => game.hiveSheet, () => {
-  editingId.value = null
-  confirmId.value = null
-})
 
 /* ---------------- upgrades ---------------- */
 const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, n: a[r]!, ok: hive.stock[r] >= a[r]! }))
@@ -105,9 +109,10 @@ watch(() => game.hiveSheet, (v) => {
 })
 watch(() => game.buildMenuOpen, v => v && (game.hiveSheet = null))
 watch(() => game.scene, s => s !== 'hive' && (game.hiveSheet = null))
+watch(() => game.hiveSheet, () => (dismissing.value = null))
 
 function onKey(e: KeyboardEvent) {
-  if (game.scene !== 'hive' || game.transition || game.journalOpen || game.settingsOpen || e.repeat) return
+  if (game.scene !== 'hive' || dismissing.value || game.transition || game.journalOpen || game.settingsOpen || e.repeat) return
   const target = e.target as HTMLElement | null
   // Typing, or a dropdown list with the keys: leave them be.
   if (target?.closest('input, textarea, [contenteditable], .picker-list')) return
@@ -147,11 +152,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
         <template v-if="sheet === 'colony'">
           <p v-if="!colony.hasRoom" class="note">
             {{ colony.capacity >= MAX_COLONY
-              ? 'Every bed is taken. To make room for a new friend, you can let a helper go.'
-              : 'All beds are full. Build a Bee Room for more, or let a helper go.' }}
+              ? 'Every bed is taken. To make room for a new friend, you can dismiss a helper: they fly back to the meadow nearby.'
+              : 'All beds are full. Build a Bee Room for more, or dismiss a helper back to the meadow.' }}
           </p>
           <p v-if="!colony.bees.length" class="blurb">
             No helpers yet. Wild bees hover over meadows, flower patches, water and woods: fly onto one and press <span class="kbd">F</span> to try the befriending dance. There's always a friendly Bumble at the Wild Nest.
+          </p>
+          <p v-if="onlyBee" id="only-bee-note" class="note">
+            You need at least one bee at home.
           </p>
           <ul class="colony">
             <li v-for="b in colony.bees" :key="b.id" class="friend">
@@ -176,23 +184,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
                   <UiIcon name="pencil" class="pencil" />
                 </button>
                 <button
-                  class="let-go"
-                  :aria-expanded="confirmId === b.id"
-                  @click="confirmId = confirmId === b.id ? null : b.id"
+                  class="chip-btn dismiss"
+                  :disabled="onlyBee"
+                  :aria-label="`Dismiss ${b.name}`"
+                  :aria-describedby="onlyBee ? 'only-bee-note' : undefined"
+                  @click="dismissing = b"
                 >
-                  Let go
+                  Dismiss
                 </button>
-              </div>
-              <div v-if="confirmId === b.id" class="confirm" role="group" :aria-label="`Let ${b.name} go?`">
-                <p>Let {{ b.name }} go? They'll fly off to start a hive of their own, and their bed will be free.</p>
-                <div class="confirm-btns">
-                  <button class="chip-btn" @click="confirmId = null">
-                    Keep {{ b.name }}
-                  </button>
-                  <button class="chip-btn danger" @click="release(b)">
-                    Let go
-                  </button>
-                </div>
               </div>
               <p class="status-line">
                 {{ (void now, colony.statusText(b, now)) }}
@@ -261,6 +260,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
       </p>
     </section>
   </Transition>
+
+  <UiDialog :open="!!dismissing" :title="`Dismiss ${dismissName}?`" @close="dismissing = null">
+    <p class="blurb">
+      Send {{ dismissName }} back to the meadow? You can find them near the hive and befriend them again.
+      <template v-if="dismissing && SPECIES[dismissing.species].nightOnly && settings.dayNight">
+        {{ SPECIES[dismissing.species].name }}s only come out at night.
+      </template>
+    </p>
+    <div class="confirm">
+      <button class="chip-btn" @click="dismissing = null">
+        Keep {{ dismissName }}
+      </button>
+      <button class="chip-btn primary" @click="confirmDismiss">
+        Dismiss
+      </button>
+    </div>
+  </UiDialog>
 </template>
 
 <style scoped>
@@ -341,6 +357,7 @@ h2 {
 }
 .friend-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -390,44 +407,19 @@ h2 {
   font-weight: 700;
   color: var(--ink);
 }
-.let-go {
-  flex: none;
+.dismiss {
+  margin-left: auto;
   min-height: 44px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 10px;
-  background: none;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-.let-go:hover,
-.let-go[aria-expanded='true'] {
-  background: var(--paper-2);
-  color: var(--ink);
+  box-shadow: none;
 }
 .confirm {
-  margin: 4px 0 8px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: color-mix(in srgb, #ff8fa8 14%, var(--paper));
-  border: 2px dashed color-mix(in srgb, #ff8fa8 50%, var(--line));
-}
-.confirm p {
-  margin: 0 0 8px;
-  font-size: 0.9rem;
-}
-.confirm-btns {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
   justify-content: flex-end;
+  gap: 8px;
 }
-.chip-btn.danger {
-  background: #ffe1e6;
-  border-color: #e07a8c;
-  color: #7a2433;
+.confirm .chip-btn {
+  min-height: 44px;
 }
 .species {
   color: var(--ink-soft);

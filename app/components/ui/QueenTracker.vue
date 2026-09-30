@@ -52,8 +52,8 @@ const open = ref(true)
       </p>
       <p v-else-if="needsRoom" class="room">
         {{ colony.capacity >= MAX_COLONY
-          ? 'Every bed is taken. Let a helper go from the Colony page to make room for a new friend.'
-          : 'The hive is full. Build a Bee Room, or let a helper go from the Colony page, to make room for a new friend.' }}
+          ? 'Every bed is taken. Dismiss a helper from the Colony page to make room for a new friend.'
+          : 'The hive is full. Build a Bee Room, or dismiss a helper from the Colony page, to make room for a new friend.' }}
       </p>
     </div>
   </section>
