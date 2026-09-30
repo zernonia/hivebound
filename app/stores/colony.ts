@@ -53,6 +53,9 @@ export interface Trip {
   carry: number
 }
 
+/** Longest name a player can give a helper. */
+export const BEE_NAME_MAX = 16
+
 export interface ColonyBee {
   id: number
   species: SpeciesId
@@ -178,8 +181,8 @@ export const useColony = defineStore('colony', {
       if (!species || this.dance) return false
       if (!this.hasRoom) {
         const msg = this.capacity >= MAX_COLONY
-          ? 'The hive is as full as it can be. What a big family!'
-          : 'There is no room at home yet. Build a Bee Room in the hive first.'
+          ? 'Every bed in the hive is taken. To make room for someone new, let a helper go from the Colony page (C in the hive).'
+          : 'There is no room at home yet. Build a Bee Room in the hive, or let a helper go from the Colony page.'
         game.toast(msg)
         game.announce(msg)
         return false
@@ -276,6 +279,49 @@ export const useColony = defineStore('colony', {
         subject: 'hive',
       }, false)
       this.changed()
+    },
+
+    /** A new name from the player: trimmed, short, and never empty (an empty name keeps the old one). */
+    rename(id: number, name: string) {
+      const bee = this.bees.find(b => b.id === id)
+      if (!bee) return false
+      const clean = name.replace(/\s+/g, ' ').trim().slice(0, BEE_NAME_MAX)
+      if (!clean || clean === bee.name) return false
+      bee.name = clean
+      useGame().announce(`Renamed to ${clean}.`)
+      this.changed()
+      return true
+    },
+
+    /**
+     * Lets a helper go (it flies off to start a hive of its own), freeing its bed. Anything it
+     * was still holding goes into the store; a trip in progress is simply left unfinished.
+     */
+    release(id: number) {
+      const i = this.bees.findIndex(b => b.id === id)
+      if (i < 0) return false
+      const bee = this.bees[i]!
+      const hive = useHive()
+      const game = useGame()
+      // Settle building work at its current pace before a worker leaves.
+      hive.tick()
+      if (bee.holding > 0 && bee.holdingRes) hive.addStock(bee.holdingRes, bee.holding)
+      this.bees.splice(i, 1)
+      const def = SPECIES[bee.species]
+      const msg = `${bee.name} the ${def.name} flew off to start a hive of their own. Safe travels!`
+      game.toast(msg)
+      game.announce(msg)
+      game.addJournal({
+        id: `farewell:${bee.id}`,
+        title: `Goodbye, ${bee.name}`,
+        body: `${bee.name} the ${def.name} buzzed a last loop round the hive and headed off to find a tree of their own. I think they'll be a wonderful queen someday.`,
+        icon: 'hive',
+        subject: 'hive',
+      }, false)
+      track('bee_released', { species: bee.species, friends: this.bees.length })
+      hive.changed()
+      this.changed()
+      return true
     },
 
     setJob(id: number, job: BeeJob) {

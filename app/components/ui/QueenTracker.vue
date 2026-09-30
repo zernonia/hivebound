@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
-import { useColony } from '~/stores/colony'
+import { MAX_COLONY, useColony } from '~/stores/colony'
 import { useQueen } from '~/stores/queen'
 
 /* The Queen's current request, pinned under the location card: what's needed and how close. */
@@ -17,6 +17,16 @@ const lines = computed(() => {
   return queen.lines()
 })
 const ready = computed(() => lines.value.length > 0 && lines.value.every(l => l.done))
+/** The request wants a new friend but every bed is taken: say how to make room, so it never feels stuck. */
+const needsRoom = computed(() => {
+  void colony.rev
+  void hive.rev
+  if (colony.hasRoom) return false
+  return queen.current.goals.some(g =>
+    (g.kind === 'species' && colony.bees.filter(b => b.species === g.species).length < g.count)
+    || (g.kind === 'friends' && colony.bees.length < g.count),
+  )
+})
 const open = ref(true)
 </script>
 
@@ -39,6 +49,11 @@ const open = ref(true)
       </ul>
       <p v-if="ready" class="go" aria-live="polite">
         Ready! Visit the Queen in the hive.
+      </p>
+      <p v-else-if="needsRoom" class="room">
+        {{ colony.capacity >= MAX_COLONY
+          ? 'Every bed is taken. Let a helper go from the Colony page to make room for a new friend.'
+          : 'The hive is full. Build a Bee Room, or let a helper go from the Colony page, to make room for a new friend.' }}
       </p>
     </div>
   </section>
@@ -113,5 +128,11 @@ const open = ref(true)
 }
 .ready {
   border-color: #7fcf6a;
+}
+.room {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
 }
 </style>

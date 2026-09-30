@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ name: 'journal' | 'settings' | 'look' | 'home' | 'plus' | 'minus' | 'map' | 'close' | 'arrow' | 'expand' | 'shrink' | 'build' | 'bee' | 'upgrade' }>()
+defineProps<{ name: 'journal' | 'settings' | 'look' | 'home' | 'plus' | 'minus' | 'map' | 'close' | 'arrow' | 'expand' | 'shrink' | 'build' | 'bee' | 'upgrade' | 'pencil' }>()
 </script>
 
 <template>
@@ -22,6 +22,10 @@ defineProps<{ name: 'journal' | 'settings' | 'look' | 'home' | 'plus' | 'minus' 
       <path d="M12 3.5c-4 0-7 3.3-7 7.5 0 3.6 0 7.5 0 9h14c0-1.5 0-5.4 0-9 0-4.2-3-7.5-7-7.5z" />
       <path d="M5.5 9h13M5 13.5h14" />
       <path d="M10 20v-3a2 2 0 0 1 4 0v3" />
+    </template>
+    <template v-else-if="name === 'pencil'">
+      <path d="M15.5 4.5 19.5 8.5 9 19H5v-4z" />
+      <path d="M13.5 6.5l4 4" />
     </template>
     <template v-else-if="name === 'build'">
       <path d="M12 2.8 19.8 7.3v9.4L12 21.2l-7.8-4.5V7.3z" />
