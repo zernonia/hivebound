@@ -7,6 +7,7 @@ export interface SettingsState {
   reducedMotion: boolean
   textScale: TextScale
   highContrast: boolean
+  dyslexicFont: boolean
   colorVisionFriendly: boolean
   narration: boolean
   showMinimap: boolean
@@ -49,6 +50,7 @@ export const useSettings = defineStore('settings', {
     reducedMotion: systemPrefersReducedMotion(),
     textScale: 1,
     highContrast: systemPrefersContrast(),
+    dyslexicFont: false,
     colorVisionFriendly: false,
     narration: true,
     showMinimap: true,

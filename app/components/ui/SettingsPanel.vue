@@ -12,10 +12,11 @@ const settings = useSettings()
 const compact = useCompactScreen()
 const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
 
-type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
+type BoolKey = 'reducedMotion' | 'highContrast' | 'dyslexicFont' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
 const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'reducedMotion', label: 'Reduce motion', hint: 'Calmer camera, no bouncing or pop-ins.' },
   { key: 'highContrast', label: 'High contrast', hint: 'Stronger text and outlines on panels.' },
+  { key: 'dyslexicFont', label: 'OpenDyslexic font', hint: 'A typeface some people with dyslexia find easier to read.' },
   { key: 'colorVisionFriendly', label: 'Colour-friendly palette', hint: 'Terrain differs by brightness, not just hue.' },
   { key: 'narration', label: 'Screen reader narration', hint: 'Describe where you fly and what is nearby.' },
   { key: 'showMinimap', label: 'Show minimap', hint: '' },

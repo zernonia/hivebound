@@ -62,7 +62,7 @@ const sky = computed(() => {
 })
 useHead({
   htmlAttrs: {
-    class: computed(() => [settings.highContrast && 'hc', settings.reducedMotion && 'rm'].filter(Boolean).join(' ')),
+    class: computed(() => [settings.highContrast && 'hc', settings.reducedMotion && 'rm', settings.dyslexicFont && 'dys'].filter(Boolean).join(' ')),
     style: computed(() => `--text-scale:${settings.textScale};--sky-top:${sky.value[0]};--sky-bottom:${sky.value[1]}`),
   },
 })
