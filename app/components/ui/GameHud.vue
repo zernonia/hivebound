@@ -49,7 +49,7 @@ function lookAround() {
 </script>
 
 <template>
-  <div class="hud" :class="{ 'sheet-open': !!game.hiveSheet }">
+  <div class="hud" :class="{ 'sheet-open': !!game.hiveSheet, 'map-big': settings.largeMinimap && settings.showMinimap && !inHive }">
     <!-- Top-left: where am I -->
     <div class="left-col">
       <header class="where panel">
@@ -377,6 +377,25 @@ function lookAround() {
   }
   .toasts {
     bottom: max(72px, calc(env(safe-area-inset-bottom) + 60px));
+  }
+}
+/* Big map on a phone: it takes the top of the screen, and the cards it would cover step aside
+   until it's made small again. */
+@media (max-width: 640px), (max-height: 500px) {
+  .map-big .left-col,
+  .map-big .tip {
+    visibility: hidden;
+  }
+  /* Above the floating action prompt, which would otherwise draw over the map. */
+  .map-big .map-slot {
+    z-index: 6;
+  }
+}
+@media (max-width: 640px) {
+  .map-big .map-slot {
+    left: max(14px, env(safe-area-inset-left));
+    display: flex;
+    justify-content: center;
   }
 }
 /* Colony / Upgrades open: on a small screen they'd land on top of the hive card, so it steps aside. */
