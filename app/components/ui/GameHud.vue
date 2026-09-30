@@ -284,10 +284,13 @@ function lookAround() {
   flex: none;
   box-shadow: none;
 }
+/* Toasts float at the top centre, above the hive card, sheets and the befriending dance
+   (z 30-40), so nothing at the bottom of the screen can hide them; they never take taps. */
 .toasts {
-  position: absolute;
+  position: fixed;
+  z-index: 45;
   left: 50%;
-  bottom: max(84px, calc(env(safe-area-inset-bottom) + 76px));
+  top: max(14px, env(safe-area-inset-top));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -297,9 +300,12 @@ function lookAround() {
   pointer-events: none;
 }
 .toast {
+  max-width: 100%;
   padding: 10px 18px;
   font-weight: 600;
   text-align: center;
+  line-height: 1.35;
+  box-shadow: 0 10px 28px rgba(74, 44, 28, 0.22);
 }
 .toast-enter-active,
 .toast-leave-active,
@@ -310,7 +316,10 @@ function lookAround() {
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(12px) scale(0.96);
+  transform: translateY(-12px) scale(0.96);
+}
+.toast-move {
+  transition: transform 300ms var(--ease);
 }
 .fade-enter-from,
 .fade-leave-to {
@@ -346,7 +355,11 @@ function lookAround() {
     bottom: max(290px, calc(env(safe-area-inset-bottom) + 280px));
   }
   .toasts {
-    bottom: max(250px, calc(env(safe-area-inset-bottom) + 240px));
+    width: calc(100vw - 28px);
+  }
+  .toast {
+    padding: 8px 14px;
+    font-size: 0.92rem;
   }
 }
 /* Phones on their side: little height, so the tip moves down between the buttons and the pad,
@@ -376,9 +389,6 @@ function lookAround() {
   }
   .tip p {
     line-height: 1.4;
-  }
-  .toasts {
-    bottom: max(72px, calc(env(safe-area-inset-bottom) + 60px));
   }
 }
 /* Colony / Upgrades open: on a small screen they'd land on top of the hive card, so it steps aside. */

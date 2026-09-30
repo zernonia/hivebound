@@ -83,6 +83,8 @@ interface SaveData {
   wearing?: Partial<Record<KeepsakeSlot, KeepsakeId>>
 }
 
+/** Toasts on screen at once; older ones make way. */
+const MAX_TOASTS = 3
 let toastSeq = 0
 
 export const useGame = defineStore('game', {
@@ -535,12 +537,18 @@ export const useGame = defineStore('game', {
     },
 
     // ---------- narration & UI ----------
+    /**
+     * A short visual note (the announcer covers screen readers). Saying the same thing again
+     * restarts its timer instead of stacking a copy; only the newest few stay, and longer notes
+     * stay up a little longer so there's time to read them.
+     */
     toast(text: string) {
       const id = ++toastSeq
-      this.toasts.push({ id, text })
+      this.toasts = [...this.toasts.filter(t => t.text !== text), { id, text }].slice(-MAX_TOASTS)
+      const ms = Math.min(7000, 3500 + text.length * 35)
       setTimeout(() => {
         this.toasts = this.toasts.filter(t => t.id !== id)
-      }, 3800)
+      }, ms)
     },
 
     announce(msg: string) {
