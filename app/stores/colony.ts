@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
+import { toRaw } from 'vue'
 import { track } from '~/utils/analytics'
+import { cancelSave, saveSoon } from '~/utils/deferredSave'
 import { type Hex, hexDistance, hexKey, parseKey } from '~/utils/hex'
 import { hash2 } from '~/utils/noise'
 import { BUILDINGS, OFFLINE_CAP_MS, RESOURCE_INFO, type RawResource, tileSource } from '~/utils/resources'
@@ -93,6 +95,20 @@ interface SaveData {
 
 const encounterKey = (tileKey: string, at: number) => `${Math.floor(at / ENCOUNTER_WINDOW_MS)}:${tileKey}`
 
+/** `used` as a set for lookups, rebuilt when the list is replaced or grows. */
+let usedSet = new Set<string>()
+let usedFor: string[] | null = null
+let usedLen = -1
+function isUsed(list: string[], key: string) {
+  const raw = toRaw(list)
+  if (raw !== usedFor || raw.length !== usedLen) {
+    usedFor = raw
+    usedLen = raw.length
+    usedSet = new Set(raw)
+  }
+  return usedSet.has(key)
+}
+
 export const useColony = defineStore('colony', {
   state: () => ({
     bees: [] as ColonyBee[],
@@ -131,6 +147,7 @@ export const useColony = defineStore('colony', {
       this.tick()
     },
     save() {
+      cancelSave(SAVE_KEY)
       const data: SaveData = { bees: this.bees, used: this.used, nextId: this.nextId }
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data))
@@ -148,9 +165,11 @@ export const useColony = defineStore('colony', {
       this.dance = null
       this.rev++
     },
-    changed() {
+    /** `soft`: the game moved on by itself, so the save can wait a moment. */
+    changed(soft = false) {
       this.rev++
-      this.save()
+      if (soft) saveSoon(SAVE_KEY, () => this.save())
+      else this.save()
     },
 
     /* ---------------- wild bees ---------------- */
@@ -159,7 +178,7 @@ export const useColony = defineStore('colony', {
       if (!tile || !tile.walkable) return null
       const game = useGame()
       if (!game.discovered.has(tile.key)) return null
-      if (this.used.includes(encounterKey(tile.key, now))) return null
+      if (isUsed(this.used, encounterKey(tile.key, now))) return null
       // The Wild Nest always has a friendly Bumble waiting, until the first friend joins.
       if (tile.poi === 'nest' && !this.bees.length) return 'bumble'
       const species = SPECIES_BY_HABITAT[tile.terrain]
@@ -411,8 +430,8 @@ export const useColony = defineStore('colony', {
         changed = true
       }
       if (changed) {
-        useHive().changed()
-        this.changed()
+        useHive().changed(true)
+        this.changed(true)
       }
       return changed
     },

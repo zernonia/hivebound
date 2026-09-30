@@ -85,6 +85,8 @@ const tmpS = new THREE.Vector3()
 const tmpC = new THREE.Color()
 const tmpC2 = new THREE.Color()
 const tmpC3 = new THREE.Color()
+const tmpFog = new THREE.Color()
+const tmpHsl = { h: 0, s: 0, l: 0 }
 const UP = new THREE.Vector3(0, 1, 0)
 
 const easeOutBack = (t: number) => {
@@ -377,12 +379,12 @@ export class WorldView {
   private tileColor(t: Tile, discovered: boolean, full = 1) {
     const base = t.terrain === 'water' ? this.palette.water : this.palette.terrain[t.terrain]
     tmpC.set(base)
-    const hsl = { h: 0, s: 0, l: 0 }
+    const hsl = tmpHsl
     tmpC.getHSL(hsl)
     // A gathered tile looks a little sun-bleached until it regrows.
     const spent = 1 - full
     tmpC.setHSL(hsl.h + (t.rand - 0.5) * 0.02, hsl.s * (1 - spent * 0.4), Math.min(0.95, hsl.l + (t.rand - 0.5) * 0.06 + spent * 0.03))
-    if (!discovered && t.terrain !== 'edge') tmpC.lerp(new THREE.Color(this.palette.fog), 0.68)
+    if (!discovered && t.terrain !== 'edge') tmpC.lerp(tmpFog.set(this.palette.fog), 0.68)
     return tmpC
   }
 

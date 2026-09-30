@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as THREE from 'three'
 import { useLoop, useTres } from '@tresjs/core'
+import { toRaw } from 'vue'
 import { buildBeeVariant, isBeeVariantId } from '~/game/beeVariants'
 import { buildKeepsake } from '~/game/accessories'
 import { blobShadowTexture, hexRingGeometry } from '~/game/geometry'
@@ -17,7 +18,7 @@ import { isGoldenSpot } from '~/utils/golden'
 import { nightAmount } from '~/utils/daylight'
 import { setCloudNight } from '~/game/props'
 import { WorldView } from '~/game/worldView'
-import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, hexesInRange, neighbor, worldToHex } from '~/utils/hex'
+import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, hexesInRange, neighbor, parseKey, worldToHex } from '~/utils/hex'
 import type { SpeciesId } from '~/utils/species'
 import type { Tile } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
@@ -227,6 +228,8 @@ watch(hoverTile, (t) => {
 /* ------------------------------------------------------------------ */
 const raycaster = new THREE.Raycaster()
 const ndc = new THREE.Vector2()
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const groundHit = new THREE.Vector3()
 const pointers = new Map<number, { x: number, y: number, sx: number, sy: number }>()
 let pinchStart = 0
 let pinchZoom = 1
@@ -245,8 +248,8 @@ function pick(ev: PointerEvent): Hex | null {
     return t ? { q: t.q, r: t.r } : null
   }
   // Fallback: intersect ground plane (for clicks between tiles).
-  const p = new THREE.Vector3()
-  if (raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p)) {
+  const p = groundHit
+  if (raycaster.ray.intersectPlane(groundPlane, p)) {
     const h = worldToHex(p.x, p.z)
     return world.byKey.has(hexKey(h)) ? h : null
   }
@@ -627,7 +630,15 @@ onMounted(() => {
   tresScene.value.fog = fog
 })
 
+/** Store changes only mark what needs refreshing; the frame loop does each at most once. */
+let hiveDirty = false
+let goldenDirty = false
+let markersDirty = false
+let fullnessDirty = false
+let wildDirty = false
+
 function syncHive() {
+  hiveDirty = false
   const now = Date.now()
   hiveView.sync((key) => {
     const st = hive.status(key, now)
@@ -641,7 +652,7 @@ function syncHive() {
   hiveView.select(game.scene === 'hive' ? hive.selected : null)
 }
 syncHive()
-watch(() => hive.rev, syncHive)
+watch(() => hive.rev, () => (hiveDirty = true))
 watch(() => [hive.selected, game.scene], syncHive)
 watch(() => settings.reducedMotion, (v) => {
   hiveView.setReducedMotion(v)
@@ -652,17 +663,19 @@ watch(() => settings.reducedMotion, (v) => {
 /** Golden pollen sparkles on discovered golden spots that have pollen right now. */
 const goldenTiles = world.tiles.filter(t => isGoldenSpot(t))
 function refreshGolden() {
+  goldenDirty = false
   const now = Date.now()
   golden.refresh(goldenTiles.filter(t => game.discovered.has(t.key) && hive.goldenHere(t, now)))
 }
 refreshGolden()
-watch(() => [game.revealTick, hive.rev], refreshGolden)
+watch(() => [game.revealTick, hive.rev], () => (goldenDirty = true))
 
 /**
  * Picks the badges to show: discovered resource tiles next to the bee, and the hovered tile.
  * The tile the bee is on is left to the HUD line.
  */
 function refreshMarkers() {
+  markersDirty = false
   const list = []
   const keys = new Set(DIRECTION_LIST.map(d => hexKey(neighbor(game.pos, d))))
   if (game.hoverKey) keys.add(game.hoverKey)
@@ -676,7 +689,7 @@ function refreshMarkers() {
   markers.refresh(list, t => hive.tileAmount(t, now), hexKey(game.pos))
 }
 refreshMarkers()
-watch(() => [game.pos, game.hoverKey, game.revealTick, hive.rev, hive.pouchTotal], refreshMarkers)
+watch(() => [game.pos, game.hoverKey, game.revealTick, hive.rev, hive.pouchTotal], () => (markersDirty = true))
 
 /**
  * Gathered tiles visibly thin out (flowers, lily pads, mushrooms) and regrow over time.
@@ -684,6 +697,7 @@ watch(() => [game.pos, game.hoverKey, game.revealTick, hive.rev, hive.pouchTotal
  */
 const thinned = new Set<string>()
 function syncFullness() {
+  fullnessDirty = false
   const now = Date.now()
   for (const key of new Set([...Object.keys(hive.tiles), ...thinned])) {
     const tile = world.byKey.get(key)
@@ -696,7 +710,7 @@ function syncFullness() {
   }
 }
 syncFullness()
-watch(() => [hive.pouchTotal, hive.rev], syncFullness)
+watch(() => [hive.pouchTotal, hive.rev], () => (fullnessDirty = true))
 let markersIn = 0
 
 /* ------------------------------------------------------------------ */
@@ -789,6 +803,7 @@ function updatePrompt(cam: THREE.PerspectiveCamera) {
 const WILD_RADIUS = 9
 let wildList: { tile: Tile, species: SpeciesId, phase: number }[] = []
 function refreshWild() {
+  wildDirty = false
   const now = Date.now()
   wildList = []
   for (const h of hexesInRange(game.pos, WILD_RADIUS)) {
@@ -798,7 +813,7 @@ function refreshWild() {
   }
 }
 refreshWild()
-watch(() => [game.pos, game.revealTick, colony.rev], refreshWild)
+watch(() => [game.pos, game.revealTick, colony.rev], () => (wildDirty = true))
 let wildIn = 0
 
 /** Where helpers leave from and land: the top of the skep. */
@@ -815,7 +830,8 @@ watch(queenReady, (v) => {
   hiveSign.setReady(v)
 }, { immediate: true })
 const beeSpot = new THREE.Vector3()
-const beeAim = new THREE.Vector3()
+/** Where each trip's bee flies to, worked out once per trip. */
+const tripAim = new WeakMap<object, THREE.Vector3>()
 
 function updateOutdoorBees(time: number, rm: boolean) {
   outdoorBees.begin()
@@ -843,27 +859,34 @@ function updateOutdoorBees(time: number, rm: boolean) {
     rig.root.rotation.y = yaw
     animateBee(rig, time, w.phase, 0.2, rm)
   }
-  for (const b of colony.bees) {
-    const ph = colony.tripPhase(b, now)
-    if (!ph) continue
-    worldPos(ph.tile, beeAim).add(tmpV.set(0, 0.7, 0))
+  for (const b of toRaw(colony.bees)) {
+    const t = b.trip
+    if (!t) continue
+    let aim = tripAim.get(t)
+    if (!aim) {
+      aim = worldPos(parseKey(t.tile)).add(tmpV.set(0, 0.7, 0))
+      tripAim.set(t, aim)
+    }
+    // Same legs as colony.tripPhase.
+    const e = now - t.startAt
+    const leg = e < t.outMs ? 'out' : e < t.outMs + t.gatherMs ? 'gather' : 'back'
     let flying = 1
-    if (ph.leg === 'gather') {
+    if (leg === 'gather') {
       const a = time * 1.4 + b.id
-      beeSpot.set(beeAim.x + Math.cos(a) * 0.3, beeAim.y - 0.1 + Math.sin(time * 5 + b.id) * 0.04, beeAim.z + Math.sin(a) * 0.3)
+      beeSpot.set(aim.x + Math.cos(a) * 0.3, aim.y - 0.1 + Math.sin(time * 5 + b.id) * 0.04, aim.z + Math.sin(a) * 0.3)
       flying = 0.3
     }
     else {
-      const u = ph.leg === 'out' ? ph.u : 1 - ph.u
-      beeSpot.lerpVectors(HIVE_TOP, beeAim, easeInOut(u))
+      const u = leg === 'out' ? Math.max(0, e / t.outMs) : 1 - Math.min(1, (e - t.outMs - t.gatherMs) / t.backMs)
+      beeSpot.lerpVectors(HIVE_TOP, aim, easeInOut(u))
       beeSpot.y += Math.sin(Math.PI * u) * 0.9
     }
     if (!inView(beeSpot)) continue
     const rig = outdoorBees.take(b.species)
     rig.root.position.copy(beeSpot)
-    if (ph.leg === 'gather') rig.root.rotation.y = -(time * 1.4 + b.id)
+    if (leg === 'gather') rig.root.rotation.y = -(time * 1.4 + b.id)
     else {
-      const to = ph.leg === 'out' ? beeAim : HIVE_TOP
+      const to = leg === 'out' ? aim : HIVE_TOP
       rig.root.rotation.y = Math.atan2(to.x - beeSpot.x, to.z - beeSpot.z)
     }
     animateBee(rig, time, b.id * 0.37, flying, rm)
@@ -875,6 +898,17 @@ function updateOutdoorBees(time: number, rm: boolean) {
 /* Frame loop                                                         */
 /* ------------------------------------------------------------------ */
 let hiveSyncIn = 0
+let homeRev = -1
+const homeBees: { id: number, species: SpeciesId, resting: boolean, work: string | null }[] = []
+/** Helpers at home; rebuilt only when the colony changes. */
+function beesAtHome() {
+  if (homeRev !== colony.rev) {
+    homeRev = colony.rev
+    homeBees.length = 0
+    for (const b of toRaw(colony.bees)) if (!b.trip) homeBees.push({ id: b.id, species: b.species, resting: !b.job, work: workCell(b.job) })
+  }
+  return homeBees
+}
 const { onBeforeRender } = useLoop()
 
 // Dev performance overlay: time each frame from the first update hook to the end of three's
@@ -976,12 +1010,12 @@ onBeforeRender(({ delta }) => {
 
   if (game.scene === 'hive') {
     hiveSyncIn -= dt
-    if (hiveSyncIn <= 0) {
+    if (hiveSyncIn <= 0 || hiveDirty) {
       hiveSyncIn = 0.2
       syncHive()
     }
     hiveView.update(dt, time)
-    hiveView.updateColony(colony.bees.filter(b => !b.trip).map(b => ({ id: b.id, species: b.species, resting: !b.job, work: workCell(b.job) })), dt, time)
+    hiveView.updateColony(beesAtHome(), dt, time)
   }
   else {
     // --- rings pulse ---
@@ -995,9 +1029,13 @@ onBeforeRender(({ delta }) => {
     markersIn -= dt
     if (markersIn <= 0) {
       markersIn = 0.5
-      refreshMarkers()
-      syncFullness()
+      markersDirty = true
+      fullnessDirty = true
     }
+    if (markersDirty) refreshMarkers()
+    if (fullnessDirty) syncFullness()
+    if (goldenDirty) refreshGolden()
+    if (wildDirty) refreshWild()
     markers.update(time)
     golden.update(time)
     fireflies.update(time, nightNow, bee.root.position, groundY, rm)

@@ -62,6 +62,12 @@ export class HiveView {
   /** Colony bees at home, pottering about (or asleep in a Bee Room). */
   private colonyPool = new BeePool()
   private wanderers = new Map<number, { pos: THREE.Vector3, target: THREE.Vector3, wait: number, yaw: number }>()
+  private cellList: CellView[]
+  /** Bed spots in Bee Rooms, rebuilt when a building changes. */
+  private beds: THREE.Vector3[] = []
+  private bedsStale = true
+  private slots = new Map<string, number>()
+  private seen = new Set<number>()
 
   constructor(cellHexes: Hex[], private queenKey: string) {
     this.group.name = 'hive-interior'
@@ -149,6 +155,7 @@ export class HiveView {
       this.pickables.push(cap, lid)
       this.cells.set(key, { key, hex, pos: p, cap, lid, work: 0, ring, jar, jarMat })
     }
+    this.cellList = [...this.cells.values()]
 
     // --- the Queen on her cushion ---
     const qc = this.cells.get(queenKey)
@@ -293,6 +300,7 @@ export class HiveView {
           this.pickables = this.pickables.filter(o => o !== old)
         }
         c.building = undefined
+        this.bedsStale = true
         if (want) {
           const model = buildBuilding(want)
           model.group.position.copy(c.pos)
@@ -316,8 +324,7 @@ export class HiveView {
 
   /** A random spot to drift to: over some cell, at a lazy height. */
   private randomSpot(out = new THREE.Vector3()) {
-    const all = [...this.cells.values()]
-    const c = all[Math.floor(Math.random() * all.length)]!
+    const c = this.cellList[Math.floor(Math.random() * this.cellList.length)]!
     return out.copy(c.pos).add(tmpV.set((Math.random() - 0.5) * 0.8, 0.8 + Math.random() * 0.9, (Math.random() - 0.5) * 0.8))
   }
 
@@ -328,15 +335,19 @@ export class HiveView {
    */
   updateColony(bees: { id: number, species: SpeciesId, resting: boolean, work: string | null }[], dt: number, time: number) {
     const rm = this.reducedMotion
-    const beds: THREE.Vector3[] = []
-    for (const c of this.cells.values()) {
-      const model = c.building?.model as BeeRoomModel | undefined
-      if (model?.beds) for (const b of model.beds) beds.push(b.clone().add(c.pos))
+    if (this.bedsStale) {
+      this.bedsStale = false
+      this.beds = []
+      for (const c of this.cells.values()) {
+        const model = c.building?.model as BeeRoomModel | undefined
+        if (model?.beds) for (const b of model.beds) this.beds.push(b.clone().add(c.pos))
+      }
     }
+    const { beds, slots, seen } = this
     let bed = 0
-    const slots = new Map<string, number>()
+    slots.clear()
+    seen.clear()
     this.colonyPool.begin()
-    const seen = new Set<number>()
     for (const b of bees) {
       seen.add(b.id)
       let w = this.wanderers.get(b.id)

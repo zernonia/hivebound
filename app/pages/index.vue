@@ -2,6 +2,7 @@
 import type { Direction } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { nightAmount } from '~/utils/daylight'
+import { flushSaves } from '~/utils/deferredSave'
 import { perfAvailable, togglePerf } from '~/utils/perfMonitor'
 import { useGame } from '~/stores/game'
 import { useColony } from '~/stores/colony'
@@ -190,6 +191,7 @@ const saveNow = () => {
 let hiveClock: ReturnType<typeof setInterval> | undefined
 const catchUp = () => {
   if (document.visibilityState !== 'visible') {
+    flushSaves()
     beginAway(Date.now())
     return
   }

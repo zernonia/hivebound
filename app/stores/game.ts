@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { track } from '~/utils/analytics'
+import { cancelSave, cancelSaves, saveSoon } from '~/utils/deferredSave'
 import { markRaw } from 'vue'
 import {
   type Direction,
@@ -211,6 +212,7 @@ export const useGame = defineStore('game', {
     },
 
     save() {
+      cancelSave(SAVE_KEY)
       const data: SaveData = {
         pos: this.pos,
         discovered: [...this.discovered],
@@ -228,6 +230,7 @@ export const useGame = defineStore('game', {
     },
 
     resetProgress() {
+      cancelSaves()
       try {
         localStorage.removeItem(SAVE_KEY)
       }
@@ -481,7 +484,7 @@ export const useGame = defineStore('game', {
         this.save()
       }
       // Long routes still checkpoint now and then, so closing the tab mid-flight loses little.
-      else if (this.steps % 5 === 0) this.save()
+      else if (this.steps % 5 === 0) saveSoon(SAVE_KEY, () => this.save())
     },
 
     visitPoi(id: PoiId) {
