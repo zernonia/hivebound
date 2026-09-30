@@ -120,15 +120,30 @@ gatherRingGeo.rotateX(-Math.PI / 2)
 const gatherRing = new THREE.Mesh(gatherRingGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 1, depthWrite: false }))
 gatherRing.renderOrder = 3
 gatherRing.visible = false
-// A dark track under the progress ring, a little wider on both sides: it outlines the coloured
-// ring so it reads on bright tiles, and shows how much of the circle is left to fill.
-const gatherTrackGeo = new THREE.RingGeometry(0.47, 0.67, 48, 1)
-gatherTrackGeo.rotateX(-Math.PI / 2)
-const gatherTrackMat = new THREE.MeshBasicMaterial({ color: '#4a2c1c', transparent: true, opacity: 0.55, depthWrite: false })
-const gatherTrack = new THREE.Mesh(gatherTrackGeo, gatherTrackMat)
-gatherTrack.renderOrder = 2
-gatherTrack.position.y = -0.004
-gatherRing.add(gatherTrack)
+// Dressed like the resource badges: a cream band under the coloured progress (so it shows how
+// much is left) with a soft warm shadow round it, which lifts the ring off bright tiles.
+function flatRing(inner: number, outer: number, color: string, opacity: number, y: number, order: number) {
+  const geo = new THREE.RingGeometry(inner, outer, 48, 1)
+  geo.rotateX(-Math.PI / 2)
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false })
+  const mesh = new THREE.Mesh(geo, mat)
+  mesh.renderOrder = order
+  mesh.position.y = y
+  gatherRing.add(mesh)
+  return mat
+}
+const gatherShadowMat = flatRing(0.455, 0.7, '#5b3a24', 0.2, -0.008, 1)
+flatRing(0.48, 0.66, '#fffaf0', 0.95, -0.004, 2)
+// The filled arc gets a thin edge in a deeper shade of its own colour, so light colours
+// (pollen yellow) still read on the cream band. It fills in step with the ring above it.
+const gatherEdgeGeo = new THREE.RingGeometry(0.5, 0.64, 48, 1)
+gatherEdgeGeo.rotateX(-Math.PI / 2)
+const gatherEdgeMat = new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 1, depthWrite: false })
+const gatherEdge = new THREE.Mesh(gatherEdgeGeo, gatherEdgeMat)
+gatherEdge.renderOrder = 3
+gatherEdge.position.y = -0.002
+gatherRing.add(gatherEdge)
+gatherRing.renderOrder = 4
 const GATHER_MOTES = 10
 const gatherMotes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.045, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }), GATHER_MOTES)
 gatherMotes.visible = false
@@ -487,11 +502,13 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
   if (tile && src) {
     const col = RESOURCE_INFO[src.resource].color
     ;(gatherRing.material as THREE.MeshBasicMaterial).color.set(col)
-    gatherTrackMat.opacity = settings.highContrast ? 0.85 : 0.55
+    gatherEdgeMat.color.set(col).offsetHSL(0, 0.05, -0.22)
+    gatherShadowMat.opacity = settings.highContrast ? 0.45 : 0.2
     ;(gatherMotes.material as THREE.MeshBasicMaterial).color.set(col)
     worldPos(game.pos, gatherRing.position)
     gatherRing.position.y += 0.05
     gatherRing.geometry.setDrawRange(0, Math.max(1, Math.floor(gatherT * 48)) * 6)
+    gatherEdge.geometry.setDrawRange(0, Math.max(1, Math.floor(gatherT * 48)) * 6)
     if (gatherMotes.visible) {
       for (let i = 0; i < GATHER_MOTES; i++) {
         const t = (time * 0.9 + i / GATHER_MOTES) % 1
