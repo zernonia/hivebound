@@ -55,7 +55,7 @@ const open = ref(true)
   align-items: center;
   gap: 6px;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: none;

@@ -618,4 +618,19 @@ h3 {
   color: var(--ink-soft);
   font-weight: 500;
 }
+/* Fingers need a taller hit area and a bigger knob than a mouse does. */
+@media (pointer: coarse) {
+  .slider input[type='range'] {
+    height: 44px;
+  }
+  .slider input[type='range']::-webkit-slider-thumb {
+    width: 32px;
+    height: 32px;
+    margin-top: -12px;
+  }
+  .slider input[type='range']::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+  }
+}
 </style>

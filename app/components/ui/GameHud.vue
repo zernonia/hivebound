@@ -49,7 +49,7 @@ function lookAround() {
 </script>
 
 <template>
-  <div class="hud">
+  <div class="hud" :class="{ 'sheet-open': !!game.hiveSheet }">
     <!-- Top-left: where am I -->
     <div class="left-col">
       <header class="where panel">
@@ -336,12 +336,53 @@ function lookAround() {
   .right {
     bottom: max(80px, calc(env(safe-area-inset-bottom) + 72px));
   }
+  .left-col {
+    max-width: calc(100vw - 180px);
+  }
   .tip {
     top: auto;
     bottom: max(290px, calc(env(safe-area-inset-bottom) + 280px));
   }
   .toasts {
     bottom: max(250px, calc(env(safe-area-inset-bottom) + 240px));
+  }
+}
+/* Phones on their side: little height, so the tip moves down between the buttons and the pad,
+   out of the way of the location card, the minimap and the prompt over the bee. */
+@media (max-height: 500px) and (min-width: 641px) {
+  /* With big text the cards on the left can outgrow the screen: keep them clear of the buttons. */
+  .left-col {
+    max-height: calc(100dvh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)) - 64px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .actions .chip-btn span:not(.badge):not(.kbd):not(.sr-only) {
+    display: none;
+  }
+  .actions .chip-btn {
+    padding: 0;
+    width: 52px;
+    height: 52px;
+  }
+  .tip {
+    top: auto;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: min(360px, calc(100vw - 480px));
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+  .tip p {
+    line-height: 1.4;
+  }
+  .toasts {
+    bottom: max(72px, calc(env(safe-area-inset-bottom) + 60px));
+  }
+}
+/* Colony / Upgrades open: on a small screen they'd land on top of the hive card, so it steps aside. */
+@media (max-width: 900px), (max-height: 500px) {
+  .sheet-open :deep(.hive-panel) {
+    display: none;
   }
 }
 </style>

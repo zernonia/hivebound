@@ -91,4 +91,22 @@ function click(d: Direction, ev: MouseEvent) {
   background: var(--honey);
   opacity: 0.8;
 }
+/* Short landscape screens: a smaller pad (buttons stay 46px) so it clears the minimap. */
+@media (max-height: 500px) {
+  .pad {
+    width: 144px;
+    height: 144px;
+  }
+  .dir {
+    --r: 49px;
+    width: 46px;
+    height: 46px;
+    margin: -23px 0 0 -23px;
+  }
+  .hub {
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+  }
+}
 </style>

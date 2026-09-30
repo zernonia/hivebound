@@ -228,8 +228,8 @@ h2 {
   color: var(--ink-soft);
 }
 .close {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 50%;
   background: var(--paper-2);

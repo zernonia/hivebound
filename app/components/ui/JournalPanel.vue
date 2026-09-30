@@ -129,6 +129,7 @@ const places = computed(() => {
 <style scoped>
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -192,9 +193,13 @@ const places = computed(() => {
 }
 .book {
   display: grid;
-  grid-template-columns: minmax(180px, 240px) 1fr;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   gap: 18px;
   min-height: 360px;
+}
+/* Grid items default to min-width: auto, which lets the scrolling index push the page wider than the dialog. */
+.book > * {
+  min-width: 0;
 }
 .index ul {
   list-style: none;
@@ -307,7 +312,14 @@ h3 {
 }
 @media (max-width: 640px) {
   .book {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+  .page {
+    padding: 14px 16px 18px;
+  }
+  .art-wrap {
+    max-width: 160px;
   }
   .index ul {
     flex-direction: row;

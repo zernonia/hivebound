@@ -13,7 +13,7 @@ const world = useWorldData()
 const canvas = ref<HTMLCanvasElement>()
 const narrow = ref(false)
 onMounted(() => {
-  const mq = window.matchMedia('(max-width: 640px)')
+  const mq = window.matchMedia('(max-width: 640px), (max-height: 500px)')
   narrow.value = mq.matches
   mq.addEventListener('change', e => (narrow.value = e.matches))
 })
@@ -242,8 +242,8 @@ canvas {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  min-width: 40px;
+  min-height: 44px;
+  min-width: 44px;
   justify-content: center;
   padding: 0 8px;
   border: none;

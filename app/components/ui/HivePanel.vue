@@ -298,6 +298,31 @@ h3 {
   margin: 0 -6px;
   padding: 0 6px 6px;
 }
+/* On short screens the card scrolls: fade its bottom edge while there's more below, so buttons
+   under the fold don't look cut off. Scroll-driven, so it clears once you reach the end. */
+@property --more {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@supports (animation-timeline: scroll()) {
+  .body {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--more)), transparent);
+    animation: more-below linear both;
+    animation-timeline: scroll(self);
+  }
+}
+@keyframes more-below {
+  from {
+    --more: 28px;
+  }
+  95% {
+    --more: 28px;
+  }
+  to {
+    --more: 0px;
+  }
+}
 .level {
   margin-left: 6px;
   font-size: 0.75rem;
