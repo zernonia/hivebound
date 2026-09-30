@@ -77,3 +77,51 @@ export function blobShadowTexture() {
 export function mixColor(a: string | THREE.Color, b: string | THREE.Color, t: number) {
   return new THREE.Color(a).lerp(new THREE.Color(b), t)
 }
+
+const hexOutlines = new Map<number, THREE.Vector2[]>()
+/** Points round a rounded-hex outline, clockwise on screen from the middle of the top edge. */
+function hexOutline(radius: number) {
+  let pts = hexOutlines.get(radius)
+  if (!pts) {
+    const raw = roundedHexShape(radius, Math.max(0.05, 0.22 - (0.93 - radius) * 0.6)).getSpacedPoints(360)
+    raw.pop()
+    const score = (v: THREE.Vector2) => v.y - 5 * Math.abs(v.x)
+    let start = 0
+    for (let i = 1; i < raw.length; i++) if (score(raw[i]!) > score(raw[start]!)) start = i
+    pts = raw.map((_, i) => raw[(start - i + raw.length) % raw.length]!)
+    hexOutlines.set(radius, pts)
+  }
+  return pts
+}
+
+/** World-space (x, z) of the point `t` (0..1) of the way round a rounded-hex outline. */
+export function hexOutlinePoint(t: number, radius: number, out = new THREE.Vector3()) {
+  const pts = hexOutline(radius)
+  const f = (((t % 1) + 1) % 1) * pts.length
+  const i = Math.floor(f)
+  const a = pts[i % pts.length]!
+  const b = pts[(i + 1) % pts.length]!
+  const k = f - i
+  return out.set(a.x + (b.x - a.x) * k, out.y, -(a.y + (b.y - a.y) * k))
+}
+
+/**
+ * A flat band following a rounded-hex outline from the top, clockwise, made of `segments`
+ * quads (6 indices each) so `setDrawRange` can show just the first part of it.
+ */
+export function hexTrackGeometry(inner: number, outer: number, segments: number) {
+  const pos: number[] = []
+  const idx: number[] = []
+  const p = new THREE.Vector3()
+  for (let i = 0; i <= segments; i++) {
+    hexOutlinePoint(i / segments, inner, p)
+    pos.push(p.x, 0, p.z)
+    hexOutlinePoint(i / segments, outer, p)
+    pos.push(p.x, 0, p.z)
+    if (i < segments) idx.push(i * 2, i * 2 + 2, i * 2 + 1, i * 2 + 1, i * 2 + 2, i * 2 + 3)
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  geo.setIndex(idx)
+  return geo
+}
