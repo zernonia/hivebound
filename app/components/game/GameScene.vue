@@ -117,7 +117,7 @@ sun.shadow.radius = 4
 // Gathering: progress traced round the tile's own rounded edge, and motes of the resource
 // drifting up to the bee. The progress is a vivid shade of the resource colour edged in a deeper
 // one, with round ends, over a cream track (showing how much is left) with a soft shadow.
-const GATHER_SEGMENTS = 72
+const GATHER_SEGMENTS = 144
 const GATHER_MID = 0.87
 const gatherRing = new THREE.Group()
 gatherRing.visible = false
@@ -135,7 +135,8 @@ function gatherMesh(geo: THREE.BufferGeometry, mat: THREE.Material, order: numbe
 }
 const gatherCap = (r: number) => new THREE.CircleGeometry(r, 20).rotateX(-Math.PI / 2)
 gatherMesh(hexTrackGeometry(0.77, 0.965, GATHER_SEGMENTS), gatherShadowMat, 1, 0).position.z = 0.02
-gatherMesh(hexTrackGeometry(0.79, 0.95, GATHER_SEGMENTS), gatherMat('#fffaf0', 0.7), 2, 0.001)
+const gatherTrackMat = gatherMat('#fffaf0', 0.7)
+gatherMesh(hexTrackGeometry(0.79, 0.95, GATHER_SEGMENTS), gatherTrackMat, 2, 0.001)
 const gatherEdge = gatherMesh(hexTrackGeometry(0.778, 0.962, GATHER_SEGMENTS), gatherEdgeMat, 3, 0.002)
 const gatherArc = gatherMesh(hexTrackGeometry(0.8, 0.94, GATHER_SEGMENTS), gatherArcMat, 4, 0.003)
 hexOutlinePoint(0, GATHER_MID, gatherMesh(gatherCap(0.092), gatherEdgeMat, 3, 0.002).position)
@@ -438,6 +439,9 @@ const shortestAngle = (a: number, b: number) => {
 /* ------------------------------------------------------------------ */
 let gatherT = 0
 let gatheringKey: string | null = null
+/** The ring stays on the tile it was filling and fades out there, rather than following the bee. */
+let ringFade = 0
+let ringT = 0
 /** Tile we last said something about, so arrival messages play once per visit. */
 let notedKey: string | null = null
 /** The "pouch full" message has been shown for the current full pouch. */
@@ -495,36 +499,44 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
   }
 
   // Progress ring round the tile, and motes drifting up into the bee.
-  gatherRing.visible = active || gatherT > 0.02
   gatherMotes.visible = active && !rm
-  if (tile && src) {
+  if (active && src) {
     const col = RESOURCE_INFO[src.resource].color
     gatherArcMat.color.set(col).offsetHSL(0, 0.12, -0.05)
     gatherEdgeMat.color.set(col).offsetHSL(0, 0.05, -0.22)
-    gatherShadowMat.opacity = settings.highContrast ? 0.4 : 0.13
     ;(gatherMotes.material as THREE.MeshBasicMaterial).color.set(col)
     worldPos(game.pos, gatherRing.position)
     gatherRing.position.y += 0.05
-    const shown = Math.floor(gatherT * GATHER_SEGMENTS)
+    ringT = gatherT
+  }
+  ringFade = active ? Math.min(1, ringFade + dt * 8) : Math.max(0, ringFade - dt * 4)
+  gatherRing.visible = ringFade > 0
+  if (gatherRing.visible) {
+    gatherShadowMat.opacity = (settings.highContrast ? 0.4 : 0.13) * ringFade
+    gatherTrackMat.opacity = 0.7 * ringFade
+    gatherEdgeMat.opacity = ringFade
+    gatherArcMat.opacity = ringFade
+    // The band fills whole segments; the round head glides smoothly and covers the step.
+    const shown = Math.floor(ringT * GATHER_SEGMENTS)
     gatherArc.geometry.setDrawRange(0, shown * 6)
     gatherEdge.geometry.setDrawRange(0, shown * 6)
-    hexOutlinePoint(shown / GATHER_SEGMENTS, GATHER_MID, gatherHead.position)
-    hexOutlinePoint(shown / GATHER_SEGMENTS, GATHER_MID, gatherHeadEdge.position)
-    if (gatherMotes.visible) {
-      for (let i = 0; i < GATHER_MOTES; i++) {
-        const t = (time * 0.9 + i / GATHER_MOTES) % 1
-        const a = i * 2.39996
-        const r = 0.55 * (1 - t)
-        tmpM.makeTranslation(
-          gatherRing.position.x + Math.cos(a + t * 2) * r,
-          gatherRing.position.y + t * (bee.root.position.y - gatherRing.position.y),
-          gatherRing.position.z + Math.sin(a + t * 2) * r,
-        )
-        tmpM.scale(tmpV.setScalar(1 - t * 0.6))
-        gatherMotes.setMatrixAt(i, tmpM)
-      }
-      gatherMotes.instanceMatrix.needsUpdate = true
+    hexOutlinePoint(ringT, GATHER_MID, gatherHead.position)
+    hexOutlinePoint(ringT, GATHER_MID, gatherHeadEdge.position)
+  }
+  if (gatherMotes.visible) {
+    for (let i = 0; i < GATHER_MOTES; i++) {
+      const t = (time * 0.9 + i / GATHER_MOTES) % 1
+      const a = i * 2.39996
+      const r = 0.55 * (1 - t)
+      tmpM.makeTranslation(
+        gatherRing.position.x + Math.cos(a + t * 2) * r,
+        gatherRing.position.y + t * (bee.root.position.y - gatherRing.position.y),
+        gatherRing.position.z + Math.sin(a + t * 2) * r,
+      )
+      tmpM.scale(tmpV.setScalar(1 - t * 0.6))
+      gatherMotes.setMatrixAt(i, tmpM)
     }
+    gatherMotes.instanceMatrix.needsUpdate = true
   }
   return active
 }
