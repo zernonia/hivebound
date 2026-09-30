@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { track } from '~/utils/analytics'
-import { type Hex, hexDistance, hexKey, parseKey } from '~/utils/hex'
+import { type Hex, hexDistance, hexKey, hexesInRange, parseKey } from '~/utils/hex'
 import { hash2 } from '~/utils/noise'
 import { BUILDINGS, OFFLINE_CAP_MS, RESOURCE_INFO, type RawResource, tileSource } from '~/utils/resources'
 import { SPECIES, SPECIES_BY_HABITAT, type SpeciesId, pickName } from '~/utils/species'
-import { HOME, type Tile, WORLD_SEED, useWorldData } from '~/utils/world'
+import { DOORSTEP, HOME, type Tile, WORLD_SEED, useWorldData } from '~/utils/world'
 import { useGame } from './game'
 import { useHive } from './hive'
 import { useSettings } from './settings'
@@ -85,9 +85,17 @@ export interface Dance {
   result: 'hit' | 'miss' | 'fled' | null
 }
 
+/** A dismissed bee waiting on a tile to be found again. */
+export interface ReleasedBee {
+  tileKey: string
+  species: SpeciesId
+  name: string
+}
+
 interface SaveData {
   bees: ColonyBee[]
   used: string[]
+  released?: ReleasedBee[]
   nextId: number
 }
 
@@ -98,6 +106,8 @@ export const useColony = defineStore('colony', {
     bees: [] as ColonyBee[],
     /** Encounters already befriended or that flew off, as "window:tile". */
     used: [] as string[],
+    /** Dismissed bees, each waiting on a tile near the hive. */
+    released: [] as ReleasedBee[],
     nextId: 1,
     dance: null as Dance | null,
     /** Bumps on any change, for views. */
@@ -124,6 +134,7 @@ export const useColony = defineStore('colony', {
           const d = JSON.parse(raw) as Partial<SaveData>
           this.bees = d.bees ?? []
           this.used = d.used ?? []
+          this.released = d.released ?? []
           this.nextId = d.nextId ?? this.bees.length + 1
         }
       }
@@ -131,7 +142,7 @@ export const useColony = defineStore('colony', {
       this.tick()
     },
     save() {
-      const data: SaveData = { bees: this.bees, used: this.used, nextId: this.nextId }
+      const data: SaveData = { bees: this.bees, used: this.used, released: this.released, nextId: this.nextId }
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(data))
       }
@@ -144,6 +155,7 @@ export const useColony = defineStore('colony', {
       catch { /* ignore */ }
       this.bees = []
       this.used = []
+      this.released = []
       this.nextId = 1
       this.dance = null
       this.rev++
@@ -162,10 +174,12 @@ export const useColony = defineStore('colony', {
       if (this.used.includes(encounterKey(tile.key, now))) return null
       // The Wild Nest always has a friendly Bumble waiting, until the first friend joins.
       if (tile.poi === 'nest' && !this.bees.length) return 'bumble'
-      const species = SPECIES_BY_HABITAT[tile.terrain]
-      if (!species) return null
       // Night bees only show up after dark (always, if day and night are switched off).
-      if (SPECIES[species].nightOnly && useSettings().dayNight && !isNight(now)) return null
+      const after = (s: SpeciesId) => !SPECIES[s].nightOnly || !useSettings().dayNight || isNight(now)
+      const released = this.released.find(r => r.tileKey === tile.key)
+      if (released) return after(released.species) ? released.species : null
+      const species = SPECIES_BY_HABITAT[tile.terrain]
+      if (!species || !after(species)) return null
       const window = Math.floor(now / ENCOUNTER_WINDOW_MS)
       return hash2(tile.q * 7 + window, tile.r * 13 - window, WORLD_SEED + 404) < WILD_RATE ? species : null
     },
@@ -246,7 +260,10 @@ export const useColony = defineStore('colony', {
     befriend(species: SpeciesId, tileKey: string) {
       const game = useGame()
       const now = Date.now()
-      const name = pickName(this.bees.map(b => b.name), this.nextId * 7 + now)
+      const taken = this.bees.map(b => b.name)
+      const back = this.released.find(r => r.tileKey === tileKey && r.species === species)
+      const name = back && !taken.includes(back.name) ? back.name : pickName(taken, this.nextId * 7 + now)
+      if (back) this.released = this.released.filter(r => r !== back)
       const def = SPECIES[species]
       this.bees.push({
         id: this.nextId++,
@@ -265,7 +282,9 @@ export const useColony = defineStore('colony', {
       // Forget encounters from old windows so the list stays small.
       const current = Math.floor(now / ENCOUNTER_WINDOW_MS)
       this.used = this.used.filter(k => Number(k.split(':')[0]) >= current - 1)
-      const msg = `${name} the ${def.name} is your friend! They'll help gather ${RESOURCE_INFO[def.favourite].name.toLowerCase()}.`
+      const msg = back
+        ? `${name} the ${def.name} came back!`
+        : `${name} the ${def.name} is your friend! They'll help gather ${RESOURCE_INFO[def.favourite].name.toLowerCase()}.`
       game.toast(msg)
       game.announce(msg)
       game.addJournal({
@@ -294,6 +313,57 @@ export const useColony = defineStore('colony', {
         const b = hive.cells[cell]?.building
         if (b) useGame().announce(`${bee.name} is now working at the ${BUILDINGS[b].name}.`)
       }
+      hive.changed()
+      this.changed()
+      return true
+    },
+
+    /** Where a dismissed bee waits: a free, discovered tile near the hive, its own habitat first. */
+    releaseSpot(species: SpeciesId): string | null {
+      const world = useWorldData()
+      const game = useGame()
+      const taken = new Set(this.released.map(r => r.tileKey))
+      const habitat = SPECIES[species].habitat
+      for (const range of [4, 8]) {
+        let best: Tile | null = null
+        let bestScore = Infinity
+        for (const h of hexesInRange(HOME, range)) {
+          const tile = world.byKey.get(hexKey(h))
+          if (!tile || !tile.walkable || tile.poi || tile.gate || tile.beyond) continue
+          if (!game.discovered.has(tile.key) || taken.has(tile.key)) continue
+          if ((tile.q === HOME.q && tile.r === HOME.r) || (tile.q === DOORSTEP.q && tile.r === DOORSTEP.r)) continue
+          const score = hexDistance(tile, HOME) + (tile.terrain === habitat ? 0 : 20) + hash2(tile.q, tile.r, WORLD_SEED + 505) * 0.9
+          if (score < bestScore) {
+            bestScore = score
+            best = tile
+          }
+        }
+        if (best) return best.key
+      }
+      return null
+    },
+
+    dismiss(id: number) {
+      const bee = this.bees.find(b => b.id === id)
+      if (!bee) return false
+      const game = useGame()
+      if (this.bees.length <= 1) {
+        const msg = 'You need at least one bee at home.'
+        game.toast(msg)
+        game.announce(msg)
+        return false
+      }
+      const hive = useHive()
+      // Settle the buildings at their old pace before this bee stops working.
+      hive.tick()
+      if (bee.holding > 0 && bee.holdingRes) hive.addStock(bee.holdingRes, bee.holding)
+      const tileKey = this.releaseSpot(bee.species)
+      this.bees = this.bees.filter(b => b !== bee)
+      if (tileKey) this.released.push({ tileKey, species: bee.species, name: bee.name })
+      track('bee_dismissed', { species: bee.species, friends: this.bees.length })
+      const msg = `${bee.name} the ${SPECIES[bee.species].name} flew back to the meadow.`
+      game.toast(msg)
+      game.announce(msg)
       hive.changed()
       this.changed()
       return true

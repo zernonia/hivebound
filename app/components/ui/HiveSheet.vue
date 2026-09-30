@@ -51,6 +51,14 @@ function workOptions(bee: ColonyBee): PickerOption[] {
   }))
 }
 
+/* ---------------- dismissing ---------------- */
+const dismissing = ref<ColonyBee | null>(null)
+const onlyBee = computed(() => colony.bees.length <= 1)
+function confirmDismiss() {
+  if (dismissing.value) colony.dismiss(dismissing.value.id)
+  dismissing.value = null
+}
+
 /* ---------------- upgrades ---------------- */
 const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, n: a[r]!, ok: hive.stock[r] >= a[r]! }))
 
@@ -71,9 +79,10 @@ watch(() => game.hiveSheet, (v) => {
 })
 watch(() => game.buildMenuOpen, v => v && (game.hiveSheet = null))
 watch(() => game.scene, s => s !== 'hive' && (game.hiveSheet = null))
+watch(() => game.hiveSheet, () => (dismissing.value = null))
 
 function onKey(e: KeyboardEvent) {
-  if (game.scene !== 'hive' || game.transition || game.journalOpen || game.settingsOpen || e.repeat) return
+  if (game.scene !== 'hive' || dismissing.value || game.transition || game.journalOpen || game.settingsOpen || e.repeat) return
   const target = e.target as HTMLElement | null
   // Typing, or a dropdown list with the keys: leave them be.
   if (target?.closest('input, textarea, [contenteditable], .picker-list')) return
@@ -122,6 +131,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
               <div class="friend-head">
                 <span class="swatch" :style="{ background: SPECIES[b.species].look.colors.body, borderColor: SPECIES[b.species].look.colors.stripe }" aria-hidden="true" />
                 <span class="who"><strong>{{ b.name }}</strong> <span class="species">{{ SPECIES[b.species].name }}</span></span>
+                <button
+                  class="chip-btn dismiss"
+                  :disabled="onlyBee"
+                  :title="onlyBee ? 'You need at least one bee at home.' : undefined"
+                  :aria-label="onlyBee ? `Dismiss ${b.name} (you need at least one bee at home)` : `Dismiss ${b.name}`"
+                  @click="dismissing = b"
+                >
+                  Dismiss
+                </button>
               </div>
               <p class="status-line">
                 {{ (void now, colony.statusText(b, now)) }}
@@ -190,6 +208,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
       </p>
     </section>
   </Transition>
+
+  <UiDialog :open="!!dismissing" :title="`Dismiss ${dismissing?.name ?? ''}?`" @close="dismissing = null">
+    <p class="blurb">
+      Send {{ dismissing?.name }} back to the meadow? You can find them near the hive and befriend them again.
+    </p>
+    <div class="confirm">
+      <button class="chip-btn" @click="dismissing = null">
+        Keep {{ dismissing?.name }}
+      </button>
+      <button class="chip-btn primary" @click="confirmDismiss">
+        Dismiss
+      </button>
+    </div>
+  </UiDialog>
 </template>
 
 <style scoped>
@@ -279,6 +311,20 @@ h2 {
   border-radius: 7px;
   border: 3px solid;
   flex: none;
+}
+.dismiss {
+  margin-left: auto;
+  min-height: 44px;
+  box-shadow: none;
+}
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.confirm .chip-btn {
+  min-height: 44px;
 }
 .species {
   color: var(--ink-soft);
