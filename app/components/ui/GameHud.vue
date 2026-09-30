@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
-import { useColony } from '~/stores/colony'
+import { gatherJob, useColony, workCell } from '~/stores/colony'
 import { useSettings } from '~/stores/settings'
-import { RESOURCE_INFO, tileSource } from '~/utils/resources'
+import { BUILDINGS, BUILDING_LIST, RAW_RESOURCES, RESOURCE_INFO, type Resource, tileSource } from '~/utils/resources'
 import { useWorldData } from '~/utils/world'
 import { minutesUntilChange, timeOfDay } from '~/utils/daylight'
 
@@ -36,6 +36,37 @@ const tod = computed(() => (void now.value, timeOfDay()))
 const todTitle = computed(() => (void now.value, tod.value === 'night' ? `Morning in about ${minutesUntilChange()} min` : `Night falls in about ${minutesUntilChange()} min`))
 
 const colony = useColony()
+/* What the helpers are up to: gatherers first, then building work, then rest. One pass, only when the colony changes. */
+interface JobChip { key: string, count: number, icon: Resource | null, label: string }
+const jobChips = computed<JobChip[]>(() => {
+  void colony.rev
+  void hive.rev
+  const gather: Partial<Record<string, number>> = {}
+  const work: Partial<Record<string, number>> = {}
+  let rest = 0
+  for (const bee of colony.bees) {
+    const res = gatherJob(bee.job)
+    const cell = workCell(bee.job)
+    if (res) gather[res] = (gather[res] ?? 0) + 1
+    else if (cell) {
+      const kind = hive.cells[cell]?.building
+      if (kind) work[kind] = (work[kind] ?? 0) + 1
+    }
+    else rest++
+  }
+  const chips: JobChip[] = []
+  for (const r of RAW_RESOURCES) {
+    if (gather[r]) chips.push({ key: r, count: gather[r]!, icon: r, label: `gathering ${RESOURCE_INFO[r].name.toLowerCase()}` })
+  }
+  for (const id of BUILDING_LIST) {
+    const out = Object.keys(BUILDINGS[id].recipe?.out ?? {})[0] as Resource | undefined
+    if (work[id]) chips.push({ key: id, count: work[id]!, icon: out ?? null, label: `at the ${BUILDINGS[id].name}` })
+  }
+  if (rest) chips.push({ key: 'rest', count: rest, icon: null, label: 'resting' })
+  return chips
+})
+const jobSummary = computed(() => `Helpers: ${jobChips.value.map(c => `${c.count} ${c.label}`).join(', ')}`)
+
 /** The Build button: same rule as B, it needs an empty cell. */
 function openBuild() {
   const key = hive.selected
@@ -71,6 +102,13 @@ function lookAround() {
           <span>{{ RESOURCE_INFO[here.resource].name }} {{ here.left }}/{{ here.max }}</span>
           <span v-if="here.regrow" class="regrow">· +1 in {{ here.regrow }}s</span>
         </p>
+        <ul v-if="jobChips.length" class="jobs" :aria-label="jobSummary">
+          <li v-for="c in jobChips" :key="c.key" :title="`${c.count} ${c.label}`">
+            <ResourceIcon v-if="c.icon" :name="c.icon" />
+            <span v-else class="rest" aria-hidden="true">Zz</span>
+            <span class="n" aria-hidden="true">{{ c.count }}</span>
+          </li>
+        </ul>
       </header>
       <PouchMeter v-if="!inHive" />
       <QueenTracker v-if="!inHive" />
@@ -221,6 +259,35 @@ function lookAround() {
 }
 .regrow {
   font-weight: 500;
+  color: var(--ink-soft);
+}
+.jobs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.jobs li {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+.jobs .res-icon {
+  width: 16px;
+  height: 16px;
+}
+.jobs .n {
+  font-variant-numeric: tabular-nums;
+}
+.jobs .rest {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
   color: var(--ink-soft);
 }
 .map-slot {
