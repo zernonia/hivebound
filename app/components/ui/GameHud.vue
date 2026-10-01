@@ -3,8 +3,8 @@ import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { useColony } from '~/stores/colony'
 import { useSettings } from '~/stores/settings'
-import { RESOURCE_INFO, tileSource } from '~/utils/resources'
-import { useWorldData } from '~/utils/world'
+import { resourceName, tileSource } from '~/utils/resources'
+import { terrainLabel, useWorldData } from '~/utils/world'
 import { minutesUntilChange, timeOfDay } from '~/utils/daylight'
 
 const game = useGame()
@@ -12,9 +12,10 @@ const hive = useHive()
 const settings = useSettings()
 const compact = useCompactScreen()
 const world = useWorldData()
+const { t } = useI18n()
 
 const inHive = computed(() => game.scene === 'hive')
-const place = computed(() => (inHive.value ? 'Home Hive' : game.describeTile(game.pos)))
+const place = computed(() => (inHive.value ? terrainLabel('hive') : game.describeTile(game.pos)))
 
 // What can be gathered on this tile (refreshed on a slow clock so regrowth shows up).
 const now = ref(Date.now())
@@ -33,14 +34,15 @@ const here = computed(() => {
 })
 
 const tod = computed(() => (void now.value, timeOfDay()))
-const todTitle = computed(() => (void now.value, tod.value === 'night' ? `Morning in about ${minutesUntilChange()} min` : `Night falls in about ${minutesUntilChange()} min`))
+const todName = computed(() => t(`tod.${tod.value}`))
+const todTitle = computed(() => (void now.value, t(tod.value === 'night' ? 'hud.morningIn' : 'hud.nightIn', { n: minutesUntilChange() })))
 
 const colony = useColony()
 /** The Build button: same rule as B, it needs an empty cell. */
 function openBuild() {
   const key = hive.selected
   if (key && hive.status(key).kind === 'empty') game.buildMenuOpen = true
-  else game.toast('Pick an empty cell to build on.')
+  else game.toast(t('build.pickCell'))
 }
 
 function lookAround() {
@@ -61,15 +63,15 @@ function lookAround() {
           {{ place }}
         </p>
         <p class="sub">
-          Day {{ game.day }} · {{ game.steps }} {{ game.steps === 1 ? 'hex' : 'hexes' }} flown
+          {{ t('hud.dayLine', { day: game.day, n: game.steps }, game.steps) }}
           <template v-if="settings.dayNight">
-            · <span class="tod" :title="todTitle"><span aria-hidden="true">{{ tod === 'night' ? '☾' : '☀' }}</span> {{ tod }}</span>
+            · <span class="tod" :title="todTitle"><span aria-hidden="true">{{ tod === 'night' ? '☾' : '☀' }}</span> {{ todName }}</span>
           </template>
         </p>
         <p v-if="here" class="here">
           <ResourceIcon :name="here.resource" />
-          <span>{{ RESOURCE_INFO[here.resource].name }} {{ here.left }}/{{ here.max }}</span>
-          <span v-if="here.regrow" class="regrow">· +1 in {{ here.regrow }}s</span>
+          <span>{{ resourceName(here.resource) }} {{ here.left }}/{{ here.max }}</span>
+          <span v-if="here.regrow" class="regrow">· {{ t('hud.plusOneIn', { n: here.regrow }) }}</span>
         </p>
       </header>
       <PouchMeter v-if="!inHive" />
@@ -89,44 +91,44 @@ function lookAround() {
     <HivePanel v-if="inHive && !game.transition" />
 
     <!-- Bottom-left: actions -->
-    <nav class="actions" :class="{ 'in-hive': inHive }" aria-label="Game actions">
-      <button class="chip-btn" style="position: relative" :aria-label="game.unreadCount ? `Journal, ${game.unreadCount} new` : 'Journal'" @click="game.journalOpen = true">
+    <nav class="actions" :class="{ 'in-hive': inHive }" :aria-label="t('hud.gameActions')">
+      <button class="chip-btn" style="position: relative" :aria-label="game.unreadCount ? t('hud.journalNew', { n: game.unreadCount }) : t('hud.journal')" @click="game.journalOpen = true">
         <UiIcon name="journal" />
-        <span>Journal</span>
+        <span>{{ t('hud.journal') }}</span>
         <span class="kbd hide-touch" aria-hidden="true">J</span>
         <span v-if="game.unreadCount" class="badge" aria-hidden="true">{{ game.unreadCount }}</span>
       </button>
       <template v-if="!inHive">
         <!-- Look around is a narration tool, so it's shown with Screen reader narration on. -->
-        <button v-if="settings.narration" class="chip-btn" aria-label="Look around" @click="lookAround">
+        <button v-if="settings.narration" class="chip-btn" :aria-label="t('hud.lookAround')" @click="lookAround">
           <UiIcon name="look" />
-          <span>Look</span>
+          <span>{{ t('hud.look') }}</span>
           <span class="kbd hide-touch" aria-hidden="true">L</span>
         </button>
-        <button class="chip-btn" aria-label="Fly home" @click="game.flyHome()">
+        <button class="chip-btn" :aria-label="t('hud.flyHome')" @click="game.flyHome()">
           <UiIcon name="home" />
-          <span>Home</span>
+          <span>{{ t('hud.home') }}</span>
           <span class="kbd hide-touch" aria-hidden="true">H</span>
         </button>
       </template>
       <template v-else>
-        <button class="chip-btn" :class="{ on: game.buildMenuOpen }" aria-label="Build on the selected cell" @click="game.buildMenuOpen ? (game.buildMenuOpen = false) : openBuild()">
+        <button class="chip-btn" :class="{ on: game.buildMenuOpen }" :aria-label="t('hud.buildSelected')" @click="game.buildMenuOpen ? (game.buildMenuOpen = false) : openBuild()">
           <UiIcon name="build" />
-          <span>Build</span>
+          <span>{{ t('hud.build') }}</span>
           <span class="kbd hide-touch" aria-hidden="true">B</span>
         </button>
-        <button class="chip-btn" :class="{ on: game.hiveSheet === 'colony' }" :aria-pressed="game.hiveSheet === 'colony'" :aria-label="`Colony, ${colony.bees.length} helpers`" @click="game.hiveSheet = game.hiveSheet === 'colony' ? null : 'colony'">
+        <button class="chip-btn" :class="{ on: game.hiveSheet === 'colony' }" :aria-pressed="game.hiveSheet === 'colony'" :aria-label="t('hud.colonyAria', { n: colony.bees.length })" @click="game.hiveSheet = game.hiveSheet === 'colony' ? null : 'colony'">
           <UiIcon name="bee" />
-          <span>Colony</span>
+          <span>{{ t('hud.colony') }}</span>
           <span class="kbd hide-touch" aria-hidden="true">C</span>
         </button>
-        <button class="chip-btn" :class="{ on: game.hiveSheet === 'upgrades' }" :aria-pressed="game.hiveSheet === 'upgrades'" aria-label="Upgrades" @click="game.hiveSheet = game.hiveSheet === 'upgrades' ? null : 'upgrades'">
+        <button class="chip-btn" :class="{ on: game.hiveSheet === 'upgrades' }" :aria-pressed="game.hiveSheet === 'upgrades'" :aria-label="t('hud.upgrades')" @click="game.hiveSheet = game.hiveSheet === 'upgrades' ? null : 'upgrades'">
           <UiIcon name="upgrade" />
-          <span>Upgrades</span>
+          <span>{{ t('hud.upgrades') }}</span>
           <span class="kbd hide-touch" aria-hidden="true">U</span>
         </button>
       </template>
-      <button class="chip-btn" aria-label="Settings" @click="game.settingsOpen = true">
+      <button class="chip-btn" :aria-label="t('hud.settings')" @click="game.settingsOpen = true">
         <UiIcon name="settings" />
       </button>
     </nav>
@@ -134,11 +136,11 @@ function lookAround() {
     <!-- Bottom-right: zoom + pad -->
     <div v-if="!inHive" class="right">
       <MovePad v-if="settings.showPad" />
-      <div class="zoom" role="group" aria-label="Zoom">
-        <button class="chip-btn" aria-label="Zoom in" @click="settings.setZoom(settings.zoom / 1.15)">
+      <div class="zoom" role="group" :aria-label="t('hud.zoom')">
+        <button class="chip-btn" :aria-label="t('hud.zoomIn')" @click="settings.setZoom(settings.zoom / 1.15)">
           <UiIcon name="plus" />
         </button>
-        <button class="chip-btn" aria-label="Zoom out" @click="settings.setZoom(settings.zoom * 1.15)">
+        <button class="chip-btn" :aria-label="t('hud.zoomOut')" @click="settings.setZoom(settings.zoom * 1.15)">
           <UiIcon name="minus" />
         </button>
       </div>
@@ -146,15 +148,15 @@ function lookAround() {
 
     <!-- First-run tip -->
     <Transition name="fade">
-      <aside v-if="settings.showHints && game.steps < 3 && !inHive" class="tip panel" aria-label="Tip">
+      <aside v-if="settings.showHints && game.steps < 3 && !inHive" class="tip panel" :aria-label="t('hud.tip')">
         <p>
-          <strong>Tap a tile</strong> to fly there<span class="hide-touch">, or use
+          <strong>{{ t('hud.tipTap') }}</strong> {{ t('hud.tipFly') }}<span class="hide-touch">{{ t('hud.tipKeys') }}
             <span class="kbd">Q</span><span class="kbd">W</span><span class="kbd">E</span>
             <span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span>.
-          Follow the <span class="spark" aria-hidden="true">◆</span> sparkles to find new places.
+          {{ t('hud.tipSparklesA') }}<span class="spark" aria-hidden="true">◆</span>{{ t('hud.tipSparklesB') }}
         </p>
         <button class="chip-btn small" @click="settings.showHints = false">
-          Got it
+          {{ t('hud.gotIt') }}
         </button>
       </aside>
     </Transition>

@@ -3,10 +3,12 @@ import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
 import { MAX_COLONY, useColony } from '~/stores/colony'
 import { useQueen } from '~/stores/queen'
+import { requestTitle } from '~/utils/requests'
 
 /* The Queen's current request, pinned under the location card: what's needed and how close. */
 const queen = useQueen()
 const game = useGame()
+const { t } = useI18n()
 const hive = useHive()
 const colony = useColony()
 
@@ -34,7 +36,7 @@ const open = ref(true)
   <section class="queen panel" :class="{ ready }" aria-labelledby="queen-title">
     <button class="head" :aria-expanded="open" aria-controls="queen-body" @click="open = !open">
       <span class="crown" aria-hidden="true">♛</span>
-      <span id="queen-title" class="t">{{ queen.current.title }}</span>
+      <span id="queen-title" class="t">{{ requestTitle(queen.current) }}</span>
       <span class="chev" :class="{ open }" aria-hidden="true">▾</span>
     </button>
     <div v-show="open" id="queen-body">
@@ -44,16 +46,14 @@ const open = ref(true)
           <span class="tick" aria-hidden="true">{{ l.done ? '✓' : '·' }}</span>
           <span>{{ l.label }}</span>
           <span v-if="l.need > 1" class="n">{{ l.have }}/{{ l.need }}</span>
-          <span class="sr-only">{{ l.done ? 'done' : 'not yet' }}</span>
+          <span class="sr-only">{{ l.done ? t('queen.done') : t('queen.notYet') }}</span>
         </li>
       </ul>
       <p v-if="ready" class="go" aria-live="polite">
-        Ready! Visit the Queen in the hive.
+        {{ t('queen.readyGo') }}
       </p>
       <p v-else-if="needsRoom" class="room">
-        {{ colony.capacity >= MAX_COLONY
-          ? 'Every bed is taken. Dismiss a helper from the Colony page to make room for a new friend.'
-          : 'The hive is full. Build a Bee Room, or dismiss a helper from the Colony page, to make room for a new friend.' }}
+        {{ t(colony.capacity >= MAX_COLONY ? 'queen.roomMax' : 'queen.room') }}
       </p>
     </div>
   </section>

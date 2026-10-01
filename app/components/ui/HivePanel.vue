@@ -3,9 +3,10 @@ import { type CellStatus, HIVE_DOOR, QUEEN_CELL, useHive } from '~/stores/hive'
 import { useQueen } from '~/stores/queen'
 import type { PickerOption } from './UiPicker.vue'
 import { MAX_WORKERS, useColony, workCell } from '~/stores/colony'
-import { SPECIES } from '~/utils/species'
+import { SPECIES, speciesName } from '~/utils/species'
 import { useGame } from '~/stores/game'
-import { ALL_RESOURCES, type Amounts, BUILDINGS, RESOURCE_INFO, TRAY_CAP, UNLOCK_CELL_COST, formatAmounts } from '~/utils/resources'
+import { ALL_RESOURCES, type Amounts, buildingAt, buildingBlurb, buildingName, TRAY_CAP, UNLOCK_CELL_COST, formatAmounts, resourceName } from '~/utils/resources'
+import { requestAsk, requestTitle } from '~/utils/requests'
 
 /*
  * The hive's compact card: the store, and whatever cell the bee is looking at. Bigger pages
@@ -15,6 +16,7 @@ const hive = useHive()
 const game = useGame()
 const colony = useColony()
 const queen = useQueen()
+const { t } = useI18n()
 
 const queenLines = computed(() => {
   void hive.rev
@@ -33,7 +35,7 @@ function helperOptions(key: string): PickerOption[] {
   return freeBees(key).map(b => ({
     value: String(b.id),
     label: b.name,
-    note: SPECIES[b.species].name,
+    note: speciesName(b.species),
     swatch: { fill: SPECIES[b.species].look.colors.body, border: SPECIES[b.species].look.colors.stripe },
   }))
 }
@@ -56,25 +58,26 @@ const sel = computed(() => {
     output: hive.cells[key]?.output ?? 0,
   }
 })
-const selBuilding = computed(() => (sel.value?.building ? BUILDINGS[sel.value.building] : null))
+const selBuildingId = computed(() => sel.value?.building ?? null)
+const selBuilding = computed(() => (selBuildingId.value ? BUILDINGS[selBuildingId.value] : null))
 
 function statusText(st: CellStatus, output = 0): string {
-  const tray = output > 0 ? `, ${output} ready to collect` : ''
+  const tray = output > 0 ? t('hivePanel.trayReady', { n: output }) : ''
   switch (st.kind) {
-    case 'queen': return 'resting on her cushion'
-    case 'locked': return 'sealed with wax'
-    case 'empty': return 'ready to build on'
-    case 'storage': return 'storing extra'
-    case 'working': return st.remaining > 0 ? `working, ${st.remaining}s left${tray}` : `just finishing${tray}`
-    case 'waiting': return `waiting for ${formatAmounts(st.missing) || 'room'}${tray}`
-    case 'full': return output ? `tray full, ${output} ready to collect` : 'tray full, collect to keep going'
-    case 'paused': return `paused${tray}`
+    case 'queen': return t('hivePanel.st.queen')
+    case 'locked': return t('hivePanel.st.locked')
+    case 'empty': return t('hivePanel.st.empty')
+    case 'storage': return t('hivePanel.st.storage')
+    case 'working': return st.remaining > 0 ? t('hivePanel.st.working', { n: st.remaining }) + tray : t('hivePanel.st.finishing') + tray
+    case 'waiting': return t('hivePanel.st.waiting', { amounts: formatAmounts(st.missing) || t('hivePanel.st.room') }) + tray
+    case 'full': return output ? t('hivePanel.st.fullReady', { n: output }) : t('hivePanel.st.full')
+    case 'paused': return t('hivePanel.st.paused') + tray
   }
 }
 
 function missingText(cost: Amounts) {
   const m = hive.missing(cost)
-  return Object.keys(m).length ? `Need ${formatAmounts(m)} more` : ''
+  return Object.keys(m).length ? t('hivePanel.need', { amounts: formatAmounts(m) }) : ''
 }
 
 const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, n: a[r]!, ok: hive.stock[r] >= a[r]! }))
@@ -84,43 +87,43 @@ const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, 
   <section class="hive-panel panel" aria-labelledby="hive-title">
     <header class="head">
       <h2 id="hive-title">
-        Home Hive
+        {{ t('terrain.hive.label') }}
       </h2>
     </header>
 
     <!-- Store -->
     <div class="store">
       <h3 class="label">
-        Store <span class="cap">up to {{ hive.storageCap }} each</span>
+        {{ t('hivePanel.store') }} <span class="cap">{{ t('hivePanel.upToEach', { n: hive.storageCap }) }}</span>
       </h3>
       <ul class="stock">
         <li v-for="r in ALL_RESOURCES" :key="r" :class="{ zero: !hive.stock[r] }">
           <ResourceIcon :name="r" />
           <span class="n">{{ hive.stock[r] }}</span>
-          <span class="sr-only">{{ RESOURCE_INFO[r].name }}</span>
+          <span class="sr-only">{{ resourceName(r) }}</span>
         </li>
       </ul>
     </div>
 
     <div class="body">
       <div v-if="hive.selected === HIVE_DOOR" class="detail" aria-live="polite">
-        <h3>Doorway</h3>
+        <h3>{{ t('hivePanel.doorway') }}</h3>
         <p class="blurb">
-          The way back out to the meadow.
+          {{ t('hivePanel.doorwayBlurb') }}
         </p>
         <button class="chip-btn primary" @click="game.leaveHive()">
-          <span class="kbd hide-touch" aria-hidden="true">F</span> Leave hive
+          <span class="kbd hide-touch" aria-hidden="true">F</span> {{ t('actions.leave') }}
         </button>
       </div>
       <div v-else-if="sel" class="detail" aria-live="polite">
         <!-- Queen -->
         <template v-if="sel.key === QUEEN_CELL">
-          <h3>The Queen <span class="level">Hive level {{ queen.hiveLevel }}</span></h3>
+          <h3>{{ t('hivePanel.theQueen') }} <span class="level">{{ t('hivePanel.hiveLevel', { n: queen.hiveLevel }) }}</span></h3>
           <p class="request-title">
-            ♛ {{ queen.current.title }}
+            ♛ {{ requestTitle(queen.current) }}
           </p>
           <p class="blurb">
-            “{{ queen.current.ask }}”
+            “{{ requestAsk(queen.current) }}”
           </p>
           <ul class="q-lines">
             <li v-for="l in queenLines" :key="l.label" :class="{ done: l.done }">
@@ -130,80 +133,80 @@ const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, 
             </li>
           </ul>
           <button class="chip-btn primary" :disabled="!queenReady" @click="queen.talk()">
-            <span class="kbd hide-touch" aria-hidden="true">F</span> {{ queenReady ? 'Give to the Queen' : 'Not ready yet' }}
+            <span class="kbd hide-touch" aria-hidden="true">F</span> {{ queenReady ? t('actions.give') : t('hivePanel.notReady') }}
           </button>
         </template>
 
         <!-- Sealed -->
         <template v-else-if="sel.status.kind === 'locked'">
-          <h3>Sealed cell</h3>
+          <h3>{{ t('hivePanel.sealedCell') }}</h3>
           <p class="blurb">
-            Old comb, capped with wax. Unseal it to make room for another building.
+            {{ t('hivePanel.sealedBlurb') }}
           </p>
           <p v-if="!hive.canUnlock(sel.key)" class="note">
-            Unseal a cell next to this one first.
+            {{ t('hivePanel.unsealNext') }}
           </p>
           <template v-else>
             <p class="costs">
-              <span v-for="c in costList(UNLOCK_CELL_COST)" :key="c.r" class="cost" :class="{ short: !c.ok }"><ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ RESOURCE_INFO[c.r].name }}</span></span>
+              <span v-for="c in costList(UNLOCK_CELL_COST)" :key="c.r" class="cost" :class="{ short: !c.ok }"><ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ resourceName(c.r) }}</span></span>
             </p>
             <button class="chip-btn primary" :disabled="!hive.has(UNLOCK_CELL_COST)" @click="hive.unlock(sel.key)">
-              <span class="kbd hide-touch" aria-hidden="true">F</span> Unseal
+              <span class="kbd hide-touch" aria-hidden="true">F</span> {{ t('actions.unseal') }}
             </button>
             <p v-if="!hive.has(UNLOCK_CELL_COST)" class="note">
-              {{ missingText(UNLOCK_CELL_COST) }}. Wax comes from the Wax Works.
+              {{ t('hivePanel.missingWax', { missing: missingText(UNLOCK_CELL_COST) }) }}
             </p>
           </template>
         </template>
 
         <!-- Empty: point at the build menu -->
         <template v-else-if="sel.status.kind === 'empty'">
-          <h3>Empty cell</h3>
+          <h3>{{ t('hivePanel.emptyCell') }}</h3>
           <p class="blurb">
-            Room for a new building.
+            {{ t('hivePanel.emptyBlurb') }}
           </p>
           <button class="chip-btn primary" @click="game.buildMenuOpen = true">
-            <span class="kbd hide-touch" aria-hidden="true">B</span> Build…
+            <span class="kbd hide-touch" aria-hidden="true">B</span> {{ t('hivePanel.buildDots') }}
           </button>
         </template>
 
         <!-- A building -->
         <template v-else-if="selBuilding">
-          <h3>{{ selBuilding.name }}</h3>
+          <h3>{{ buildingName(selBuildingId!) }}</h3>
           <p class="blurb">
-            {{ selBuilding.blurb }}
+            {{ buildingBlurb(selBuildingId!) }}
           </p>
           <template v-if="selBuilding.recipe">
             <p class="recipe">
               <template v-for="c in costList(selBuilding.recipe.in)" :key="c.r">
                 <ResourceIcon :name="c.r" />{{ c.n }}
               </template>
-              <span aria-hidden="true">→</span><span class="sr-only">makes</span>
+              <span aria-hidden="true">→</span><span class="sr-only">{{ t('hivePanel.makes') }}</span>
               <template v-for="(n, r) in selBuilding.recipe.out" :key="r">
                 <ResourceIcon :name="r" />{{ n }}
               </template>
-              <span class="secs">· {{ Math.round(((void now, hive.batchMs(sel.key)) / 1000)) }}s each</span>
+              <span class="secs">· {{ t('hivePanel.secsEach', { n: Math.round(((void now, hive.batchMs(sel.key)) / 1000)) }) }}</span>
             </p>
-            <div class="helpers" role="group" :aria-label="`Helpers at the ${selBuilding.name}`">
-              <span class="label">Helpers {{ colony.workersAt(sel.key).length }}/{{ MAX_WORKERS }}</span>
+            <div class="helpers" role="group" :aria-label="t('hivePanel.helpersAtAria', { at: buildingAt(selBuildingId!) })">
+              <span class="label">{{ t('hivePanel.helpers') }} {{ colony.workersAt(sel.key).length }}/{{ MAX_WORKERS }}</span>
               <span v-for="b in colony.workersAt(sel.key)" :key="b.id" class="helper">
                 <span class="swatch" :style="{ background: SPECIES[b.species].look.colors.body, borderColor: SPECIES[b.species].look.colors.stripe }" aria-hidden="true" />
                 {{ b.name }}
-                <button class="unassign" :aria-label="`Send ${b.name} to rest`" @click="colony.setJob(b.id, null)">×</button>
+                <button class="unassign" :aria-label="t('hivePanel.sendToRest', { name: b.name })" @click="colony.setJob(b.id, null)">×</button>
               </span>
               <UiPicker
                 v-if="colony.workersAt(sel.key).length < MAX_WORKERS && freeBees(sel.key).length"
                 class="assign"
                 :options="helperOptions(sel.key)"
                 :model-value="null"
-                placeholder="+ Add a helper"
-                :label="`Add a helper to the ${selBuilding.name}`"
+                :placeholder="t('hivePanel.addHelper')"
+                :label="t('hivePanel.addHelperAt', { at: buildingAt(selBuildingId!) })"
                 @update:model-value="id => colony.setJob(Number(id), `cell:${sel!.key}`)"
               />
-              <span v-else-if="!colony.bees.length" class="note">Befriend a wild bee to help here.</span>
+              <span v-else-if="!colony.bees.length" class="note">{{ t('hivePanel.befriendToHelp') }}</span>
             </div>
             <p v-if="colony.workersAt(sel.key).length" class="note">
-              Helpers speed it up and carry each batch to the store for you.
+              {{ t('hivePanel.helpersNote') }}
             </p>
             <p class="status">
               {{ statusText(sel.status, 0).replace(/^./, m => m.toUpperCase()) }}.
@@ -212,22 +215,22 @@ const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, 
               <span :style="{ width: `${sel.status.progress * 100}%` }" />
             </div>
             <div class="tray">
-              <span>Tray: <strong>{{ sel.output }}</strong> / {{ TRAY_CAP }}</span>
+              <span>{{ t('hivePanel.tray') }} <strong>{{ sel.output }}</strong> / {{ TRAY_CAP }}</span>
               <span class="tray-actions">
                 <button class="chip-btn" :aria-pressed="!!hive.cells[sel.key]?.paused" @click="hive.togglePause(sel.key)">
-                  {{ hive.cells[sel.key]?.paused ? 'Resume' : 'Pause' }}
+                  {{ hive.cells[sel.key]?.paused ? t('hivePanel.resume') : t('hivePanel.pause') }}
                 </button>
                 <button class="chip-btn primary" :disabled="!sel.output" @click="hive.collect(sel.key)">
-                  <span class="kbd hide-touch" aria-hidden="true">F</span> Collect
+                  <span class="kbd hide-touch" aria-hidden="true">F</span> {{ t('hivePanel.collect') }}
                 </button>
               </span>
             </div>
           </template>
           <p v-else-if="selBuilding.housing" class="status">
-            A home for {{ selBuilding.housing }} helper bees. The colony has {{ colony.bees.length }} of {{ colony.capacity }} beds filled.
+            {{ t('hivePanel.housing', { n: selBuilding.housing, filled: colony.bees.length, cap: colony.capacity }) }}
           </p>
           <p v-else class="status">
-            Adds room for {{ selBuilding.storage }} more of every resource.
+            {{ t('hivePanel.storage', { n: selBuilding.storage }) }}
           </p>
         </template>
       </div>

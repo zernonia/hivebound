@@ -2,9 +2,10 @@
 import { BEE_NAME_MAX, MAX_COLONY, MAX_WORKERS, type ColonyBee, useColony, workCell } from '~/stores/colony'
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
-import { ALL_RESOURCES, type Amounts, BUILDINGS, RAW_RESOURCES, RESOURCE_INFO, type RawResource, UPGRADES, UPGRADE_LIST } from '~/utils/resources'
+import { ALL_RESOURCES, type Amounts, BUILDINGS, buildingName, RAW_RESOURCES, resourceName, type RawResource, upgradeDescribe, upgradeName, UPGRADES, UPGRADE_LIST } from '~/utils/resources'
 import { useSettings } from '~/stores/settings'
-import { SPECIES } from '~/utils/species'
+import { SPECIES, speciesName, speciesPlural } from '~/utils/species'
+import { activeLang } from '~/utils/i18n'
 import type { PickerOption } from './UiPicker.vue'
 
 /*
@@ -16,6 +17,7 @@ const game = useGame()
 const hive = useHive()
 const settings = useSettings()
 const colony = useColony()
+const { t } = useI18n()
 const sheet = computed(() => game.hiveSheet)
 const panel = ref<HTMLElement>()
 
@@ -25,7 +27,10 @@ onMounted(() => (timer = setInterval(() => (now.value = Date.now()), 500)))
 onBeforeUnmount(() => clearInterval(timer))
 
 /* ---------------- colony ---------------- */
-const jobs: { v: RawResource | null, label: string }[] = [...RAW_RESOURCES.map(r => ({ v: r as RawResource, label: RESOURCE_INFO[r].name })), { v: null, label: 'Rest' }]
+const jobs = computed<{ v: RawResource | null, label: string }[]>(() => [
+  ...RAW_RESOURCES.map(r => ({ v: r as RawResource, label: resourceName(r) })),
+  { v: null, label: t('sheet.rest') },
+])
 
 /** Buildings that make something, as places a helper can work ("Honey Press 2" when there are several). */
 const workplaces = computed(() => {
@@ -33,8 +38,8 @@ const workplaces = computed(() => {
   void colony.rev
   const list = Object.entries(hive.cells)
     .filter(([, c]) => c.building && BUILDINGS[c.building].recipe)
-    .map(([key, c]) => ({ key, id: c.building!, name: BUILDINGS[c.building!].name }))
-    .sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key))
+    .map(([key, c]) => ({ key, id: c.building!, name: buildingName(c.building!) }))
+    .sort((a, b) => a.name.localeCompare(b.name, activeLang()) || a.key.localeCompare(b.key))
   const seen: Record<string, number> = {}
   return list.map((w) => {
     const n = (seen[w.id] = (seen[w.id] ?? 0) + 1)
@@ -139,10 +144,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
     >
       <header>
         <h2 :id="`sheet-${sheet}`">
-          {{ sheet === 'colony' ? 'Colony' : 'Upgrades' }}
-          <span v-if="sheet === 'colony'" class="sub">{{ colony.bees.length }} / {{ colony.capacity }} beds filled</span>
+          {{ t(sheet === 'colony' ? 'sheet.colonyTitle' : 'sheet.upgradesTitle') }}
+          <span v-if="sheet === 'colony'" class="sub">{{ t('sheet.bedsFilled', { filled: colony.bees.length, cap: colony.capacity }) }}</span>
         </h2>
-        <button class="close" :aria-label="`Close ${sheet}`" @click="close">
+        <button class="close" :aria-label="t('sheet.close', { sheet: t(sheet === 'colony' ? 'sheet.colonyTitle' : 'sheet.upgradesTitle') })" @click="close">
           <UiIcon name="close" />
         </button>
       </header>
@@ -151,15 +156,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
         <!-- Colony -->
         <template v-if="sheet === 'colony'">
           <p v-if="!colony.hasRoom" class="note">
-            {{ colony.capacity >= MAX_COLONY
-              ? 'Every bed is taken. To make room for a new friend, you can dismiss a helper: they fly back to the meadow nearby.'
-              : 'All beds are full. Build a Bee Room for more, or dismiss a helper back to the meadow.' }}
+            {{ t(colony.capacity >= MAX_COLONY ? 'sheet.noRoomMax' : 'sheet.noRoom') }}
           </p>
           <p v-if="!colony.bees.length" class="blurb">
-            No helpers yet. Wild bees hover over meadows, flower patches, water and woods: fly onto one and press <span class="kbd">F</span> to try the befriending dance. There's always a friendly Bumble at the Wild Nest.
+            {{ t('sheet.noHelpers') }}
           </p>
           <p v-if="onlyBee" id="only-bee-note" class="note">
-            You need at least one bee at home.
+            {{ t('colony.needOne') }}
           </p>
           <ul class="colony">
             <li v-for="b in colony.bees" :key="b.id" class="friend">
@@ -174,41 +177,41 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
                   enterkeyhint="done"
                   autocomplete="off"
                   :maxlength="BEE_NAME_MAX"
-                  :aria-label="`New name for ${b.name}`"
+                  :aria-label="t('sheet.newNameFor', { name: b.name })"
                   @keydown.enter.prevent="saveName(b)"
                   @keydown.esc.stop.prevent="cancelRename"
                   @blur="saveName(b)"
                 >
-                <button v-else class="who" :aria-label="`${b.name}, ${SPECIES[b.species].name}. Rename`" @click="startRename(b)">
-                  <strong>{{ b.name }}</strong> <span class="species">{{ SPECIES[b.species].name }}</span>
+                <button v-else class="who" :aria-label="t('sheet.whoAria', { name: b.name, species: speciesName(b.species) })" @click="startRename(b)">
+                  <strong>{{ b.name }}</strong> <span class="species">{{ speciesName(b.species) }}</span>
                   <UiIcon name="pencil" class="pencil" />
                 </button>
                 <button
                   class="chip-btn dismiss"
                   :disabled="onlyBee"
-                  :aria-label="`Dismiss ${b.name}`"
+                  :aria-label="t('sheet.dismissAria', { name: b.name })"
                   :aria-describedby="onlyBee ? 'only-bee-note' : undefined"
                   @click="dismissing = b"
                 >
-                  Dismiss
+                  {{ t('sheet.dismiss') }}
                 </button>
               </div>
               <p class="status-line">
                 {{ (void now, colony.statusText(b, now)) }}
               </p>
-              <div class="jobs" role="radiogroup" :aria-label="`${b.name}'s job`">
+              <div class="jobs" role="radiogroup" :aria-label="t('sheet.jobAria', { name: b.name })">
                 <button
                   v-for="j in jobs"
                   :key="j.label"
                   role="radio"
                   :aria-checked="b.job === j.v"
                   :class="{ on: b.job === j.v, fav: j.v === SPECIES[b.species].favourite }"
-                  :title="j.v === SPECIES[b.species].favourite ? `${j.label} (favourite: gathers it faster)` : j.label"
+                  :title="j.v === SPECIES[b.species].favourite ? t('sheet.favouriteTitle', { label: j.label }) : j.label"
                   @click="colony.setJob(b.id, j.v)"
                 >
                   <ResourceIcon v-if="j.v" :name="j.v" />
-                  <span v-else>Rest</span>
-                  <span v-if="j.v" class="sr-only">{{ j.label }}{{ j.v === SPECIES[b.species].favourite ? ', favourite' : '' }}</span>
+                  <span v-else>{{ t('sheet.rest') }}</span>
+                  <span v-if="j.v" class="sr-only">{{ j.label }}{{ j.v === SPECIES[b.species].favourite ? `, ${t('sheet.favourite')}` : '' }}</span>
                 </button>
               </div>
               <UiPicker
@@ -217,8 +220,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
                 highlight
                 :options="workOptions(b)"
                 :model-value="workCell(b.job)"
-                placeholder="Work at a building…"
-                :label="`Where ${b.name} works in the hive`"
+                :placeholder="t('sheet.workPlaceholder')"
+                :label="t('sheet.workLabel', { name: b.name })"
                 @update:model-value="key => colony.setJob(b.id, `cell:${key}`)"
               />
             </li>
@@ -229,51 +232,51 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
         <ul v-else class="upgrades">
           <li v-for="id in UPGRADE_LIST" :key="id" class="upgrade">
             <div class="up-head">
-              <strong>{{ UPGRADES[id].name }}</strong>
-              <span class="pips" :aria-label="`Level ${hive.upgrades[id]} of ${UPGRADES[id].costs.length}`">
+              <strong>{{ upgradeName(id) }}</strong>
+              <span class="pips" :aria-label="t('sheet.levelOf', { n: hive.upgrades[id], total: UPGRADES[id].costs.length })">
                 <span v-for="i in UPGRADES[id].costs.length" :key="i" class="pip" :class="{ on: i <= hive.upgrades[id] }" />
               </span>
             </div>
             <p class="blurb">
-              {{ UPGRADES[id].describe(UPGRADES[id].values[hive.upgrades[id]]!) }}
+              {{ upgradeDescribe(id, UPGRADES[id].values[hive.upgrades[id]]!) }}
               <template v-if="UPGRADES[id].costs[hive.upgrades[id]]">
-                → <strong>{{ UPGRADES[id].describe(UPGRADES[id].values[hive.upgrades[id] + 1]!) }}</strong>
+                → <strong>{{ upgradeDescribe(id, UPGRADES[id].values[hive.upgrades[id] + 1]!) }}</strong>
               </template>
             </p>
             <div v-if="UPGRADES[id].costs[hive.upgrades[id]]" class="buy">
               <span class="costs">
-                <span v-for="c in costList(UPGRADES[id].costs[hive.upgrades[id]]!)" :key="c.r" class="cost" :class="{ short: !c.ok }"><ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ RESOURCE_INFO[c.r].name }}</span></span>
+                <span v-for="c in costList(UPGRADES[id].costs[hive.upgrades[id]]!)" :key="c.r" class="cost" :class="{ short: !c.ok }"><ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ resourceName(c.r) }}</span></span>
               </span>
-              <button class="chip-btn primary" :disabled="!hive.has(UPGRADES[id].costs[hive.upgrades[id]]!)" :aria-label="`Upgrade ${UPGRADES[id].name}`" @click="hive.upgrade(id)">
-                Upgrade
+              <button class="chip-btn primary" :disabled="!hive.has(UPGRADES[id].costs[hive.upgrades[id]]!)" :aria-label="t('sheet.upgradeAria', { name: upgradeName(id) })" @click="hive.upgrade(id)">
+                {{ t('sheet.upgrade') }}
               </button>
             </div>
             <p v-else class="note">
-              Fully upgraded.
+              {{ t('sheet.fullyUpgraded') }}
             </p>
           </li>
         </ul>
       </div>
 
       <p class="keys hide-touch">
-        <span class="kbd">{{ sheet === 'colony' ? 'C' : 'U' }}</span> or <span class="kbd">Esc</span> to close
+        <span class="kbd">{{ sheet === 'colony' ? 'C' : 'U' }}</span> {{ t('sheet.or') }} <span class="kbd">Esc</span> {{ t('sheet.toClose') }}
       </p>
     </section>
   </Transition>
 
-  <UiDialog :open="!!dismissing" :title="`Dismiss ${dismissName}?`" @close="dismissing = null">
+  <UiDialog :open="!!dismissing" :title="t('sheet.dismissQ', { name: dismissName })" @close="dismissing = null">
     <p class="blurb">
-      Send {{ dismissName }} back to the meadow? You can find them near the hive and befriend them again.
+      {{ t('sheet.dismissBlurb', { name: dismissName }) }}
       <template v-if="dismissing && SPECIES[dismissing.species].nightOnly && settings.dayNight">
-        {{ SPECIES[dismissing.species].name }}s only come out at night.
+        {{ t('sheet.nightOnly', { plural: speciesPlural(dismissing.species) }) }}
       </template>
     </p>
     <div class="confirm">
       <button class="chip-btn" @click="dismissing = null">
-        Keep {{ dismissName }}
+        {{ t('sheet.keep', { name: dismissName }) }}
       </button>
       <button class="chip-btn primary" @click="confirmDismiss">
-        Dismiss
+        {{ t('sheet.dismiss') }}
       </button>
     </div>
   </UiDialog>

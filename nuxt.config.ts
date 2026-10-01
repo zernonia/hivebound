@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-01',
   devtools: { enabled: true },
-  modules: ['@tresjs/nuxt', '@pinia/nuxt'],
+  modules: ['@tresjs/nuxt', '@pinia/nuxt', '@nuxtjs/i18n'],
   css: ['~/assets/css/main.css'],
   // Components are named by file name only (ui/Minimap.vue → <Minimap>).
   components: [{ path: '~/components', pathPrefix: false }],
@@ -38,6 +38,18 @@ export default defineNuxtConfig({
   // The game itself is client-only (WebGL). Marketing / Beedex pages can be SSR'd later.
   routeRules: {
     '/': { ssr: false },
+  },
+  // Both locales bundle into hashed /_nuxt/ chunks, so the service worker caches them
+  // like any other build asset. The chosen locale lives in the settings store
+  // (see stores/settings.ts); browser detection here would fight it.
+  i18n: {
+    locales: [
+      { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
+      { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.json' },
+    ],
+    defaultLocale: 'en',
+    strategy: 'no_prefix',
+    detectBrowserLanguage: false,
   },
   // Always emit a plain static site, even inside Cloudflare's CI (which would otherwise
   // auto-select the cloudflare-module preset and override wrangler.jsonc).

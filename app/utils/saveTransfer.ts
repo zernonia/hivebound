@@ -1,11 +1,6 @@
-/*
- * Save export / import: bundle every piece of game state from localStorage into one copyable
- * code, so a journey can move to another browser or device (or be kept safe as a file).
- *
- * The code is `HIVEBOUND1:` + base64 of `{ v: 1, at, data: { key: rawString } }`. Raw strings
- * are kept exactly as each store wrote them, so the stores' own load() (with its migrations)
- * does all the real parsing after the reload.
- */
+import { appI18n } from './i18n'
+
+const err = (key: string) => appI18n().t(key)
 
 /** Everything that makes up a journey. The dev perf overlay pref (`hivebound:perf`) stays out. */
 export const SAVE_KEYS = [
@@ -28,6 +23,7 @@ interface SavePayload {
   at: number
   data: Partial<Record<SaveKey, string>>
 }
+
 
 export type ParseResult =
   | { ok: true, payload: SavePayload }
@@ -69,40 +65,40 @@ export function exportSave(): string {
 export function parseSave(text: string): ParseResult {
   // Codes survive being wrapped across lines in chats and notes apps.
   const code = text.replace(/\s+/g, '')
-  if (!code) return { ok: false, error: 'Paste a save code first.' }
-  if (!code.startsWith(PREFIX)) return { ok: false, error: 'That doesn\'t look like a Hivebound save code. It should start with HIVEBOUND1:' }
+  if (!code) return { ok: false, error: err('save.errors.paste') }
+  if (!code.startsWith(PREFIX)) return { ok: false, error: err('save.errors.notCode') }
 
   let payload: unknown
   try {
     payload = JSON.parse(fromBase64(code.slice(PREFIX.length)))
   }
   catch {
-    return { ok: false, error: 'This save code seems to be cut short or mixed up. Try copying it again.' }
+    return { ok: false, error: err('save.errors.cutShort') }
   }
 
   const p = payload as Partial<SavePayload> | null
   if (!p || typeof p !== 'object' || typeof p.data !== 'object' || !p.data) {
-    return { ok: false, error: 'This save code seems to be cut short or mixed up. Try copying it again.' }
+    return { ok: false, error: err('save.errors.cutShort') }
   }
-  if (p.v !== 1) return { ok: false, error: 'This save comes from a newer Hivebound. Refresh the page and try again.' }
+  if (p.v !== 1) return { ok: false, error: err('save.errors.newer') }
 
   // Keep only keys we know, and only if they hold what the stores expect to read back.
   const data: SavePayload['data'] = {}
   for (const key of SAVE_KEYS) {
     const raw = (p.data as Record<string, unknown>)[key]
     if (raw === undefined) continue
-    if (typeof raw !== 'string') return { ok: false, error: 'Part of this save is damaged, so it can\'t be loaded.' }
+    if (typeof raw !== 'string') return { ok: false, error: err('save.errors.damaged') }
     if (key !== 'hivebound:last-seen') {
       try {
         JSON.parse(raw)
       }
       catch {
-        return { ok: false, error: 'Part of this save is damaged, so it can\'t be loaded.' }
+        return { ok: false, error: err('save.errors.damaged') }
       }
     }
     data[key] = raw
   }
-  if (!Object.keys(data).length) return { ok: false, error: 'This save code is empty. There\'s no journey in it yet.' }
+  if (!Object.keys(data).length) return { ok: false, error: err('save.errors.empty') }
 
   return { ok: true, payload: { v: 1, at: typeof p.at === 'number' ? p.at : Date.now(), data } }
 }
@@ -128,7 +124,7 @@ export function importSave(text: string): ImportResult {
     writeKeys(payload.data)
   }
   catch {
-    return { ok: false, error: 'Your browser wouldn\'t let us save here (private mode or full storage?).' }
+    return { ok: false, error: err('save.errors.storage') }
   }
   // The page saves the old game on its way out (pagehide), which would undo the import.
   // Stash the save for this tab too, and put it back first thing after the reload.

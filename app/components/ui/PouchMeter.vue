@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useHive } from '~/stores/hive'
-import { RAW_RESOURCES, RESOURCE_INFO } from '~/utils/resources'
+import { RAW_RESOURCES, resourceName } from '~/utils/resources'
 
 const hive = useHive()
+const { t } = useI18n()
 const carried = computed(() => RAW_RESOURCES.filter(r => hive.pouch[r] > 0))
 const label = computed(() => {
-  const parts = carried.value.map(r => `${hive.pouch[r]} ${RESOURCE_INFO[r].name}`)
-  return `Pouch ${hive.pouchTotal} of ${hive.pouchCapacity}${parts.length ? `: ${parts.join(', ')}` : ', empty'}`
+  const parts = carried.value.map(r => `${hive.pouch[r]} ${resourceName(r)}`)
+  return parts.length
+    ? t('pouch.labelFull', { n: hive.pouchTotal, cap: hive.pouchCapacity, list: parts.join(', ') })
+    : t('pouch.labelEmpty', { n: hive.pouchTotal, cap: hive.pouchCapacity })
 })
 
 // A little bounce whenever something goes in.
@@ -21,7 +24,7 @@ watch(() => hive.pouchTotal, (n, old) => {
 <template>
   <div class="pouch panel" :class="{ full: hive.pouchFull, bump }" role="group" :aria-label="label" @animationend="bump = false">
     <div class="row" aria-hidden="true">
-      <span class="name">Pouch</span>
+      <span class="name">{{ t('pouch.name') }}</span>
       <span class="count">{{ hive.pouchTotal }}/{{ hive.pouchCapacity }}</span>
     </div>
     <div class="bar" aria-hidden="true">

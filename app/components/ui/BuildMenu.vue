@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
-import { ALL_RESOURCES, type Amounts, BUILDINGS, BUILDING_LIST, RESOURCE_INFO, formatAmounts } from '~/utils/resources'
+import { ALL_RESOURCES, type Amounts, buildingBlurb, buildingName, BUILDING_LIST, formatAmounts, resourceName } from '~/utils/resources'
 
 /*
  * Quick build (B): with an empty cell selected in the hive, a small menu of buildings.
@@ -9,6 +9,7 @@ import { ALL_RESOURCES, type Amounts, BUILDINGS, BUILDING_LIST, RESOURCE_INFO, f
  */
 const game = useGame()
 const hive = useHive()
+const { t } = useI18n()
 const active = ref(0)
 const list = ref<HTMLElement>()
 
@@ -23,13 +24,13 @@ const rows = computed(() => {
     return { id, def, costs, ok: !Object.keys(missing).length, missing }
   })
 })
-const needText = (m: Amounts) => `Need ${formatAmounts(m)} more`
+const needText = (m: Amounts) => t('build.need', { amounts: formatAmounts(m) })
 
 function open() {
   if (!canOpen()) {
     if (game.scene === 'hive') {
-      game.toast('Pick an empty cell to build on.')
-      game.announce('Pick an empty cell to build on first.')
+      game.toast(t('build.pickCell'))
+      game.announce(t('build.pickCellFirst'))
     }
     return
   }
@@ -40,7 +41,7 @@ watch(() => game.buildMenuOpen, (v) => {
   if (!v) return
   const firstOk = rows.value.findIndex(r => r.ok)
   active.value = firstOk >= 0 ? firstOk : 0
-  game.announce('Build menu. Up and down to choose, Enter to build, Escape to close.')
+  game.announce(t('build.menuAnnounce'))
   nextTick(() => list.value?.focus())
 })
 function close() {
@@ -52,7 +53,7 @@ function build(i = active.value) {
   const r = rows.value[i]
   if (!r || !hive.selected) return
   if (!r.ok) {
-    game.announce(`${r.def.name}: ${needText(r.missing)}.`)
+    game.announce(t('build.needAnnounce', { name: buildingName(r.id), missing: needText(r.missing) }))
     game.toast(needText(r.missing))
     return
   }
@@ -105,9 +106,9 @@ defineExpose({ open })
     <section v-if="game.buildMenuOpen" class="build-menu panel" aria-labelledby="build-menu-title">
       <header>
         <h2 id="build-menu-title">
-          Build here
+          {{ t('build.title') }}
         </h2>
-        <button class="close" aria-label="Close build menu" @click="close">
+        <button class="close" :aria-label="t('build.close')" @click="close">
           <UiIcon name="close" />
         </button>
       </header>
@@ -125,18 +126,18 @@ defineExpose({ open })
         >
           <span class="num" aria-hidden="true">{{ i + 1 }}</span>
           <span class="main">
-            <strong>{{ r.def.name }}</strong>
-            <span class="blurb">{{ r.ok ? r.def.blurb : needText(r.missing) }}</span>
+            <strong>{{ buildingName(r.id) }}</strong>
+            <span class="blurb">{{ r.ok ? buildingBlurb(r.id) : needText(r.missing) }}</span>
           </span>
           <span class="costs">
             <span v-for="c in r.costs" :key="c.r" class="cost" :class="{ low: !c.ok }">
-              <ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ RESOURCE_INFO[c.r].name }}</span>
+              <ResourceIcon :name="c.r" />{{ c.n }}<span class="sr-only"> {{ resourceName(c.r) }}</span>
             </span>
           </span>
         </li>
       </ul>
       <p class="keys hide-touch">
-        <span class="kbd">↑</span><span class="kbd">↓</span> choose · <span class="kbd">Enter</span> build · <span class="kbd">Esc</span> close
+        <span class="kbd">↑</span><span class="kbd">↓</span> {{ t('build.choose') }} · <span class="kbd">Enter</span> {{ t('build.build') }} · <span class="kbd">Esc</span> {{ t('build.closeKey') }}
       </p>
     </section>
   </Transition>

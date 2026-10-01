@@ -5,6 +5,8 @@
  * World axes: +x = screen right, -z = screen "up" (away from camera).
  */
 
+import { appI18n } from './i18n'
+
 export interface Hex {
   q: number
   r: number
@@ -26,14 +28,11 @@ export const DIRECTIONS: Record<Direction, Hex> = {
 
 export const DIRECTION_LIST = Object.keys(DIRECTIONS) as Direction[]
 
-export const DIRECTION_NAMES: Record<Direction, string> = {
-  N: 'north',
-  NE: 'north-east',
-  SE: 'south-east',
-  S: 'south',
-  SW: 'south-west',
-  NW: 'north-west',
-}
+/**
+ * Direction words for narration, from i18n/locales (directions.*). The French ones carry
+ * their article ("le nord") because they always follow a preposition ("vers le nord").
+ */
+export const directionName = (d: Direction) => appI18n().t(`directions.${d}`)
 
 export const hexKey = (h: Hex) => `${h.q},${h.r}`
 
@@ -105,14 +104,14 @@ export function directionBetween(a: Hex, b: Hex): Direction | null {
 }
 
 /** Rough compass direction (8-way words) from a to any b, for narration. */
+/** Rough compass direction (8-way) from a to any b, for narration ("north-east" / "le nord-est"). */
 export function compassWord(a: Hex, b: Hex): string {
   const pa = hexToWorld(a)
   const pb = hexToWorld(b)
   const dx = pb.x - pa.x
   const dz = pb.z - pa.z
   const angle = (Math.atan2(dx, -dz) * 180) / Math.PI // 0 = north, clockwise
-  const words = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']
-  return words[(Math.round(((angle + 360) % 360) / 45)) % 8]!
+  return appI18n().t(`compass.${(Math.round(((angle + 360) % 360) / 45)) % 8}`)
 }
 
 /**

@@ -2,11 +2,12 @@ import { defineStore } from 'pinia'
 import { track } from '~/utils/analytics'
 import { hexDistance, hexKey } from '~/utils/hex'
 import { isGoldenSpot } from '~/utils/golden'
-import { KEEPSAKES } from '~/utils/keepsakes'
-import { type Goal, type RequestDef, requestAt, CHAPTER_ONE, STORY } from '~/utils/requests'
-import { SPECIES } from '~/utils/species'
-import { ALL_RESOURCES, type Amounts, BUILDINGS, RESOURCE_INFO, formatAmounts } from '~/utils/resources'
-import { HOME, POI_BY_ID, useWorldData } from '~/utils/world'
+import { keepsakeName } from '~/utils/keepsakes'
+import { requestAsk, requestThanks, requestTitle, type Goal, type RequestDef, requestAt, CHAPTER_ONE, STORY } from '~/utils/requests'
+import { speciesBefriendCount } from '~/utils/species'
+import { ALL_RESOURCES, type Amounts, buildingThe, formatAmounts, type Resource, resourceLower, resourceName, resourceSome } from '~/utils/resources'
+import { HOME, poiThe, useWorldData } from '~/utils/world'
+import { appI18n } from '~/utils/i18n'
 import { useColony } from './colony'
 import { useGame } from './game'
 import { useHive } from './hive'
@@ -26,7 +27,9 @@ export interface GoalLine {
   need: number
   done: boolean
   /** A resource icon to show, for deliveries. */
-  resource?: keyof typeof RESOURCE_INFO
+  resource?: Resource
+  /** What's still missing, for the Queen's "still needed" line. */
+  missing?: string
 }
 
 export const useQueen = defineStore('queen', {
@@ -120,35 +123,35 @@ export const useQueen = defineStore('queen', {
 
     goalLines(g: Goal): GoalLine[] {
       const hive = useHive()
+      const t = appI18n().t
       switch (g.kind) {
         case 'bring':
           return ALL_RESOURCES.filter(r => g.amounts[r]).map((r) => {
             const need = g.amounts[r]!
             const have = Math.min(need, this.brought[r] ?? 0)
-            return { label: `Fly home ${RESOURCE_INFO[r].name.toLowerCase()}`, have, need, done: have >= need, resource: r }
+            return { label: t(`queen.goals.bring.${r}`), have, need, done: have >= need, resource: r, missing: t('queen.missing.res', { n: need - have, some: resourceSome(r), name: resourceLower(r) }) }
           })
         case 'deliver':
           return ALL_RESOURCES.filter(r => g.amounts[r]).map((r) => {
             const need = g.amounts[r]!
             const have = Math.min(need, hive.stock[r])
-            return { label: RESOURCE_INFO[r].name, have, need, done: have >= need, resource: r }
+            return { label: resourceName(r), have, need, done: have >= need, resource: r, missing: t('queen.missing.res', { n: need - have, some: resourceSome(r), name: resourceLower(r) }) }
           })
         case 'build': {
           const have = Object.values(hive.cells).some(c => c.building === g.building) ? 1 : 0
-          return [{ label: `Build a ${BUILDINGS[g.building].name}`, have, need: 1, done: have >= 1 }]
+          return [{ label: t(`queen.goals.build.${g.building}`), have, need: 1, done: have >= 1, missing: t('queen.missing.build', { the: buildingThe(g.building) }) }]
         }
         case 'species': {
           const have = Math.min(g.count, useColony().bees.filter(b => b.species === g.species).length)
-          const name = SPECIES[g.species].name
-          return [{ label: g.count === 1 ? `Befriend a ${name}` : `Befriend ${g.count} ${name}s`, have, need: g.count, done: have >= g.count }]
+          return [{ label: speciesBefriendCount(g.species, g.count), have, need: g.count, done: have >= g.count }]
         }
         case 'friends': {
           const have = Math.min(g.count, useColony().bees.length)
-          return [{ label: g.count === 1 ? 'Befriend a wild bee' : `Befriend ${g.count} bees`, have, need: g.count, done: have >= g.count }]
+          return [{ label: t('queen.goals.friends', g.count), have, need: g.count, done: have >= g.count }]
         }
         case 'visit': {
           const have = useGame().visitedPois.includes(g.poi) ? 1 : 0
-          return [{ label: `Visit ${POI_BY_ID[g.poi].name}`, have, need: 1, done: have >= 1 }]
+          return [{ label: t('queen.goals.visit', { the: poiThe(g.poi) }), have, need: 1, done: have >= 1, missing: t('queen.missing.visit', { the: poiThe(g.poi) }) }]
         }
       }
     },
@@ -167,10 +170,11 @@ export const useQueen = defineStore('queen', {
     /** F at the Queen: hand in if everything's ready, otherwise hear what's still needed. */
     talk() {
       const game = useGame()
+      const t = appI18n().t
       if (this.ready()) return this.handIn()
-      const missing = this.lines().filter(l => !l.done).map(l => (l.resource ? `${l.need - l.have} more ${l.label.toLowerCase()}` : l.label.toLowerCase()))
-      game.announce(`The Queen: "${this.current.ask}" Still needed: ${missing.join(', ')}.`)
-      game.toast(`Still needed: ${missing.join(', ')}`)
+      const missing = this.lines().filter(l => !l.done).map(l => l.missing ?? l.label).join(', ')
+      game.announce(t('queen.talk', { ask: requestAsk(this.current), missing }))
+      game.toast(t('queen.stillNeeded', { missing }))
       return false
     },
 
@@ -182,12 +186,13 @@ export const useQueen = defineStore('queen', {
       const delivered: Amounts = {}
       for (const g of req.goals) if (g.kind === 'deliver') for (const r of ALL_RESOURCES) delivered[r] = (delivered[r] ?? 0) + (g.amounts[r] ?? 0)
       hive.pay(delivered)
+      const t = appI18n().t
       const r = req.reward
       const gifts: string[] = []
       if (r.storage) {
         const add = Math.max(0, Math.min(r.storage, MAX_BONUS_STORAGE - hive.bonusStorage))
         hive.bonusStorage += add
-        if (add) gifts.push(`${add} more room in the store`)
+        if (add) gifts.push(t('queen.giftStorage', { n: add }))
       }
       if (r.gift) {
         for (const res of ALL_RESOURCES) if (r.gift[res]) hive.addStock(res, r.gift[res]!)
@@ -195,11 +200,12 @@ export const useQueen = defineStore('queen', {
       }
       if (r.keepsake) {
         game.giveKeepsake(r.keepsake)
-        gifts.push(KEEPSAKES[r.keepsake].name)
+        gifts.push(keepsakeName(r.keepsake))
       }
       const chapter = this.done < STORY.length
       if (chapter) {
-        game.addJournal({ id: `queen:${req.id}`, title: req.title, body: `The Queen said: "${req.thanks}"`, icon: 'hive', subject: 'hive' }, false)
+        // Keyed (not raw text) so the entry re-renders when the language changes.
+        game.addJournal({ id: `queen:${req.id}`, titleKey: `requests.${req.id}.title`, bodyKey: `requests.${req.id}.thanksBody`, icon: 'hive', subject: 'hive' }, false)
       }
       this.done++
       this.brought = {}
@@ -212,8 +218,11 @@ export const useQueen = defineStore('queen', {
         this.finishStory()
         track('story_finished', { day: game.day, steps: game.steps })
       }
-      game.toast(`The Queen is delighted!${gifts.length ? ` ${gifts.join(', ')}.` : ''}`)
-      game.announce(`The Queen says: "${req.thanks}"${gifts.length ? ` You received ${gifts.join(', ')}.` : ''}`)
+      const giftList = gifts.join(', ')
+      game.toast(giftList ? t('queen.delightedGifts', { gifts: giftList }) : t('queen.delighted'))
+      game.announce(giftList
+        ? t('queen.announceThanksGifts', { thanks: requestThanks(req), gifts: giftList })
+        : t('queen.announceThanks', { thanks: requestThanks(req) }))
       this.startCurrent()
       hive.changed()
       this.save()
@@ -226,8 +235,8 @@ export const useQueen = defineStore('queen', {
       this.showThanks = true
       useGame().addJournal({
         id: 'the-end',
-        title: 'The end (for now)',
-        body: 'The meadow, the heath, the Amber Woods, and one very big family. The Queen says the little wishes will keep coming whenever I have time, and I think I will always have time. Thank you for flying with me.',
+        titleKey: 'journal.theEnd.title',
+        bodyKey: 'journal.theEnd.body',
         icon: 'hive',
         subject: 'hive',
       }, false)
@@ -239,13 +248,13 @@ export const useQueen = defineStore('queen', {
       const game = useGame()
       game.addJournal({
         id: 'mist-lifts',
-        title: 'The mist lifts',
-        body: 'This morning the mist at the edge of the meadow was thin as a curtain. Through it: purple hills, orange trees, and the faint hum of other bees. The Queen says it is ours to explore.',
+        titleKey: 'journal.mistLifts.title',
+        bodyKey: 'journal.mistLifts.body',
         icon: 'poi',
         subject: 'mist',
       })
-      game.toast('The mist has lifted! New land waits beyond it.')
-      game.announce('The mist at the edge of the meadow has lifted. You can fly through it to new land beyond.')
+      game.toast(appI18n().t('queen.mistLiftedToast'))
+      game.announce(appI18n().t('queen.mistLiftedAnnounce'))
     },
 
     /** Marks the new request's place (or the nearest golden pollen) on the map, once. */

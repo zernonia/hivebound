@@ -1,0 +1,1003 @@
+{
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "off": "Off",
+    "sections": {
+      "accessibility": "Comfort & accessibility",
+      "sound": "Sound",
+      "controls": "Controls"
+    },
+    "toggles": {
+      "reducedMotion": {
+        "label": "Reduce motion",
+        "hint": "Calmer camera, no bouncing or pop-ins."
+      },
+      "highContrast": {
+        "label": "High contrast",
+        "hint": "Stronger text and outlines on panels."
+      },
+      "colorVisionFriendly": {
+        "label": "Colour-friendly palette",
+        "hint": "Terrain differs by brightness, not just hue."
+      },
+      "narration": {
+        "label": "Screen reader narration",
+        "hint": "Describe where you fly and what is nearby, and add a Look around button (L)."
+      },
+      "showMinimap": {
+        "label": "Show minimap",
+        "hint": ""
+      },
+      "showPad": {
+        "label": "On-screen movement pad",
+        "hint": "Six big buttons for hex directions."
+      },
+      "easyBefriend": {
+        "label": "Easier befriending",
+        "hint": "Slower marker and a wider green area in the dance."
+      },
+      "dayNight": {
+        "label": "Day and night",
+        "hint": "A slow day and night every 24 minutes. Off keeps it always day (Moon Bees still visit)."
+      },
+      "showHints": {
+        "label": "Show tips",
+        "hint": ""
+      }
+    },
+    "textSize": "Text size",
+    "textSizes": {
+      "normal": "Normal",
+      "large": "Large",
+      "huge": "Huge"
+    },
+    "flyingSpeed": "Flying speed",
+    "speeds": {
+      "relaxed": "Relaxed",
+      "normal": "Normal",
+      "brisk": "Brisk"
+    },
+    "music": "Music",
+    "sfx": "Sound effects",
+    "controls": {
+      "fly": {
+        "label": "Fly",
+        "hint": "Tap or click a tile",
+        "arrows": "arrow keys"
+      },
+      "look": "Look around",
+      "journal": "Journal",
+      "home": "Fly home",
+      "action": "Action (enter hive, collect…)",
+      "build": "Build on an empty cell (in the hive)",
+      "colony": "Colony / Upgrades (in the hive)",
+      "map": "Map size",
+      "zoom": "Zoom",
+      "zoomGestures": "scroll · pinch",
+      "stop": "Stop",
+      "settings": "Settings"
+    },
+    "save": {
+      "title": "Your save",
+      "intro": "Your journey lives in this browser. Keep a copy, or carry it to another device.",
+      "copied": "Copied!",
+      "copyCode": "Copy save code",
+      "download": "Download save file",
+      "load": "Load a save",
+      "yourCode": "Your save code",
+      "pasteCode": "Paste a save code",
+      "chooseFile": "Choose a save file",
+      "loadThis": "Load this save",
+      "confirmQ": "This replaces your current game. Continue?",
+      "yes": "Yes, replace my game",
+      "keep": "Keep my game",
+      "statusCopied": "Save code copied. Keep it somewhere safe!",
+      "statusClipboard": "Your browser kept the clipboard to itself. Select the code below and copy it.",
+      "statusDownloaded": "Save file downloaded.",
+      "statusFileError": "That file couldn't be read. Try another one?",
+      "statusLoaded": "Save loaded! Settling back into your hive…"
+    },
+    "reset": {
+      "armed": "Tap again to erase your journey",
+      "start": "Start a new journey"
+    }
+  },
+  "common": {
+    "and": "and",
+    "close": "Close",
+    "loading": "Warming up the hive…",
+    "srTitle": "Hivebound, a cozy bee exploration game"
+  },
+  "actions": {
+    "enter": "Enter hive",
+    "leave": "Leave hive",
+    "give": "Give to the Queen",
+    "talk": "Talk to the Queen",
+    "collect": "Collect {n}",
+    "unseal": "Unseal"
+  },
+  "directions": {
+    "N": "north",
+    "NE": "north-east",
+    "SE": "south-east",
+    "S": "south",
+    "SW": "south-west",
+    "NW": "north-west"
+  },
+  "compass": {
+    "0": "north",
+    "1": "north-east",
+    "2": "east",
+    "3": "south-east",
+    "4": "south",
+    "5": "south-west",
+    "6": "west",
+    "7": "north-west"
+  },
+  "tod": {
+    "morning": "morning",
+    "afternoon": "afternoon",
+    "evening": "evening",
+    "night": "night"
+  },
+  "game": {
+    "resetDone": "Progress reset. You are back at the Home Hive.",
+    "mistTooThick": "The mist is too thick to fly into. Not yet.",
+    "mistThatWay": "The mist is too thick that way.",
+    "thatIsHive": "That is the Home Hive. Cozy, but no time for naps yet.",
+    "noFlyDir": "You can't fly {dir} from here.",
+    "flyingIn": "Flying into the Home Hive.",
+    "flyingOut": "Flying back out to the meadow.",
+    "insideDoorway": "Inside the Home Hive, at the doorway. Fly to a cell to build on, collect from, or unseal; come back to the doorway to leave.",
+    "keepsakeFound": "Keepsake found: {name}!",
+    "keepsakeFoundAnnounce": "You found a keepsake: {name}. Wear it from the Keepsakes page in your journal.",
+    "newEntryToast": "New journal entry: {title}",
+    "newEntryAnnounce": "New journal entry: {title}. Press J to read it."
+  },
+  "narration": {
+    "nowhere": "nowhere",
+    "unexplored": "an unexplored spot",
+    "thickMist": "thick mist",
+    "youAreAt": "You are at {at}",
+    "flyingTo": "Flying {compass}, {n} hex to {tile}. | Flying {compass}, {n} hexes to {tile}.",
+    "aroundEntry": "{dir}: {what}",
+    "aroundYou": "Around you, {around}.",
+    "interesting": "Something interesting, {the}, is {n} hex {compass}. | Something interesting, {the}, is {n} hexes {compass}.",
+    "gatherHere": "You can gather {some} here, {left} left.",
+    "gatheredBack": "The {name} here has been gathered; it is growing back."
+  },
+  "journal": {
+    "title": "My Journal",
+    "tabEntries": "Entries",
+    "tabPlaces": "Places",
+    "tabKeepsakes": "Keepsakes",
+    "isNew": "(new)",
+    "dayN": "Day {n}",
+    "keepsakesHint": "Things to wear, found around the island. One per spot: head, face, neck, side, back and tail.",
+    "takeOff": "Take off",
+    "wear": "Wear",
+    "undiscovered": "Undiscovered",
+    "visited": "Visited",
+    "spotted": "Spotted, not visited yet",
+    "somewhere": "Somewhere out there…",
+    "slots": {
+      "head": "Head",
+      "face": "Face",
+      "neck": "Neck",
+      "side": "Side",
+      "back": "Back",
+      "tail": "Tail"
+    },
+    "keepsake": {
+      "queenGift": "A gift from the Queen, one day.",
+      "waiting": "Waiting {at}.",
+      "unfound": "a place you haven't found yet"
+    },
+    "intro": {
+      "title": "Off I go!",
+      "body": "The Queen says bees used to live far beyond our meadow, a long time ago. Nobody remembers where. She gave me an empty journal and a honey snack and said: \"Go and see.\" So I am going to see."
+    },
+    "insideHive": {
+      "title": "Home, inside",
+      "body": "Warm, golden and humming. The Queen waved at me from her cushion. There is space here to build things, if I bring back enough to build with."
+    },
+    "firstGather": {
+      "title": "Sticky feet",
+      "body": "I tried my first bit of gathering. It is harder than it looks and much stickier. My pouch has room for a little more, then I should fly it home."
+    },
+    "firstGolden": {
+      "title": "Something golden",
+      "body": "Out here, far from home, some flowers sparkle. Their pollen is warm and glittery and hums a tiny tune. I tucked it safely away for the Queen."
+    },
+    "firstHoney": {
+      "title": "Our very first honey",
+      "body": "The press gave a happy little squeak and out came honey. Real honey! I licked the spoon. Then I licked it again, for science."
+    },
+    "firstNight": {
+      "title": "The meadow at night",
+      "body": "The sky went deep blue and the flowers folded up like little tents. Something with glowing antennae is humming over the soft grass. A Moon Bee? I should say hello."
+    },
+    "mistLifts": {
+      "title": "The mist lifts",
+      "body": "This morning the mist at the edge of the meadow was thin as a curtain. Through it: purple hills, orange trees, and the faint hum of other bees. The Queen says it is ours to explore."
+    },
+    "theEnd": {
+      "title": "The end (for now)",
+      "body": "The meadow, the heath, the Amber Woods, and one very big family. The Queen says the little wishes will keep coming whenever I have time, and I think I will always have time. Thank you for flying with me."
+    },
+    "terrain": {
+      "meadow": {
+        "title": "Sunny meadow",
+        "body": "The grass is taller here and the sun is warmer. Everything smells a little bit like honey already."
+      },
+      "flowers": {
+        "title": "So many flowers",
+        "body": "Pink ones, white ones, ones that wiggle when I land. I should bring a basket next time. Do bees have baskets?"
+      },
+      "forest": {
+        "title": "Whispering woods",
+        "body": "Big round trees that sway even when there is no wind. It is shady and cool. I flew a bit quieter, just to be polite."
+      },
+      "water": {
+        "title": "Lily water",
+        "body": "Cool air rises off the water. My reflection looked brave. I looked back at it bravely."
+      },
+      "lavender": {
+        "title": "Lavender heath",
+        "body": "Purple as far as I can see, and humming. The nectar here is sweeter and there is more of it. I may never leave. (I will leave. But slowly.)"
+      },
+      "amber": {
+        "title": "The Amber Woods",
+        "body": "Every tree is orange and gold, as if autumn lives here all year. Resin drips down the bark like honey. It is warm, and very, very quiet."
+      }
+    },
+    "sectionsAria": "Journal sections",
+    "indexAria": "Journal entries"
+  },
+  "species": {
+    "bumble": {
+      "name": "Bumble",
+      "blurb": "Round, fuzzy and never in a hurry. Hums happily over the meadow nectar.",
+      "wild": "A wild Bumble",
+      "the": "The Bumble",
+      "plural": "Bumbles",
+      "befriend": "Befriend a Bumble",
+      "befriendCount": "Befriend a Bumble | Befriend {n} Bumbles",
+      "fled": "The Bumble got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Bumble",
+      "journalBody": "Round, fuzzy and never in a hurry. Hums happily over the meadow nectar. {name} followed me home and picked a bed straight away."
+    },
+    "mason": {
+      "name": "Mason",
+      "blurb": "A tidy little bee in mint and teal who pats pollen into neat balls.",
+      "wild": "A wild Mason",
+      "the": "The Mason",
+      "plural": "Masons",
+      "befriend": "Befriend a Mason",
+      "befriendCount": "Befriend a Mason | Befriend {n} Masons",
+      "fled": "The Mason got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Mason",
+      "journalBody": "A tidy little bee in mint and teal who pats pollen into neat balls. {name} followed me home and picked a bed straight away."
+    },
+    "dew": {
+      "name": "Dew Bee",
+      "blurb": "Pale as morning sky, with wings that sparkle. Sips from ponds and lily water.",
+      "wild": "A wild Dew Bee",
+      "the": "The Dew Bee",
+      "plural": "Dew Bees",
+      "befriend": "Befriend a Dew Bee",
+      "befriendCount": "Befriend a Dew Bee | Befriend {n} Dew Bees",
+      "fled": "The Dew Bee got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Dew Bee",
+      "journalBody": "Pale as morning sky, with wings that sparkle. Sips from ponds and lily water. {name} followed me home and picked a bed straight away."
+    },
+    "carpenter": {
+      "name": "Carpenter",
+      "blurb": "Dark and glossy with golden stripes. Knows every sticky tree in the woods.",
+      "wild": "A wild Carpenter",
+      "the": "The Carpenter",
+      "plural": "Carpenters",
+      "befriend": "Befriend a Carpenter",
+      "befriendCount": "Befriend a Carpenter | Befriend {n} Carpenters",
+      "fled": "The Carpenter got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Carpenter",
+      "journalBody": "Dark and glossy with golden stripes. Knows every sticky tree in the woods. {name} followed me home and picked a bed straight away."
+    },
+    "moon": {
+      "name": "Moon Bee",
+      "blurb": "Deep blue with glowing antennae. Only hums over the soft grass at night, and flies faster than anyone.",
+      "wild": "A wild Moon Bee",
+      "the": "The Moon Bee",
+      "plural": "Moon Bees",
+      "befriend": "Befriend a Moon Bee",
+      "befriendCount": "Befriend a Moon Bee | Befriend {n} Moon Bees",
+      "fled": "The Moon Bee got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Moon Bee",
+      "journalBody": "Deep blue with glowing antennae. Only hums over the soft grass at night, and flies faster than anyone. {name} followed me home and picked a bed straight away."
+    },
+    "lavender": {
+      "name": "Lavender Bee",
+      "blurb": "Soft lilac with plum stripes, and always smells faintly of the heath. The calmest bee you will ever meet.",
+      "wild": "A wild Lavender Bee",
+      "the": "The Lavender Bee",
+      "plural": "Lavender Bees",
+      "befriend": "Befriend a Lavender Bee",
+      "befriendCount": "Befriend a Lavender Bee | Befriend {n} Lavender Bees",
+      "fled": "The Lavender Bee got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Lavender Bee",
+      "journalBody": "Soft lilac with plum stripes, and always smells faintly of the heath. The calmest bee you will ever meet. {name} followed me home and picked a bed straight away."
+    },
+    "ember": {
+      "name": "Ember Bee",
+      "blurb": "Warm orange with a glowing tip on each antenna. Lives in the Amber Woods and carries resin like treasure.",
+      "wild": "A wild Ember Bee",
+      "the": "The Ember Bee",
+      "plural": "Ember Bees",
+      "befriend": "Befriend an Ember Bee",
+      "befriendCount": "Befriend an Ember Bee | Befriend {n} Ember Bees",
+      "fled": "The Ember Bee got shy and flew off. You'll meet another one.",
+      "journalTitle": "A new friend: Ember Bee",
+      "journalBody": "Warm orange with a glowing tip on each antenna. Lives in the Amber Woods and carries resin like treasure. {name} followed me home and picked a bed straight away."
+    }
+  },
+  "keepsakes": {
+    "specs": {
+      "name": "Explorer's Specs",
+      "blurb": "Round glasses hung on the old signpost. Everything looks a bit more findable."
+    },
+    "sunflower": {
+      "name": "Sunflower Clip",
+      "blurb": "A baby sunflower from the giant one, for tucking by an antenna."
+    },
+    "lilypad": {
+      "name": "Lily Pad Hat",
+      "blurb": "A small, springy lily pad with a flower on top. The frog insisted."
+    },
+    "dandelion": {
+      "name": "Dandelion Puff",
+      "blurb": "A whole dandelion clock that somehow never blows away."
+    },
+    "acorn": {
+      "name": "Acorn Cap",
+      "blurb": "Left on the mossy stump's doorstep. It fits perfectly."
+    },
+    "satchel": {
+      "name": "Wild Satchel",
+      "blurb": "A tiny woven bag from the wild bees, for carrying good thoughts."
+    },
+    "oldcrown": {
+      "name": "Ancient Crown",
+      "blurb": "Dug from the old honeycomb. Whoever wore it was very small and very important."
+    },
+    "mistscarf": {
+      "name": "Mist Scarf",
+      "blurb": "Woven from the shimmer at the edge of the world. Cool and soft."
+    },
+    "ribbon": {
+      "name": "Royal Ribbon",
+      "blurb": "The Queen's own thank-you bow, for a very helpful bee."
+    },
+    "sprig": {
+      "name": "Lavender Sprig",
+      "blurb": "From the cottage window box. Tucked behind an antenna, it smells like a nap."
+    },
+    "leafcape": {
+      "name": "Amber Leaf Cape",
+      "blurb": "One huge glowing leaf from the Hollow Oak, worn like a little cape."
+    },
+    "locket": {
+      "name": "Moon Locket",
+      "blurb": "A tiny silver locket from the Moonwell. It glows softly after dark."
+    },
+    "starpin": {
+      "name": "Star Pin",
+      "blurb": "The Queen's star, for the bee who flew further than any other."
+    }
+  },
+  "pois": {
+    "signpost": {
+      "name": "Old Signpost",
+      "the": "the Old Signpost",
+      "at": "at the Old Signpost",
+      "journalTitle": "An old signpost",
+      "journalBody": "Three arrows, all pointing different ways. One just says \"HONEY?\" with a question mark. Somebody was lost, or very hopeful."
+    },
+    "sunflower": {
+      "name": "Giant Sunflower",
+      "the": "the Giant Sunflower",
+      "at": "at the Giant Sunflower",
+      "journalTitle": "The tallest flower",
+      "journalBody": "A sunflower so big it has its own shadow weather. The nectar smells like warm toast. I will be back with more empty pockets."
+    },
+    "pond": {
+      "name": "Quiet Pond",
+      "the": "the Quiet Pond",
+      "at": "at the Quiet Pond",
+      "journalTitle": "A quiet pond",
+      "journalBody": "Lily pads big enough to nap on. A frog looked at me for a very long time and then said nothing. I think we are friends now."
+    },
+    "dandelion": {
+      "name": "Dandelion Hill",
+      "the": "Dandelion Hill",
+      "at": "at Dandelion Hill",
+      "journalTitle": "Dandelion hill",
+      "journalBody": "Every step sends little parachutes floating up. I counted forty-two before I lost count and started again."
+    },
+    "stump": {
+      "name": "Mossy Stump",
+      "the": "the Mossy Stump",
+      "at": "at the Mossy Stump",
+      "journalTitle": "The mossy stump",
+      "journalBody": "Soft as a pillow and humming quietly. Something small lives inside. It left a crumb of wax on the doorstep, like a hello."
+    },
+    "nest": {
+      "name": "Wild Nest",
+      "the": "the Wild Nest",
+      "at": "at the Wild Nest",
+      "journalTitle": "A wild nest!",
+      "journalBody": "Another hive, out here on its own. The bees inside have stripes I have never seen. They buzzed hello in a funny accent."
+    },
+    "honeycomb": {
+      "name": "Broken Honeycomb",
+      "the": "the Broken Honeycomb",
+      "at": "at the Broken Honeycomb",
+      "journalTitle": "Old honeycomb",
+      "journalBody": "Pieces of honeycomb, very very old, half buried in the grass. The cells are bigger than ours. Who built this?"
+    },
+    "mist": {
+      "name": "The Mist's Edge",
+      "the": "the Mist's Edge",
+      "at": "at the Mist's Edge",
+      "journalTitle": "The edge of the mist",
+      "journalBody": "The meadow just... stops. Beyond is a warm, shimmering haze. My wings feel too thin to go further. Not yet, anyway."
+    },
+    "cottage": {
+      "name": "Lavender Cottage",
+      "the": "the Lavender Cottage",
+      "at": "at the Lavender Cottage",
+      "journalTitle": "A cottage in the heather",
+      "journalBody": "A tiny round house with a lavender roof, and nobody home. The doormat says WELCOME, BEES in very old letters. So someone expected us."
+    },
+    "hollowoak": {
+      "name": "The Hollow Oak",
+      "the": "the Hollow Oak",
+      "at": "at the Hollow Oak",
+      "journalTitle": "The Hollow Oak",
+      "journalBody": "The biggest tree I have ever seen, glowing orange all the way up. Inside it is warm and hums like our hive. Old bees lived here. I am sure of it."
+    },
+    "moonwell": {
+      "name": "The Moonwell",
+      "the": "the Moonwell",
+      "at": "at the Moonwell",
+      "journalTitle": "The Moonwell",
+      "journalBody": "A round stone well full of water so still it holds the whole sky. At night, they say, it keeps a little piece of the moon."
+    }
+  },
+  "terrain": {
+    "hive": {
+      "label": "Home Hive",
+      "at": "at the Home Hive"
+    },
+    "clearing": {
+      "label": "Home Clearing",
+      "at": "at the Home Clearing"
+    },
+    "grass": {
+      "label": "Soft Grass",
+      "at": "on the Soft Grass"
+    },
+    "meadow": {
+      "label": "Sunny Meadow",
+      "at": "on the Sunny Meadow"
+    },
+    "flowers": {
+      "label": "Flower Patch",
+      "at": "at the Flower Patch"
+    },
+    "forest": {
+      "label": "Whispering Woods",
+      "at": "in the Whispering Woods"
+    },
+    "water": {
+      "label": "Lily Water",
+      "at": "over the Lily Water"
+    },
+    "edge": {
+      "label": "The Mist",
+      "at": "at the Mist"
+    },
+    "lavender": {
+      "label": "Lavender Heath",
+      "at": "on the Lavender Heath"
+    },
+    "amber": {
+      "label": "Amber Woods",
+      "at": "in the Amber Woods"
+    }
+  },
+  "resources": {
+    "nectar": {
+      "name": "Nectar",
+      "blurb": "Sweet and runny, from meadow flowers.",
+      "lower": "nectar",
+      "some": "some nectar",
+      "the": "The nectar"
+    },
+    "pollen": {
+      "name": "Pollen",
+      "blurb": "Golden dust from flower patches.",
+      "lower": "pollen",
+      "some": "some pollen",
+      "the": "The pollen"
+    },
+    "water": {
+      "name": "Water",
+      "blurb": "Cool drops from ponds and lily water.",
+      "lower": "water",
+      "some": "some water",
+      "the": "The water"
+    },
+    "resin": {
+      "name": "Resin",
+      "blurb": "Sticky tree resin from the woods.",
+      "lower": "resin",
+      "some": "some resin",
+      "the": "The resin"
+    },
+    "honey": {
+      "name": "Honey",
+      "blurb": "Made from nectar in the Honey Press.",
+      "lower": "honey",
+      "some": "some honey",
+      "the": "The honey"
+    },
+    "beebread": {
+      "name": "Bee Bread",
+      "blurb": "Pollen and water, baked soft.",
+      "lower": "bee bread",
+      "some": "some bee bread",
+      "the": "The bee bread"
+    },
+    "wax": {
+      "name": "Wax",
+      "blurb": "For building and expanding the hive.",
+      "lower": "wax",
+      "some": "some wax",
+      "the": "The wax"
+    },
+    "golden": {
+      "name": "Golden Pollen",
+      "blurb": "Sparkling pollen from far-off flowers. Only you can find it.",
+      "lower": "golden pollen",
+      "some": "some golden pollen",
+      "the": "The golden pollen"
+    }
+  },
+  "buildings": {
+    "press": {
+      "name": "Honey Press",
+      "blurb": "Slowly squeezes nectar into golden honey.",
+      "the": "the Honey Press",
+      "at": "at the Honey Press",
+      "of": "of the Honey Press"
+    },
+    "kitchen": {
+      "name": "Bee Bread Kitchen",
+      "blurb": "Bakes pollen and water into soft bee bread.",
+      "the": "the Bee Bread Kitchen",
+      "at": "at the Bee Bread Kitchen",
+      "of": "of the Bee Bread Kitchen"
+    },
+    "waxworks": {
+      "name": "Wax Works",
+      "blurb": "Melts resin with a little honey into building wax.",
+      "the": "the Wax Works",
+      "at": "at the Wax Works",
+      "of": "of the Wax Works"
+    },
+    "larder": {
+      "name": "Larder Comb",
+      "blurb": "Extra comb for storing more of everything.",
+      "the": "the Larder Comb",
+      "at": "at the Larder Comb",
+      "of": "of the Larder Comb"
+    },
+    "room": {
+      "name": "Bee Room",
+      "blurb": "Four snug little beds for helper bees.",
+      "the": "the Bee Room",
+      "at": "at the Bee Room",
+      "of": "of the Bee Room"
+    }
+  },
+  "upgrades": {
+    "pouch": {
+      "name": "Bigger pouch",
+      "describe": "Carry {v}"
+    },
+    "wings": {
+      "name": "Stronger wings",
+      "describe": "{pct}% flying speed"
+    },
+    "gathering": {
+      "name": "Quick gathering",
+      "describe": "{v}s per unit"
+    }
+  },
+  "requests": {
+    "sweet-start": {
+      "title": "A sweet start",
+      "ask": "Could you fetch a little nectar for the Honey Press? Gather six drops from a sunny meadow and fly them home.",
+      "thanks": "Mmm, meadow nectar. You have a good nose for flowers, little one. The press is already squeaking. Here, two jars of honey for the road.",
+      "thanksBody": "The Queen said: \"Mmm, meadow nectar. You have a good nose for flowers, little one. The press is already squeaking. Here, two jars of honey for the road.\""
+    },
+    "first-honey": {
+      "title": "Our first honey",
+      "ask": "The Honey Press squeezes nectar into honey. Keep it fed and bring me three jars.",
+      "thanks": "Real honey, from our own press! I've had the store widened so there's room for more.",
+      "thanksBody": "The Queen said: \"Real honey, from our own press! I've had the store widened so there's room for more.\""
+    },
+    "first-friend": {
+      "title": "A friend for the hive",
+      "ask": "A hive needs more than one bee. There are wild bees out there, shy ones. I've marked the Wild Nest on your map: dance with one and bring them home.",
+      "thanks": "A new friend! Give them a job in the Colony tab. And here is some wax, for building.",
+      "thanksBody": "The Queen said: \"A new friend! Give them a job in the Colony tab. And here is some wax, for building.\""
+    },
+    "bee-bread": {
+      "title": "Bee bread for everyone",
+      "ask": "Build a Bee Bread Kitchen and bake me two loaves. Pollen from the flower patches, water from the ponds.",
+      "thanks": "Warm bee bread! The whole hive smells lovely. I've made the store a little bigger again.",
+      "thanksBody": "The Queen said: \"Warm bee bread! The whole hive smells lovely. I've made the store a little bigger again.\""
+    },
+    "wax-walls": {
+      "title": "Wax for the walls",
+      "ask": "A Wax Works turns tree resin and honey into wax. Build one and bring me four wax. (You can pause it in its panel when you'd rather keep your honey.)",
+      "thanks": "Beautiful wax, smooth as a pebble. Keep some to unseal the old cells, and have this honey.",
+      "thanksBody": "The Queen said: \"Beautiful wax, smooth as a pebble. Keep some to unseal the old cells, and have this honey.\""
+    },
+    "room-to-grow": {
+      "title": "Room to grow",
+      "ask": "Our friends need somewhere to sleep. Build a Bee Room: four snug beds.",
+      "thanks": "Such cosy beds. Now there's room for more friends, and I've widened the store too.",
+      "thanksBody": "The Queen said: \"Such cosy beds. Now there's room for more friends, and I've widened the store too.\""
+    },
+    "more-friends": {
+      "title": "A busier hive",
+      "ask": "Three friends would make the hive feel like home. Dandelion hills, ponds and woods all have their own bees.",
+      "thanks": "Listen to that happy hum! A treat for you, from all of us.",
+      "thanksBody": "The Queen said: \"Listen to that happy hum! A treat for you, from all of us.\""
+    },
+    "golden": {
+      "title": "Something golden",
+      "ask": "Far from home, some flowers sparkle with golden pollen, and only you can carry it. I've marked one on your map. Bring me a grain.",
+      "thanks": "Golden pollen! I haven't seen any since I was a tiny bee. This ribbon is yours: my own thank-you bow.",
+      "thanksBody": "The Queen said: \"Golden pollen! I haven't seen any since I was a tiny bee. This ribbon is yours: my own thank-you bow.\""
+    },
+    "old-stories": {
+      "title": "Old stories",
+      "ask": "My grandmother spoke of a great old honeycomb, out past the woods. I've marked where I think it is. Will you go and see?",
+      "thanks": "Bigger cells than ours, you say? Then bees really did live far beyond the meadow once. How wonderful.",
+      "thanksBody": "The Queen said: \"Bigger cells than ours, you say? Then bees really did live far beyond the meadow once. How wonderful.\""
+    },
+    "feast": {
+      "title": "A feast for the hive",
+      "ask": "Let's celebrate everything you've done. Twelve honey, four bee bread and three golden pollen for a hive feast!",
+      "thanks": "What a feast! Everyone danced until the lamps went dim. And listen: the mist at the edge of the meadow is thinning. Something is waiting out there, little explorer.",
+      "thanksBody": "The Queen said: \"What a feast! Everyone danced until the lamps went dim. And listen: the mist at the edge of the meadow is thinning. Something is waiting out there, little explorer.\""
+    },
+    "past-the-mist": {
+      "title": "Past the mist",
+      "ask": "The mist has thinned enough to fly through! Old stories speak of a little cottage in the lavender beyond it. I've marked where I think it is.",
+      "thanks": "A cottage that says WELCOME, BEES? Then this land was ours once, too. How lovely to be expected.",
+      "thanksBody": "The Queen said: \"A cottage that says WELCOME, BEES? Then this land was ours once, too. How lovely to be expected.\""
+    },
+    "lavender-friend": {
+      "title": "A friend in purple",
+      "ask": "Lavender Bees hum in the heath out there. Would you dance with one and bring them home?",
+      "thanks": "Such a calm, sweet-smelling friend. The nursery already feels sleepier.",
+      "thanksBody": "The Queen said: \"Such a calm, sweet-smelling friend. The nursery already feels sleepier.\""
+    },
+    "amber-resin": {
+      "title": "Amber resin",
+      "ask": "The Amber Woods drip with the finest resin. Fly home ten, and the Wax Works will sing.",
+      "thanks": "Glowing like little suns! This wax will be the best we've ever made.",
+      "thanksBody": "The Queen said: \"Glowing like little suns! This wax will be the best we've ever made.\""
+    },
+    "hollow-oak": {
+      "title": "The Hollow Oak",
+      "ask": "Deep in the Amber Woods there is a tree so big a whole hive could live inside. I've marked it. Go and see?",
+      "thanks": "A hive inside a tree, humming all by itself? Then we were never really alone out here.",
+      "thanksBody": "The Queen said: \"A hive inside a tree, humming all by itself? Then we were never really alone out here.\""
+    },
+    "moonwell": {
+      "title": "The Moonwell",
+      "ask": "They say the Moonwell holds a piece of the moon. Visit it, and bring me three grains of golden pollen for a wish.",
+      "thanks": "I made my wish. I can't tell you what it was, but I think you'll like it.",
+      "thanksBody": "The Queen said: \"I made my wish. I can't tell you what it was, but I think you'll like it.\""
+    },
+    "big-family": {
+      "title": "One big family",
+      "ask": "Our hive, the wild bees, the old hive in the oak. Let's bring everyone together: eight helpers, and a feast of twenty honey and ten wax.",
+      "thanks": "Look at us all! You flew further than any bee in a hundred summers. Wear this star, little explorer. You've earned it. The little wishes will keep coming, whenever you like.",
+      "thanksBody": "The Queen said: \"Look at us all! You flew further than any bee in a hundred summers. Wear this star, little explorer. You've earned it. The little wishes will keep coming, whenever you like.\""
+    },
+    "wishes": {
+      "thanks": "Thank you, dear. The hive is humming."
+    }
+  },
+  "save": {
+    "errors": {
+      "paste": "Paste a save code first.",
+      "notCode": "That doesn't look like a Hivebound save code. It should start with HIVEBOUND1:",
+      "cutShort": "This save code seems to be cut short or mixed up. Try copying it again.",
+      "newer": "This save comes from a newer Hivebound. Refresh the page and try again.",
+      "damaged": "Part of this save is damaged, so it can't be loaded.",
+      "empty": "This save code is empty. There's no journey in it yet.",
+      "storage": "Your browser wouldn't let us save here (private mode or full storage?)."
+    }
+  },
+  "queen": {
+    "talk": "The Queen: \"{ask}\" Still needed: {missing}.",
+    "stillNeeded": "Still needed: {missing}",
+    "delighted": "The Queen is delighted!",
+    "delightedGifts": "The Queen is delighted! {gifts}.",
+    "announceThanks": "The Queen says: \"{thanks}\"",
+    "announceThanksGifts": "The Queen says: \"{thanks}\" You received {gifts}.",
+    "giftStorage": "{n} more room in the store",
+    "mistLiftedToast": "The mist has lifted! New land waits beyond it.",
+    "mistLiftedAnnounce": "The mist at the edge of the meadow has lifted. You can fly through it to new land beyond.",
+    "done": "done",
+    "notYet": "not yet",
+    "readyGo": "Ready! Visit the Queen in the hive.",
+    "roomMax": "Every bed is taken. Dismiss a helper from the Colony page to make room for a new friend.",
+    "room": "The hive is full. Build a Bee Room, or dismiss a helper from the Colony page, to make room for a new friend.",
+    "goals": {
+      "bring": {
+        "nectar": "Fly home nectar",
+        "pollen": "Fly home pollen",
+        "water": "Fly home water",
+        "resin": "Fly home resin",
+        "honey": "Fly home honey",
+        "beebread": "Fly home bee bread",
+        "wax": "Fly home wax",
+        "golden": "Fly home golden pollen"
+      },
+      "build": {
+        "press": "Build a Honey Press",
+        "kitchen": "Build a Bee Bread Kitchen",
+        "waxworks": "Build a Wax Works",
+        "larder": "Build a Larder Comb",
+        "room": "Build a Bee Room"
+      },
+      "friends": "Befriend a wild bee | Befriend {n} bees",
+      "visit": "Visit {the}"
+    },
+    "missing": {
+      "res": "{n} more {some}",
+      "build": "to build {the}",
+      "visit": "to visit {the}"
+    }
+  },
+  "colony": {
+    "noRoomMax": "Every bed in the hive is taken. To make room for someone new, dismiss a helper from the Colony page (C in the hive).",
+    "noRoom": "There is no room at home yet. Build a Bee Room in the hive, or dismiss a helper from the Colony page.",
+    "wildAnnounce": "{wild}! Press F when the marker is in the green.",
+    "almost": "Almost! {n} try left. | Almost! {n} tries left.",
+    "cameBack": "{name} {the} came back!",
+    "newFriend": "{name} {the} is your friend! They'll help gather {some}.",
+    "renamed": "Renamed to {name}.",
+    "needOne": "You need at least one bee at home.",
+    "noSpot": "There's no free meadow near the hive right now.",
+    "dismissed": "{name} {the} flew back to the meadow.",
+    "lostCargo": " Some {some} had no room and was left behind.",
+    "nowWorkingAt": "{name} is now working {at}.",
+    "st": {
+      "flyingOut": "Flying out for {name}",
+      "gathering": "Gathering {name}",
+      "bringingHome": "Bringing home {n} {name} · {left}s",
+      "restingHive": "Resting in the hive",
+      "workingAt": "Working {at} · {n}s",
+      "storeFullPause": "{name} paused: the store is full",
+      "restingPause": "Resting: {the} is paused",
+      "waitingFor": "Waiting for {list} {at}",
+      "tending": "Tending {the}",
+      "littleRest": "Having a little rest",
+      "waitingRoom": "Waiting for room in the store",
+      "noneNearby": "No {name} nearby right now",
+      "gettingReady": "Getting ready to fly"
+    }
+  },
+  "hive": {
+    "noRoomGolden": "The store has no room for more golden pollen.",
+    "goldenToast": "Golden pollen! It went straight to the store.",
+    "goldenAnnounce": "You found golden pollen. It went straight to the store.",
+    "unloaded": "Unloaded {amounts} into the hive.",
+    "overflow": "The store was full, so {amounts} went to the nursery.",
+    "paused": "{name} paused. It won't use any more of the store.",
+    "resumed": "{name} is working again.",
+    "noRoomProduct": "The store has no room for more {name}.",
+    "collected": "Collected {n} {name}.",
+    "built": "Built a {name}.",
+    "unsealed": "Unsealed a new cell. Room to build!",
+    "upgraded": "{name}: {desc}."
+  },
+  "hivePanel": {
+    "store": "Store",
+    "upToEach": "up to {n} each",
+    "doorway": "Doorway",
+    "doorwayBlurb": "The way back out to the meadow.",
+    "theQueen": "The Queen",
+    "hiveLevel": "Hive level {n}",
+    "notReady": "Not ready yet",
+    "sealedCell": "Sealed cell",
+    "sealedBlurb": "Old comb, capped with wax. Unseal it to make room for another building.",
+    "unsealNext": "Unseal a cell next to this one first.",
+    "missingWax": "{missing}. Wax comes from the Wax Works.",
+    "emptyCell": "Empty cell",
+    "emptyBlurb": "Room for a new building.",
+    "buildDots": "Build…",
+    "makes": "makes",
+    "secsEach": "· {n}s each",
+    "helpers": "Helpers",
+    "helpersAtAria": "Helpers {at}",
+    "sendToRest": "Send {name} to rest",
+    "addHelper": "+ Add a helper",
+    "addHelperAt": "Add a helper {at}",
+    "befriendToHelp": "Befriend a wild bee to help here.",
+    "helpersNote": "Helpers speed it up and carry each batch to the store for you.",
+    "tray": "Tray:",
+    "trayReady": ", {n} ready to collect",
+    "resume": "Resume",
+    "pause": "Pause",
+    "collect": "Collect",
+    "housing": "A home for {n} helper bees. The colony has {filled} of {cap} beds filled.",
+    "storage": "Adds room for {n} more of every resource.",
+    "need": "Need {amounts} more",
+    "st": {
+      "queen": "resting on her cushion",
+      "locked": "sealed with wax",
+      "empty": "ready to build on",
+      "storage": "storing extra",
+      "working": "working, {n}s left",
+      "finishing": "just finishing",
+      "waiting": "waiting for {amounts}",
+      "room": "room",
+      "fullReady": "tray full, {n} ready to collect",
+      "full": "tray full, collect to keep going",
+      "paused": "paused"
+    }
+  },
+  "sheet": {
+    "colonyTitle": "Colony",
+    "upgradesTitle": "Upgrades",
+    "bedsFilled": "{filled} / {cap} beds filled",
+    "close": "Close {sheet}",
+    "noRoomMax": "Every bed is taken. To make room for a new friend, you can dismiss a helper: they fly back to the meadow nearby.",
+    "noRoom": "All beds are full. Build a Bee Room for more, or dismiss a helper back to the meadow.",
+    "noHelpers": "No helpers yet. Wild bees hover over meadows, flower patches, water and woods: fly onto one and press F to try the befriending dance. There's always a friendly Bumble at the Wild Nest.",
+    "dismiss": "Dismiss",
+    "dismissAria": "Dismiss {name}",
+    "dismissQ": "Dismiss {name}?",
+    "dismissBlurb": "Send {name} back to the meadow? You can find them near the hive and befriend them again.",
+    "nightOnly": "{plural} only come out at night.",
+    "keep": "Keep {name}",
+    "newNameFor": "New name for {name}",
+    "whoAria": "{name}, {species}. Rename",
+    "jobAria": "{name}'s job",
+    "rest": "Rest",
+    "favourite": "favourite",
+    "favouriteTitle": "{label} (favourite: gathers it faster)",
+    "workPlaceholder": "Work at a building…",
+    "workLabel": "Where {name} works in the hive",
+    "levelOf": "Level {n} of {total}",
+    "upgrade": "Upgrade",
+    "upgradeAria": "Upgrade {name}",
+    "fullyUpgraded": "Fully upgraded.",
+    "or": "or",
+    "toClose": "to close"
+  },
+  "hud": {
+    "dayLine": "Day {day} · {n} hex flown | Day {day} · {n} hexes flown",
+    "morningIn": "Morning in about {n} min",
+    "nightIn": "Night falls in about {n} min",
+    "journal": "Journal",
+    "journalNew": "Journal, {n} new",
+    "look": "Look",
+    "lookAround": "Look around",
+    "home": "Home",
+    "flyHome": "Fly home",
+    "build": "Build",
+    "buildSelected": "Build on the selected cell",
+    "colony": "Colony",
+    "colonyAria": "Colony, {n} helpers",
+    "upgrades": "Upgrades",
+    "settings": "Settings",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "gameActions": "Game actions",
+    "tip": "Tip",
+    "tipTap": "Tap a tile",
+    "tipFly": "to fly there",
+    "tipKeys": ", or use",
+    "tipSparklesA": "Follow the",
+    "tipSparklesB": "sparkles to find new places.",
+    "gotIt": "Got it",
+    "plusOneIn": "· +1 in {n}s"
+  },
+  "build": {
+    "title": "Build here",
+    "close": "Close build menu",
+    "need": "Need {amounts} more",
+    "needAnnounce": "{name}: {missing}.",
+    "pickCell": "Pick an empty cell to build on.",
+    "pickCellFirst": "Pick an empty cell to build on first.",
+    "menuAnnounce": "Build menu. Up and down to choose, Enter to build, Escape to close.",
+    "choose": "choose",
+    "build": "build",
+    "closeKey": "close"
+  },
+  "dance": {
+    "hit": "Friends!",
+    "fled": "Too shy this time…",
+    "miss": "Almost! Try again",
+    "press": "Press F in the green",
+    "ringAria": "Befriend {the}: press now while the marker is in the green",
+    "triesLeft": "{n} try left | {n} tries left",
+    "catch": "catch",
+    "backAway": "back away"
+  },
+  "pad": {
+    "group": "Movement pad",
+    "fly": "Fly {dir}"
+  },
+  "pouch": {
+    "name": "Pouch",
+    "labelFull": "Pouch {n} of {cap}: {list}",
+    "labelEmpty": "Pouch {n} of {cap}, empty"
+  },
+  "minimap": {
+    "aria": "Minimap",
+    "summary": "Map. Explored {pct} percent of the meadow. {found} of {total} places found, {visited} visited.",
+    "placesVisited": "places visited",
+    "smaller": "Make map smaller",
+    "bigger": "Make map bigger",
+    "clickToFly": "Click to fly there",
+    "unvisited": "Unvisited:"
+  },
+  "wb": {
+    "title": "Welcome back!",
+    "lead": "You were away for {away}. While you were gone:",
+    "min": "{n} minute | {n} minutes",
+    "hour": "{n} hour | {n} hours",
+    "oneBusy": "{name} kept busy.",
+    "fewBusy": "{names} kept busy.",
+    "manyBusy": "{names} and {n} more friends kept busy.",
+    "capped": "Everyone stopped for a nap after 8 hours.",
+    "lovely": "Lovely"
+  },
+  "thanks": {
+    "title": "Thank you for playing!",
+    "quote": "You flew further than any bee in a hundred summers, and brought a whole meadow home with you. The hive will hum about this for a very long time.",
+    "theQueen": "The Queen",
+    "statsAria": "Your journey",
+    "day": "day | days",
+    "hexesFlown": "hexes flown",
+    "friend": "friend | friends",
+    "places": "places",
+    "keepsakes": "keepsakes",
+    "hiveLevel": "hive level",
+    "note": "That's the whole story so far. Thank you so much for playing Hivebound: it was made with a lot of love, and I hope it gave you a few calm, happy moments. There's more to come.",
+    "noteSoft": "The hive keeps going: the Queen's little wishes carry on, your helpers keep working, and every place and keepsake is still out there to enjoy.",
+    "keepPlaying": "Keep playing"
+  },
+  "gs": {
+    "pouchFullToast": "Your pouch is full. Fly home (H) to unload.",
+    "pouchFullAnnounce": "Your pouch is full. Fly home to unload.",
+    "gathering": "Gathering {name}.",
+    "pouchFullWith": "Pouch full with {n}. Fly home to unload.",
+    "allGathered": "That's all the {name} here for now. It will grow back.",
+    "notYet": "No {name} left here yet. It grows back in about {n} seconds."
+  }
+}

@@ -1,4 +1,5 @@
 import { fbm, hash2, mulberry32 } from './noise'
+import { appI18n } from './i18n'
 import { type Hex, hexDistance, hexKey, hexesInRange, hexToWorld } from './hex'
 
 export type Terrain = 'hive' | 'clearing' | 'grass' | 'meadow' | 'flowers' | 'forest' | 'water' | 'edge' | 'lavender' | 'amber'
@@ -35,10 +36,8 @@ export type PoiId =
 
 export interface PoiDef {
   id: PoiId
-  name: string
   terrain: Terrain[]
   ring: [number, number]
-  journal: { title: string, body: string }
 }
 
 export const WORLD_SEED = 1337
@@ -51,134 +50,42 @@ export const HOME: Hex = { q: 0, r: 0 }
 export const DOORSTEP: Hex = { q: 0, r: 1 }
 export const REVEAL_RADIUS = 2
 
-export const TERRAIN_LABEL: Record<Terrain, string> = {
-  hive: 'Home Hive',
-  clearing: 'Home Clearing',
-  grass: 'Soft Grass',
-  meadow: 'Sunny Meadow',
-  flowers: 'Flower Patch',
-  forest: 'Whispering Woods',
-  water: 'Lily Water',
-  edge: 'The Mist',
-  lavender: 'Lavender Heath',
-  amber: 'Amber Woods',
-}
-
 export const POIS: PoiDef[] = [
-  {
-    id: 'signpost',
-    name: 'Old Signpost',
-    terrain: ['grass', 'meadow'],
-    ring: [3, 4],
-    journal: {
-      title: 'An old signpost',
-      body: 'Three arrows, all pointing different ways. One just says "HONEY?" with a question mark. Somebody was lost, or very hopeful.',
-    },
-  },
-  {
-    id: 'sunflower',
-    name: 'Giant Sunflower',
-    terrain: ['meadow', 'grass', 'flowers'],
-    ring: [4, 6],
-    journal: {
-      title: 'The tallest flower',
-      body: 'A sunflower so big it has its own shadow weather. The nectar smells like warm toast. I will be back with more empty pockets.',
-    },
-  },
-  {
-    id: 'pond',
-    name: 'Quiet Pond',
-    terrain: ['water'],
-    ring: [4, 9],
-    journal: {
-      title: 'A quiet pond',
-      body: 'Lily pads big enough to nap on. A frog looked at me for a very long time and then said nothing. I think we are friends now.',
-    },
-  },
-  {
-    id: 'dandelion',
-    name: 'Dandelion Hill',
-    terrain: ['flowers', 'meadow'],
-    ring: [6, 9],
-    journal: {
-      title: 'Dandelion hill',
-      body: 'Every step sends little parachutes floating up. I counted forty-two before I lost count and started again.',
-    },
-  },
-  {
-    id: 'stump',
-    name: 'Mossy Stump',
-    terrain: ['forest'],
-    ring: [5, 10],
-    journal: {
-      title: 'The mossy stump',
-      body: 'Soft as a pillow and humming quietly. Something small lives inside. It left a crumb of wax on the doorstep, like a hello.',
-    },
-  },
-  {
-    id: 'nest',
-    name: 'Wild Nest',
-    terrain: ['forest', 'grass', 'meadow'],
-    ring: [8, 11],
-    journal: {
-      title: 'A wild nest!',
-      body: 'Another hive, out here on its own. The bees inside have stripes I have never seen. They buzzed hello in a funny accent.',
-    },
-  },
-  {
-    id: 'honeycomb',
-    name: 'Broken Honeycomb',
-    terrain: ['grass', 'meadow', 'clearing', 'flowers'],
-    ring: [9, 11],
-    journal: {
-      title: 'Old honeycomb',
-      body: 'Pieces of honeycomb, very very old, half buried in the grass. The cells are bigger than ours. Who built this?',
-    },
-  },
-  {
-    id: 'mist',
-    name: "The Mist's Edge",
-    terrain: ['grass', 'meadow', 'flowers', 'forest', 'clearing'],
-    ring: [WORLD_RADIUS - 1, WORLD_RADIUS - 1],
-    journal: {
-      title: 'The edge of the mist',
-      body: 'The meadow just... stops. Beyond is a warm, shimmering haze. My wings feel too thin to go further. Not yet, anyway.',
-    },
-  },
+  { id: 'signpost', terrain: ['grass', 'meadow'], ring: [3, 4] },
+  { id: 'sunflower', terrain: ['meadow', 'grass', 'flowers'], ring: [4, 6] },
+  { id: 'pond', terrain: ['water'], ring: [4, 9] },
+  { id: 'dandelion', terrain: ['flowers', 'meadow'], ring: [6, 9] },
+  { id: 'stump', terrain: ['forest'], ring: [5, 10] },
+  { id: 'nest', terrain: ['forest', 'grass', 'meadow'], ring: [8, 11] },
+  { id: 'honeycomb', terrain: ['grass', 'meadow', 'clearing', 'flowers'], ring: [9, 11] },
+  { id: 'mist', terrain: ['grass', 'meadow', 'flowers', 'forest', 'clearing'], ring: [WORLD_RADIUS - 1, WORLD_RADIUS - 1] },
   // --- Beyond the mist (chapter two) ---
-  {
-    id: 'cottage',
-    name: 'Lavender Cottage',
-    terrain: ['lavender'],
-    ring: [26, 28],
-    journal: {
-      title: 'A cottage in the heather',
-      body: 'A tiny round house with a lavender roof, and nobody home. The doormat says WELCOME, BEES in very old letters. So someone expected us.',
-    },
-  },
-  {
-    id: 'hollowoak',
-    name: 'The Hollow Oak',
-    terrain: ['amber'],
-    ring: [27, 30],
-    journal: {
-      title: 'The Hollow Oak',
-      body: 'The biggest tree I have ever seen, glowing orange all the way up. Inside it is warm and hums like our hive. Old bees lived here. I am sure of it.',
-    },
-  },
-  {
-    id: 'moonwell',
-    name: 'The Moonwell',
-    terrain: ['water', 'lavender', 'grass'],
-    ring: [28, 30],
-    journal: {
-      title: 'The Moonwell',
-      body: 'A round stone well full of water so still it holds the whole sky. At night, they say, it keeps a little piece of the moon.',
-    },
-  },
+  { id: 'cottage', terrain: ['lavender'], ring: [26, 28] },
+  { id: 'hollowoak', terrain: ['amber'], ring: [27, 30] },
+  { id: 'moonwell', terrain: ['water', 'lavender', 'grass'], ring: [28, 30] },
 ]
 
 export const POI_BY_ID = Object.fromEntries(POIS.map(p => [p.id, p])) as Record<PoiId, PoiDef>
+
+/*
+ * Place and terrain names live in i18n/locales (pois.<id>.*, terrain.<id>.*). French
+ * prepositions and elisions ("au Vieux Poteau", "à l'Étang Tranquille") are baked into
+ * the per-locale "at" phrasings.
+ */
+
+const i18n = () => appI18n()
+
+/** Bare name, for lists and labels. */
+export const poiName = (id: PoiId) => i18n().t(`pois.${id}.name`)
+/** "the Old Signpost" / « le Vieux Poteau » — for use inside a sentence. */
+export const poiThe = (id: PoiId) => i18n().t(`pois.${id}.the`)
+/** "at the Old Signpost" / « au Vieux Poteau » — includes the preposition. */
+export const poiAt = (id: PoiId) => i18n().t(`pois.${id}.at`)
+
+/** Terrain label, for the HUD ("Soft Grass" / « Herbe Tendre »). */
+export const terrainLabel = (t: Terrain) => i18n().t(`terrain.${t}.label`)
+/** "at the Home Hive" / « à la Ruche Maison » — includes the preposition. */
+export const terrainAt = (t: Terrain) => i18n().t(`terrain.${t}.at`)
 
 function pickTerrain(q: number, r: number, d: number): { terrain: Terrain, height: number } {
   if (d === 0) return { terrain: 'hive', height: 0.18 }

@@ -15,6 +15,8 @@ import { ReadySign } from '~/game/readySign'
 import { useQueen } from '~/stores/queen'
 import { isGoldenSpot } from '~/utils/golden'
 import { nightAmount } from '~/utils/daylight'
+import { appI18n } from '~/utils/i18n'
+import { resourceLower, resourceSome } from '~/utils/resources'
 import { setCloudNight } from '~/game/props'
 import { WorldView } from '~/game/worldView'
 import { DIRECTION_LIST, type Hex, findPath, hexKey, hexToWorld, hexesInRange, neighbor, worldToHex } from '~/utils/hex'
@@ -22,6 +24,7 @@ import type { SpeciesId } from '~/utils/species'
 import type { Tile } from '~/utils/world'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
 import { RESOURCE_INFO, tileSource } from '~/utils/resources'
+// (RESOURCE_INFO stays: its colour is data; names come from i18n)
 import { useWorldData } from '~/utils/world'
 import { useColony, workCell } from '~/stores/colony'
 import { useGame } from '~/stores/game'
@@ -481,8 +484,8 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
       if (!fullNoticed) {
         fullNoticed = true
         notedKey = here.key
-        game.toast('Your pouch is full. Fly home (H) to unload.')
-        game.announce('Your pouch is full. Fly home to unload.')
+        game.toast(appI18n().t('gs.pouchFullToast'))
+        game.announce(appI18n().t('gs.pouchFullAnnounce'))
       }
     }
     else if (left > 0) {
@@ -490,7 +493,7 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
       if (gatheringKey !== here.key) {
         gatheringKey = here.key
         notedKey = here.key
-        game.announce(`Gathering ${RESOURCE_INFO[src.resource].name.toLowerCase()}.`)
+        game.announce(appI18n().t('gs.gathering', { some: resourceSome(src.resource), name: resourceLower(src.resource) }))
       }
       gatherT += dt / hive.secondsPerGather
       if (gatherT >= 1) {
@@ -498,17 +501,17 @@ function updateGathering(dt: number, rm: boolean, idle: boolean) {
         hive.gather(here)
         if (hive.pouchFull) {
           fullNoticed = true
-          game.toast('Pouch full! Fly home (H) to unload.')
-          game.announce(`Pouch full with ${hive.pouchTotal}. Fly home to unload.`)
+          game.toast(appI18n().t('gs.pouchFullToast'))
+          game.announce(appI18n().t('gs.pouchFullWith', { n: hive.pouchTotal }))
         }
         else if (hive.tileAmount(here) === 0) {
-          game.announce(`That's all the ${RESOURCE_INFO[src.resource].name.toLowerCase()} here for now. It will grow back.`)
+          game.announce(appI18n().t('gs.allGathered', { the: appI18n().t(`resources.${src.resource}.the`), name: resourceLower(src.resource) }))
         }
       }
     }
     else if (notedKey !== here.key) {
       notedKey = here.key
-      game.announce(`No ${RESOURCE_INFO[src.resource].name.toLowerCase()} left here yet. It grows back in about ${hive.tileRegrowIn(here)} seconds.`)
+      game.announce(appI18n().t('gs.notYet', { some: resourceSome(src.resource), name: resourceLower(src.resource), n: hive.tileRegrowIn(here) }))
     }
   }
   if (!here) notedKey = null

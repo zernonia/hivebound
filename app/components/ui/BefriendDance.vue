@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { gameAudio } from '~/audio/engine'
 import { useColony } from '~/stores/colony'
-import { SPECIES } from '~/utils/species'
+import { SPECIES, speciesName, speciesThe } from '~/utils/species'
 
 /*
  * The befriending dance: a marker circles a ring; press F (or tap the ring) while it's inside
@@ -11,6 +11,7 @@ import { SPECIES } from '~/utils/species'
 const colony = useColony()
 const dance = computed(() => colony.dance)
 const species = computed(() => (dance.value ? SPECIES[dance.value.species] : null))
+const { t } = useI18n()
 
 const R = 74
 const C = 90
@@ -76,17 +77,17 @@ const triesLeft = computed(() => (dance.value ? 3 - dance.value.misses : 0))
 const message = computed(() => {
   const d = dance.value
   if (!d || !species.value) return ''
-  if (d.result === 'hit') return 'Friends!'
-  if (d.result === 'fled') return 'Too shy this time…'
-  if (d.result === 'miss') return 'Almost! Try again'
-  return 'Press F in the green'
+  if (d.result === 'hit') return t('dance.hit')
+  if (d.result === 'fled') return t('dance.fled')
+  if (d.result === 'miss') return t('dance.miss')
+  return t('dance.press')
 })
 </script>
 
 <template>
   <Transition name="dance">
     <div v-if="dance && species" class="dance" :class="dance.result">
-      <button class="ring-btn" :aria-label="`Befriend the ${species.name}: press now while the marker is in the green`" @click="colony.danceHit()">
+      <button class="ring-btn" :aria-label="t('dance.ringAria', { the: speciesThe(dance.species) })" @click="colony.danceHit()">
         <svg :viewBox="`0 0 ${C * 2} ${C * 2}`" aria-hidden="true">
           <circle :cx="C" :cy="C" :r="R" class="track" />
           <path :d="arcPath" class="zone" />
@@ -94,17 +95,17 @@ const message = computed(() => {
         </svg>
         <span class="center" aria-hidden="true">
           <span class="swatch" :style="{ background: species.look.colors.body, borderColor: species.look.colors.stripe }" />
-          <span class="kind">{{ species.name }}</span>
+          <span class="kind">{{ speciesName(dance.species) }}</span>
         </span>
       </button>
       <p class="msg">
         {{ message }}
       </p>
-      <div class="tries" :aria-label="`${triesLeft} tries left`">
+      <div class="tries" :aria-label="t('dance.triesLeft', triesLeft)">
         <span v-for="i in 3" :key="i" class="pip" :class="{ used: i > triesLeft }" />
       </div>
       <p class="keys hide-touch">
-        <span class="kbd">F</span> catch · <span class="kbd">Esc</span> back away
+        <span class="kbd">F</span> {{ t('dance.catch') }} · <span class="kbd">Esc</span> {{ t('dance.backAway') }}
       </p>
     </div>
   </Transition>

@@ -15,6 +15,7 @@ const colony = useColony()
 const queen = useQueen()
 const settings = useSettings()
 const held = useHeldDirection()
+const { t } = useI18n()
 
 settings.load()
 game.load()
@@ -32,6 +33,11 @@ useGameAudio()
 // Persist settings whenever they change.
 watch(() => settings.$state, () => settings.save(), { deep: true })
 
+// Language switching at runtime. The boot-time sync lives in plugins/lang.client.ts,
+// which runs (and awaits the locale messages) before the game stores load.
+const nuxtApp = useNuxtApp()
+watch(() => settings.lang, lang => nuxtApp.$i18n.setLocale(lang))
+
 // Reflect accessibility settings on <html>.
 // The sky behind the island fades to a deep blue at night (checked every few seconds).
 const night = ref(0)
@@ -40,8 +46,8 @@ const updateNight = () => {
   if (night.value > 0.5 && hive.first('night')) {
     game.addJournal({
       id: 'first-night',
-      title: 'The meadow at night',
-      body: 'The sky went deep blue and the flowers folded up like little tents. Something with glowing antennae is humming over the soft grass. A Moon Bee? I should say hello.',
+      titleKey: 'journal.firstNight.title',
+      bodyKey: 'journal.firstNight.body',
       icon: 'terrain',
       subject: 'grass',
     })
@@ -62,6 +68,7 @@ const sky = computed(() => {
 })
 useHead({
   htmlAttrs: {
+    lang: computed(() => settings.lang),
     class: computed(() => [settings.highContrast && 'hc', settings.reducedMotion && 'rm'].filter(Boolean).join(' ')),
     style: computed(() => `--text-scale:${settings.textScale};--sky-top:${sky.value[0]};--sky-bottom:${sky.value[1]}`),
   },
@@ -231,14 +238,14 @@ watch(() => game.journalOpen || game.settingsOpen, open => open && held.clear())
 <template>
   <main class="game">
     <h1 class="sr-only">
-      Hivebound, a cozy bee exploration game
+      {{ t('common.srTitle') }}
     </h1>
     <ClientOnly>
       <GameCanvas />
       <template #fallback>
         <div class="loading" role="status">
           <span class="hex" aria-hidden="true" />
-          Warming up the hive…
+          {{ t('common.loading') }}
         </div>
       </template>
     </ClientOnly>
