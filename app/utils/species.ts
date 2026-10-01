@@ -158,6 +158,10 @@ const NAMES = [
   'Biscuit', 'Pip', 'Clover', 'Mochi', 'Button', 'Honeybun', 'Pebble', 'Dot', 'Waffle', 'Sprout',
   'Bramble', 'Tansy', 'Juniper', 'Poppy', 'Fig', 'Nutmeg', 'Maple', 'Toffee', 'Wren', 'Nib',
   'Crumpet', 'Bean', 'Marigold', 'Sorrel', 'Puddle', 'Acorn', 'Thistle', 'Dumpling',
+  'Buttercup', 'Muffin', 'Cricket', 'Hazel', 'Peaches', 'Sesame', 'Cocoa', 'Daisy', 'Ginger', 'Truffle',
+  'Pudding', 'Clementine', 'Basil', 'Rosie', 'Pretzel', 'Olive', 'Sparrow', 'Meringue', 'Fennel', 'Cinnamon',
+  'Peanut', 'Willow', 'Barley', 'Lavender', 'Sugarplum', 'Pumpkin', 'Cobble', 'Thimble', 'Tulip', 'Marmalade',
+  'Fudge', 'Mallow', 'Nettle', 'Saffron', 'Butterscotch', 'Cashew', 'Periwinkle', 'Bumble',
 ]
 
 /** A cosy name not already used in the colony. */

@@ -227,6 +227,16 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
       </div>
     </section>
 
+    <section aria-labelledby="s-perf">
+      <h3 id="s-perf">
+        Performance
+      </h3>
+      <BeeLimitControl />
+      <p class="limit-note">
+        Lowering the limit stops new bees joining; bees already in your hive stay.
+      </p>
+    </section>
+
     <section aria-labelledby="s-keys" class="keys">
       <h3 id="s-keys">
         Controls
@@ -425,6 +435,11 @@ h3 {
 }
 .seg-row label:has(input:focus-visible) {
   box-shadow: var(--focus);
+}
+.limit-note {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
 }
 .keys dl {
   margin: 0 12px;

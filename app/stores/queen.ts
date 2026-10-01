@@ -10,6 +10,7 @@ import { HOME, POI_BY_ID, useWorldData } from '~/utils/world'
 import { useColony } from './colony'
 import { useGame } from './game'
 import { useHive } from './hive'
+import { useSettings } from './settings'
 
 /*
  * The Queen's requests: one at a time, handed in at the Queen with F. Deliveries are taken
@@ -17,6 +18,7 @@ import { useHive } from './hive'
  */
 
 const SAVE_KEY = 'hivebound:queen:v1'
+const LIMIT_HINT = 'raise your bee limit in Settings to make room'
 /** The store can't grow past this much extra room from the Queen's thanks. */
 const MAX_BONUS_STORAGE = 160
 
@@ -140,11 +142,13 @@ export const useQueen = defineStore('queen', {
         case 'species': {
           const have = Math.min(g.count, useColony().bees.filter(b => b.species === g.species).length)
           const name = SPECIES[g.species].name
-          return [{ label: g.count === 1 ? `Befriend a ${name}` : `Befriend ${g.count} ${name}s`, have, need: g.count, done: have >= g.count }]
+          const label = g.count === 1 ? `Befriend a ${name}` : `Befriend ${g.count} ${name}s`
+          return [{ label: g.count > useSettings().maxBees ? `${label} (${LIMIT_HINT})` : label, have, need: g.count, done: have >= g.count }]
         }
         case 'friends': {
           const have = Math.min(g.count, useColony().bees.length)
-          return [{ label: g.count === 1 ? 'Befriend a wild bee' : `Befriend ${g.count} bees`, have, need: g.count, done: have >= g.count }]
+          const label = g.count === 1 ? 'Befriend a wild bee' : `Befriend ${g.count} bees`
+          return [{ label: g.count > useSettings().maxBees ? `${label} (${LIMIT_HINT})` : label, have, need: g.count, done: have >= g.count }]
         }
         case 'visit': {
           const have = useGame().visitedPois.includes(g.poi) ? 1 : 0

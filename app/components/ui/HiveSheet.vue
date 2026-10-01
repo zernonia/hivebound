@@ -2,6 +2,7 @@
 import { BEE_NAME_MAX, MAX_COLONY, MAX_WORKERS, type ColonyBee, useColony, workCell } from '~/stores/colony'
 import { useGame } from '~/stores/game'
 import { useHive } from '~/stores/hive'
+import { useSettings } from '~/stores/settings'
 import { ALL_RESOURCES, type Amounts, BUILDINGS, RAW_RESOURCES, RESOURCE_INFO, type RawResource, UPGRADES, UPGRADE_LIST } from '~/utils/resources'
 import { useSettings } from '~/stores/settings'
 import { SPECIES } from '~/utils/species'
@@ -16,6 +17,7 @@ const game = useGame()
 const hive = useHive()
 const settings = useSettings()
 const colony = useColony()
+const settings = useSettings()
 const sheet = computed(() => game.hiveSheet)
 const panel = ref<HTMLElement>()
 
@@ -140,7 +142,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
       <header>
         <h2 :id="`sheet-${sheet}`">
           {{ sheet === 'colony' ? 'Colony' : 'Upgrades' }}
-          <span v-if="sheet === 'colony'" class="sub">{{ colony.bees.length }} / {{ colony.capacity }} beds filled</span>
+          <span v-if="sheet === 'colony'" class="sub">{{ colony.bees.length > colony.capacity ? `${colony.bees.length} bees (limit ${colony.capacity})` : `${colony.bees.length} / ${colony.capacity} beds filled` }}</span>
         </h2>
         <button class="close" :aria-label="`Close ${sheet}`" @click="close">
           <UiIcon name="close" />
@@ -150,7 +152,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
       <div class="body">
         <!-- Colony -->
         <template v-if="sheet === 'colony'">
-          <p v-if="!colony.hasRoom" class="note">
+          <p v-if="colony.atBeeLimit" class="note">
+            You've reached your bee limit of {{ settings.maxBees }}. You can raise it in Settings.
+          </p>
+          <p v-else-if="!colony.hasRoom && colony.roomCapacity < settings.maxBees" class="note">
+            Build a Bee Room for more beds.
+          </p>
+          <p v-else-if="!colony.hasRoom" class="note">
             {{ colony.capacity >= MAX_COLONY
               ? 'Every bed is taken. To make room for a new friend, you can dismiss a helper: they fly back to the meadow nearby.'
               : 'All beds are full. Build a Bee Room for more, or dismiss a helper back to the meadow.' }}

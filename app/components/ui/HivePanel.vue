@@ -5,6 +5,7 @@ import type { PickerOption } from './UiPicker.vue'
 import { MAX_WORKERS, useColony, workCell } from '~/stores/colony'
 import { SPECIES } from '~/utils/species'
 import { useGame } from '~/stores/game'
+import { useSettings } from '~/stores/settings'
 import { ALL_RESOURCES, type Amounts, BUILDINGS, RESOURCE_INFO, TRAY_CAP, UNLOCK_CELL_COST, formatAmounts } from '~/utils/resources'
 
 /*
@@ -14,6 +15,7 @@ import { ALL_RESOURCES, type Amounts, BUILDINGS, RESOURCE_INFO, TRAY_CAP, UNLOCK
 const hive = useHive()
 const game = useGame()
 const colony = useColony()
+const settings = useSettings()
 const queen = useQueen()
 
 const queenLines = computed(() => {
@@ -224,7 +226,10 @@ const costList = (a: Amounts) => ALL_RESOURCES.filter(r => a[r]).map(r => ({ r, 
             </div>
           </template>
           <p v-else-if="selBuilding.housing" class="status">
-            A home for {{ selBuilding.housing }} helper bees. The colony has {{ colony.bees.length }} of {{ colony.capacity }} beds filled.
+            A home for {{ selBuilding.housing }} helper bees. {{ colony.bees.length > colony.capacity ? `The colony has ${colony.bees.length} bees (limit ${colony.capacity}).` : `The colony has ${colony.bees.length} of ${colony.capacity} beds filled.` }}
+            <template v-if="colony.atBeeLimit">
+              You've reached your bee limit of {{ settings.maxBees }}. You can raise it in Settings.
+            </template>
           </p>
           <p v-else class="status">
             Adds room for {{ selBuilding.storage }} more of every resource.
