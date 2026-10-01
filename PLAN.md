@@ -57,7 +57,8 @@
 ### Phase 3 — Stores + refactor journal en IDs
 
 - [x] `app/stores/game.ts` :
-  - [x] `JournalEntry` : `titleKey`/`bodyKey`/`params` + `title`/`body` légués optionnels (fallback texte brut) ; helpers `journalTitle`/`journalBody` (copie des params : vue-i18n y écrit le nombre pluriel)
+  - [x] `JournalEntry` : `titleKey`/`bodyKey`/`params` + `title`/`body` légués optionnels ; helpers `journalTitle`/`journalBody` (copie des params : vue-i18n y écrit le nombre pluriel)
+  - [x] Entrées legacy : clés re-dérivées de l'id au rendu (`journalKeysFor`, 48 motifs couverts — `poi:`/`terrain:`/`bee:`/`queen:` + 8 ids fixes)
   - [x] Tous les `addJournal()` passent des clés (POIs, notes de terrain, intro, première nuit)
   - [x] Labels `primaryAction` (clés par-espèce), annonces bloquantes, toasts
   - [x] Moteur de narration → `narration.*` avec `{some}` partitif FR (`du nectar`, `de l'eau`, `de la cire`…)
@@ -99,7 +100,7 @@
 
 ## Notes de risque
 
-1. **Journal persisté** : les entrées créées avant le refactor n'ont pas de clé → fallback texte brut (anglais). Choix validé avec l'utilisateur.
+1. **Journal persisté** : les entrées créées avant le refactor n'ont pas de clé, mais leurs ids sont stables → les clés sont re-dérivées de l'id **au rendu** (`journalKeysFor`), donc même les vieilles saves s'affichent dans la langue jouée ; le texte brut ne reste qu'en dernier recours pour un id inconnu.
 2. **Toasts/annonces** sont des snapshots texte au moment de l'émission → une commutation de langue en cours d'affichage garde la langue d'origine (éphémère, acceptable).
 3. **vue-i18n** : caractères `|` et `@` spéciaux dans les messages — à échapper si présents dans le texte.
 4. **Tri** `HiveSheet` : passer la locale à `localeCompare` pour les accents français.
