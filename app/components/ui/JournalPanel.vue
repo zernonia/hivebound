@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { hexKey } from '~/utils/hex'
-import { KEEPSAKES, KEEPSAKE_LIST, type KeepsakeSlot } from '~/utils/keepsakes'
-import { POIS, POI_BY_ID, useWorldData } from '~/utils/world'
-import { useGame } from '~/stores/game'
+import { KEEPSAKES, KEEPSAKE_LIST, keepsakeName, type KeepsakeSlot } from '~/utils/keepsakes'
+import { POIS, POI_BY_ID, poiAt, poiName, useWorldData } from '~/utils/world'
+import { journalBody, journalTitle, useGame, type JournalEntry } from '~/stores/game'
 
 const game = useGame()
 const world = useWorldData()
+const { t } = useI18n()
 const tab = ref<'entries' | 'places' | 'keepsakes'>('entries')
 const selectedId = ref<string | null>(null)
 
@@ -22,11 +23,13 @@ watch(() => game.journalOpen, (open) => {
   }
 })
 
-const SLOT_LABEL: Record<KeepsakeSlot, string> = { head: 'Head', face: 'Face', neck: 'Neck', side: 'Side', back: 'Back', tail: 'Tail' }
+const slotLabel = (slot: KeepsakeSlot) => t(`journal.slots.${slot}`)
 const keepsakes = computed(() => KEEPSAKE_LIST.map((id) => {
   const def = KEEPSAKES[id]
   const found = game.keepsakes.includes(id)
-  const where = def.from === 'queen' ? 'A gift from the Queen, one day.' : `Waiting at ${placeSeen(def.from) ? POI_BY_ID[def.from].name : 'a place you haven\'t found yet'}.`
+  const where = def.from === 'queen'
+    ? t('journal.keepsake.queenGift')
+    : t('journal.keepsake.waiting', { at: placeSeen(def.from) ? poiAt(def.from) : t('journal.keepsake.unfound') })
   return { id, def, found, worn: game.wearing[def.slot] === id, where }
 }))
 function placeSeen(id: keyof typeof POI_BY_ID) {
@@ -46,27 +49,27 @@ const places = computed(() => {
 </script>
 
 <template>
-  <UiDialog :open="game.journalOpen" title="My Journal" wide @close="game.journalOpen = false">
-    <div class="tabs" role="tablist" aria-label="Journal sections">
+  <UiDialog :open="game.journalOpen" :title="t('journal.title')" wide @close="game.journalOpen = false">
+    <div class="tabs" role="tablist" :aria-label="t('journal.sectionsAria')">
       <button role="tab" :aria-selected="tab === 'entries'" :class="{ on: tab === 'entries' }" @click="tab = 'entries'">
-        Entries <span class="count">{{ game.journal.length }}</span>
+        {{ t('journal.tabEntries') }} <span class="count">{{ game.journal.length }}</span>
       </button>
       <button role="tab" :aria-selected="tab === 'places'" :class="{ on: tab === 'places' }" @click="tab = 'places'">
-        Places <span class="count">{{ game.visitedPois.length }}/{{ POIS.length }}</span>
+        {{ t('journal.tabPlaces') }} <span class="count">{{ game.visitedPois.length }}/{{ POIS.length }}</span>
       </button>
       <button role="tab" :aria-selected="tab === 'keepsakes'" :class="{ on: tab === 'keepsakes' }" @click="tab = 'keepsakes'">
-        Keepsakes <span class="count">{{ game.keepsakes.length }}/{{ KEEPSAKE_LIST.length }}</span>
+        {{ t('journal.tabKeepsakes') }} <span class="count">{{ game.keepsakes.length }}/{{ KEEPSAKE_LIST.length }}</span>
       </button>
     </div>
 
     <div v-if="tab === 'entries'" class="book" role="tabpanel">
-      <nav class="index" aria-label="Journal entries">
+      <nav class="index" :aria-label="t('journal.indexAria')">
         <ul>
           <li v-for="e in entries" :key="e.id">
             <button :class="{ on: selected?.id === e.id }" :aria-current="selected?.id === e.id ? 'true' : undefined" @click="selectedId = e.id">
               <span class="dot" :class="{ unread: e.unread }" aria-hidden="true" />
-              <span class="t">{{ e.title }}</span>
-              <span v-if="e.unread" class="sr-only">(new)</span>
+              <span class="t">{{ journalTitle(e) }}</span>
+              <span v-if="e.unread" class="sr-only">{{ t('journal.isNew') }}</span>
             </button>
           </li>
         </ul>
@@ -76,25 +79,25 @@ const places = computed(() => {
           <JournalArt :subject="selected.subject" />
         </div>
         <p class="day">
-          Day {{ selected.day }}
+          {{ t('journal.dayN', { n: selected.day }) }}
         </p>
-        <h3>{{ selected.title }}</h3>
+        <h3>{{ journalTitle(selected) }}</h3>
         <p class="text">
-          {{ selected.body }}
+          {{ journalBody(selected) }}
         </p>
       </article>
     </div>
 
     <div v-else-if="tab === 'keepsakes'" class="keepsakes" role="tabpanel">
       <p class="hint">
-        Things to wear, found around the island. One per spot: head, face, neck, side, back and tail.
+        {{ t('journal.keepsakesHint') }}
       </p>
       <ul>
         <li v-for="k in keepsakes" :key="k.id" :class="{ found: k.found, worn: k.worn }">
           <div class="meta">
-            <strong>{{ k.found ? k.def.name : '???' }}</strong>
-            <span class="slot">{{ SLOT_LABEL[k.def.slot] }}</span>
-            <span>{{ k.found ? k.def.blurb : k.where }}</span>
+            <strong>{{ k.found ? keepsakeName(k.id) : '???' }}</strong>
+            <span class="slot">{{ slotLabel(k.def.slot) }}</span>
+            <span>{{ k.found ? t(`keepsakes.${k.id}.blurb`) : k.where }}</span>
           </div>
           <button
             v-if="k.found"
@@ -103,7 +106,7 @@ const places = computed(() => {
             :aria-pressed="k.worn"
             @click="game.toggleWear(k.id)"
           >
-            {{ k.worn ? 'Take off' : 'Wear' }}
+            {{ k.worn ? t('journal.takeOff') : t('journal.wear') }}
           </button>
         </li>
       </ul>
@@ -117,8 +120,8 @@ const places = computed(() => {
             <span v-else aria-hidden="true">?</span>
           </div>
           <div class="meta">
-            <strong>{{ p.seen ? p.name : 'Undiscovered' }}</strong>
-            <span>{{ p.visited ? 'Visited' : p.seen ? 'Spotted, not visited yet' : 'Somewhere out there…' }}</span>
+            <strong>{{ p.seen ? poiName(p.id) : t('journal.undiscovered') }}</strong>
+            <span>{{ p.visited ? t('journal.visited') : p.seen ? t('journal.spotted') : t('journal.somewhere') }}</span>
           </div>
         </li>
       </ul>

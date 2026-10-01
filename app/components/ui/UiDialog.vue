@@ -7,6 +7,7 @@ const props = defineProps<{ open: boolean, title: string, wide?: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const el = ref<HTMLDialogElement>()
 const titleId = useId()
+const { t } = useI18n()
 
 watch(
   () => props.open,
@@ -41,7 +42,7 @@ function onBackdrop(ev: MouseEvent) {
         <h2 :id="titleId">
           {{ title }}
         </h2>
-        <button class="close" aria-label="Close" @click="emit('close')">
+        <button class="close" :aria-label="t('common.close')" @click="emit('close')">
           <UiIcon name="close" />
         </button>
       </header>

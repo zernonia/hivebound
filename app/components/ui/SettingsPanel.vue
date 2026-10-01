@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useGame } from '~/stores/game'
-import { type FlightSpeed, type TextScale, useSettings } from '~/stores/settings'
+import { type FlightSpeed, type Lang, type TextScale, useSettings } from '~/stores/settings'
 import { useColony } from '~/stores/colony'
 import { useHive } from '~/stores/hive'
 import { useQueen } from '~/stores/queen'
@@ -8,33 +8,44 @@ import { exportSave, importSave, parseSave, saveFileName } from '~/utils/saveTra
 
 const game = useGame()
 const settings = useSettings()
+const { t } = useI18n()
 // The minimap isn't shown on phones, so its switch would do nothing there.
 const compact = useCompactScreen()
-const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
+const pct = (v: number) => (v <= 0 ? t('settings.off') : `${Math.round(v * 100)}%`)
+
+// Shown in their own language, like locale names usually are.
+const langs: { v: Lang, label: string }[] = [
+  { v: 'en', label: 'English' },
+  { v: 'fr', label: 'Français' },
+]
 
 type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
-const toggles: { key: BoolKey, label: string, hint: string }[] = [
-  { key: 'reducedMotion', label: 'Reduce motion', hint: 'Calmer camera, no bouncing or pop-ins.' },
-  { key: 'highContrast', label: 'High contrast', hint: 'Stronger text and outlines on panels.' },
-  { key: 'colorVisionFriendly', label: 'Colour-friendly palette', hint: 'Terrain differs by brightness, not just hue.' },
-  { key: 'narration', label: 'Screen reader narration', hint: 'Describe where you fly and what is nearby, and add a Look around button (L).' },
-  { key: 'showMinimap', label: 'Show minimap', hint: '' },
-  { key: 'showPad', label: 'On-screen movement pad', hint: 'Six big buttons for hex directions.' },
-  { key: 'easyBefriend', label: 'Easier befriending', hint: 'Slower marker and a wider green area in the dance.' },
-  { key: 'dayNight', label: 'Day and night', hint: 'A slow day and night every 24 minutes. Off keeps it always day (Moon Bees still visit).' },
-  { key: 'showHints', label: 'Show tips', hint: '' },
-]
-const shownToggles = computed(() => (compact.value ? toggles.filter(t => t.key !== 'showMinimap') : toggles))
-const textSizes: { v: TextScale, label: string }[] = [
-  { v: 1, label: 'Normal' },
-  { v: 1.2, label: 'Large' },
-  { v: 1.4, label: 'Huge' },
-]
-const speeds: { v: FlightSpeed, label: string }[] = [
-  { v: 'relaxed', label: 'Relaxed' },
-  { v: 'normal', label: 'Normal' },
-  { v: 'brisk', label: 'Brisk' },
-]
+// Built inside computed() so the labels follow the language setting.
+const shownToggles = computed<{ key: BoolKey, label: string, hint: string }[]>(() => {
+  const all: { key: BoolKey, label: string, hint: string }[] = [
+    { key: 'reducedMotion', label: t('settings.toggles.reducedMotion.label'), hint: t('settings.toggles.reducedMotion.hint') },
+    { key: 'highContrast', label: t('settings.toggles.highContrast.label'), hint: t('settings.toggles.highContrast.hint') },
+    { key: 'colorVisionFriendly', label: t('settings.toggles.colorVisionFriendly.label'), hint: t('settings.toggles.colorVisionFriendly.hint') },
+    { key: 'narration', label: t('settings.toggles.narration.label'), hint: t('settings.toggles.narration.hint') },
+    { key: 'showMinimap', label: t('settings.toggles.showMinimap.label'), hint: t('settings.toggles.showMinimap.hint') },
+    { key: 'showPad', label: t('settings.toggles.showPad.label'), hint: t('settings.toggles.showPad.hint') },
+    { key: 'easyBefriend', label: t('settings.toggles.easyBefriend.label'), hint: t('settings.toggles.easyBefriend.hint') },
+    { key: 'dayNight', label: t('settings.toggles.dayNight.label'), hint: t('settings.toggles.dayNight.hint') },
+    { key: 'showHints', label: t('settings.toggles.showHints.label'), hint: t('settings.toggles.showHints.hint') },
+  ]
+  // The minimap isn't shown on phones, so its switch would do nothing there.
+  return compact.value ? all.filter(tg => tg.key !== 'showMinimap') : all
+})
+const textSizes = computed(() => [
+  { v: 1 as TextScale, label: t('settings.textSizes.normal') },
+  { v: 1.2 as TextScale, label: t('settings.textSizes.large') },
+  { v: 1.4 as TextScale, label: t('settings.textSizes.huge') },
+])
+const speeds = computed(() => [
+  { v: 'relaxed' as FlightSpeed, label: t('settings.speeds.relaxed') },
+  { v: 'normal' as FlightSpeed, label: t('settings.speeds.normal') },
+  { v: 'brisk' as FlightSpeed, label: t('settings.speeds.brisk') },
+])
 
 const confirmReset = ref(false)
 function reset() {
@@ -84,13 +95,13 @@ async function copySave() {
     await navigator.clipboard.writeText(code)
     fallbackCode.value = ''
     copied.value = true
-    say('Save code copied. Keep it somewhere safe!')
+    say(t('settings.save.statusCopied'))
     clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => (copied.value = false), 2000)
   }
   catch {
     fallbackCode.value = code
-    say('Your browser kept the clipboard to itself. Select the code below and copy it.')
+    say(t('settings.save.statusClipboard'))
   }
 }
 
@@ -102,7 +113,7 @@ function downloadSave() {
   a.download = saveFileName()
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
-  say('Save file downloaded.')
+  say(t('settings.save.statusDownloaded'))
 }
 
 function toggleLoad() {
@@ -122,7 +133,7 @@ async function pickFile(ev: Event) {
     askLoad()
   }
   catch {
-    say('That file couldn\'t be read. Try another one?', true)
+    say(t('settings.save.statusFileError'), true)
   }
 }
 
@@ -148,7 +159,7 @@ function doLoad() {
     say(result.error, true)
     return
   }
-  say('Save loaded! Settling back into your hive…')
+  say(t('settings.save.statusLoaded'))
   location.reload()
 }
 
@@ -168,10 +179,24 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 </script>
 
 <template>
-  <UiDialog :open="game.settingsOpen" title="Settings" @close="game.settingsOpen = false">
+  <UiDialog :open="game.settingsOpen" :title="t('settings.title')" @close="game.settingsOpen = false">
+    <section aria-labelledby="s-lang" class="language">
+      <h3 id="s-lang">
+        {{ t('settings.language') }}
+      </h3>
+      <fieldset class="seg">
+        <div class="seg-row">
+          <label v-for="l in langs" :key="l.v" :class="{ on: settings.lang === l.v }">
+            <input v-model="settings.lang" type="radio" name="lang" :value="l.v" class="sr-only">
+            {{ l.label }}
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
     <section aria-labelledby="s-access">
       <h3 id="s-access">
-        Comfort &amp; accessibility
+        {{ t('settings.sections.accessibility') }}
       </h3>
       <ul class="toggles">
         <li v-for="t in shownToggles" :key="t.key">
@@ -191,7 +216,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
       </ul>
 
       <fieldset class="seg">
-        <legend>Text size</legend>
+        <legend>{{ t('settings.textSize') }}</legend>
         <div class="seg-row">
           <label v-for="s in textSizes" :key="s.v" :class="{ on: settings.textScale === s.v }">
             <input v-model="settings.textScale" type="radio" name="textScale" :value="s.v" class="sr-only">
@@ -201,7 +226,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
       </fieldset>
 
       <fieldset class="seg">
-        <legend>Flying speed</legend>
+        <legend>{{ t('settings.flyingSpeed') }}</legend>
         <div class="seg-row">
           <label v-for="s in speeds" :key="s.v" :class="{ on: settings.flightSpeed === s.v }">
             <input v-model="settings.flightSpeed" type="radio" name="flightSpeed" :value="s.v" class="sr-only">
@@ -213,15 +238,15 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 
     <section aria-labelledby="s-sound">
       <h3 id="s-sound">
-        Sound
+        {{ t('settings.sections.sound') }}
       </h3>
       <div class="slider">
-        <label for="vol-music">Music</label>
+        <label for="vol-music">{{ t('settings.music') }}</label>
         <input id="vol-music" v-model.number="settings.musicVolume" type="range" :style="{ '--fill': `${settings.musicVolume * 100}%` }" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.musicVolume)">
         <span class="val" aria-hidden="true">{{ pct(settings.musicVolume) }}</span>
       </div>
       <div class="slider">
-        <label for="vol-sfx">Sound effects</label>
+        <label for="vol-sfx">{{ t('settings.sfx') }}</label>
         <input id="vol-sfx" v-model.number="settings.sfxVolume" type="range" :style="{ '--fill': `${settings.sfxVolume * 100}%` }" min="0" max="1" step="0.05" :aria-valuetext="pct(settings.sfxVolume)">
         <span class="val" aria-hidden="true">{{ pct(settings.sfxVolume) }}</span>
       </div>
@@ -229,44 +254,44 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 
     <section aria-labelledby="s-keys" class="keys">
       <h3 id="s-keys">
-        Controls
+        {{ t('settings.sections.controls') }}
       </h3>
       <dl>
-        <div><dt>Fly</dt><dd>Tap or click a tile · <span class="kbd">Q</span><span class="kbd">W</span><span class="kbd">E</span> <span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> · arrow keys</dd></div>
-        <div><dt>Look around</dt><dd><span class="kbd">L</span></dd></div>
-        <div><dt>Journal</dt><dd><span class="kbd">J</span></dd></div>
-        <div><dt>Fly home</dt><dd><span class="kbd">H</span></dd></div>
-        <div><dt>Action (enter hive, collect…)</dt><dd><span class="kbd">F</span></dd></div>
-        <div><dt>Build on an empty cell (in the hive)</dt><dd><span class="kbd">B</span></dd></div>
-        <div><dt>Colony / Upgrades (in the hive)</dt><dd><span class="kbd">C</span> <span class="kbd">U</span></dd></div>
-        <div><dt>Map size</dt><dd><span class="kbd">M</span></dd></div>
-        <div><dt>Zoom</dt><dd><span class="kbd">+</span> <span class="kbd">−</span> · scroll · pinch</dd></div>
-        <div><dt>Stop</dt><dd><span class="kbd">Space</span></dd></div>
-        <div><dt>Settings</dt><dd><span class="kbd">Esc</span></dd></div>
+        <div><dt>{{ t('settings.controls.fly.label') }}</dt><dd>{{ t('settings.controls.fly.hint') }} · <span class="kbd">Q</span><span class="kbd">W</span><span class="kbd">E</span> <span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> · {{ t('settings.controls.fly.arrows') }}</dd></div>
+        <div><dt>{{ t('settings.controls.look') }}</dt><dd><span class="kbd">L</span></dd></div>
+        <div><dt>{{ t('settings.controls.journal') }}</dt><dd><span class="kbd">J</span></dd></div>
+        <div><dt>{{ t('settings.controls.home') }}</dt><dd><span class="kbd">H</span></dd></div>
+        <div><dt>{{ t('settings.controls.action') }}</dt><dd><span class="kbd">F</span></dd></div>
+        <div><dt>{{ t('settings.controls.build') }}</dt><dd><span class="kbd">B</span></dd></div>
+        <div><dt>{{ t('settings.controls.colony') }}</dt><dd><span class="kbd">C</span> <span class="kbd">U</span></dd></div>
+        <div><dt>{{ t('settings.controls.map') }}</dt><dd><span class="kbd">M</span></dd></div>
+        <div><dt>{{ t('settings.controls.zoom') }}</dt><dd><span class="kbd">+</span> <span class="kbd">−</span> · {{ t('settings.controls.zoomGestures') }}</dd></div>
+        <div><dt>{{ t('settings.controls.stop') }}</dt><dd><span class="kbd">Space</span></dd></div>
+        <div><dt>{{ t('settings.controls.settings') }}</dt><dd><span class="kbd">Esc</span></dd></div>
       </dl>
     </section>
 
     <section aria-labelledby="s-save" class="save">
       <h3 id="s-save">
-        Your save
+        {{ t('settings.save.title') }}
       </h3>
       <p class="save-intro">
-        Your journey lives in this browser. Keep a copy, or carry it to another device.
+        {{ t('settings.save.intro') }}
       </p>
       <div class="save-row">
         <button class="save-btn" @click="copySave">
-          {{ copied ? 'Copied!' : 'Copy save code' }}
+          {{ copied ? t('settings.save.copied') : t('settings.save.copyCode') }}
         </button>
         <button class="save-btn" @click="downloadSave">
-          Download save file
+          {{ t('settings.save.download') }}
         </button>
         <button class="save-btn" :aria-expanded="loadOpen" aria-controls="save-load" @click="toggleLoad">
-          Load a save
+          {{ t('settings.save.load') }}
         </button>
       </div>
 
       <div v-if="fallbackCode" class="save-field">
-        <label for="save-code-out">Your save code</label>
+        <label for="save-code-out">{{ t('settings.save.yourCode') }}</label>
         <textarea
           id="save-code-out"
           :value="fallbackCode"
@@ -278,7 +303,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
       </div>
 
       <div v-if="loadOpen" id="save-load" class="save-field">
-        <label for="save-code-in">Paste a save code</label>
+        <label for="save-code-in">{{ t('settings.save.pasteCode') }}</label>
         <textarea
           id="save-code-in"
           v-model="pasted"
@@ -291,22 +316,22 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
         <div class="save-row">
           <label class="save-btn file-btn">
             <input type="file" accept=".txt,text/plain" class="sr-only" @change="pickFile">
-            Choose a save file
+            {{ t('settings.save.chooseFile') }}
           </label>
           <button v-if="!confirmLoad" class="save-btn primary" :disabled="!pasted.trim()" @click="askLoad">
-            Load this save
+            {{ t('settings.save.loadThis') }}
           </button>
         </div>
         <div v-if="confirmLoad" class="confirm" role="group" aria-labelledby="save-confirm-q">
           <p id="save-confirm-q">
-            This replaces your current game. Continue?
+            {{ t('settings.save.confirmQ') }}
           </p>
           <div class="save-row">
             <button class="save-btn danger-btn" @click="doLoad">
-              Yes, replace my game
+              {{ t('settings.save.yes') }}
             </button>
             <button ref="keepBtn" class="save-btn" @click="confirmLoad = false">
-              Keep my game
+              {{ t('settings.save.keep') }}
             </button>
           </div>
         </div>
@@ -319,7 +344,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 
     <section class="danger">
       <button class="reset" :class="{ armed: confirmReset }" @click="reset">
-        {{ confirmReset ? 'Tap again to erase your journey' : 'Start a new journey' }}
+        {{ confirmReset ? t('settings.reset.armed') : t('settings.reset.start') }}
       </button>
     </section>
   </UiDialog>
@@ -329,6 +354,12 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 h3 {
   font-size: 1.05rem;
   margin: 12px 0 8px;
+}
+.language {
+  margin-top: 4px;
+}
+.language .seg {
+  margin: 0;
 }
 .toggles {
   list-style: none;

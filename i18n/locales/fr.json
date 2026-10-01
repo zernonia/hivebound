@@ -1,0 +1,1003 @@
+{
+  "settings": {
+    "title": "Réglages",
+    "language": "Langue",
+    "off": "Coupé",
+    "sections": {
+      "accessibility": "Confort et accessibilité",
+      "sound": "Son",
+      "controls": "Commandes"
+    },
+    "toggles": {
+      "reducedMotion": {
+        "label": "Réduire les animations",
+        "hint": "Caméra plus calme, sans rebonds ni apparitions soudaines."
+      },
+      "highContrast": {
+        "label": "Contraste élevé",
+        "hint": "Texte et contours renforcés sur les panneaux."
+      },
+      "colorVisionFriendly": {
+        "label": "Palette adaptée au daltonisme",
+        "hint": "Le terrain se distingue par la luminosité, pas seulement par la couleur."
+      },
+      "narration": {
+        "label": "Narration pour lecteur d'écran",
+        "hint": "Décrit où vous volez et ce qui est proche, et ajoute un bouton Regarder autour (L)."
+      },
+      "showMinimap": {
+        "label": "Afficher la mini-carte",
+        "hint": ""
+      },
+      "showPad": {
+        "label": "Pad de déplacement à l'écran",
+        "hint": "Six gros boutons pour les directions de la grille."
+      },
+      "easyBefriend": {
+        "label": "Apprivoisement plus facile",
+        "hint": "Marqueur plus lent et zone verte plus large dans la danse."
+      },
+      "dayNight": {
+        "label": "Jour et nuit",
+        "hint": "Un lent cycle jour et nuit toutes les 24 minutes. Désactivé, il fait toujours jour (les Abeilles de Lune viennent quand même)."
+      },
+      "showHints": {
+        "label": "Afficher les astuces",
+        "hint": ""
+      }
+    },
+    "textSize": "Taille du texte",
+    "textSizes": {
+      "normal": "Normale",
+      "large": "Grande",
+      "huge": "Très grande"
+    },
+    "flyingSpeed": "Vitesse de vol",
+    "speeds": {
+      "relaxed": "Tranquille",
+      "normal": "Normale",
+      "brisk": "Rapide"
+    },
+    "music": "Musique",
+    "sfx": "Effets sonores",
+    "controls": {
+      "fly": {
+        "label": "Voler",
+        "hint": "Touchez ou cliquez une case",
+        "arrows": "touches fléchées"
+      },
+      "look": "Regarder autour",
+      "journal": "Journal",
+      "home": "Rentrer à la ruche",
+      "action": "Action (entrer dans la ruche, récolter…)",
+      "build": "Construire sur une case vide (dans la ruche)",
+      "colony": "Colonie / Améliorations (dans la ruche)",
+      "map": "Taille de la carte",
+      "zoom": "Zoom",
+      "zoomGestures": "molette · pincer",
+      "stop": "Arrêter",
+      "settings": "Réglages"
+    },
+    "save": {
+      "title": "Votre sauvegarde",
+      "intro": "Votre aventure vit dans ce navigateur. Gardez-en une copie, ou emportez-la sur un autre appareil.",
+      "copied": "Copié !",
+      "copyCode": "Copier le code de sauvegarde",
+      "download": "Télécharger le fichier de sauvegarde",
+      "load": "Charger une sauvegarde",
+      "yourCode": "Votre code de sauvegarde",
+      "pasteCode": "Collez un code de sauvegarde",
+      "chooseFile": "Choisir un fichier de sauvegarde",
+      "loadThis": "Charger cette sauvegarde",
+      "confirmQ": "Cela remplace votre partie actuelle. Continuer ?",
+      "yes": "Oui, remplacer ma partie",
+      "keep": "Garder ma partie",
+      "statusCopied": "Code de sauvegarde copié. Gardez-le précieusement !",
+      "statusClipboard": "Votre navigateur a gardé le presse-papiers pour lui. Sélectionnez le code ci-dessous et copiez-le.",
+      "statusDownloaded": "Fichier de sauvegarde téléchargé.",
+      "statusFileError": "Impossible de lire ce fichier. Essayez-en un autre ?",
+      "statusLoaded": "Sauvegarde chargée ! On retourne s'installer à la ruche…"
+    },
+    "reset": {
+      "armed": "Touchez à nouveau pour effacer votre aventure",
+      "start": "Commencer une nouvelle aventure"
+    }
+  },
+  "common": {
+    "and": "et",
+    "close": "Fermer",
+    "loading": "Préparation de la ruche…",
+    "srTitle": "Hivebound, un jeu d'exploration apicole tout en douceur"
+  },
+  "actions": {
+    "enter": "Entrer dans la ruche",
+    "leave": "Sortir de la ruche",
+    "give": "Donner à la Reine",
+    "talk": "Parler à la Reine",
+    "collect": "Récolter {n}",
+    "unseal": "Désceller"
+  },
+  "directions": {
+    "N": "le nord",
+    "NE": "le nord-est",
+    "SE": "le sud-est",
+    "S": "le sud",
+    "SW": "le sud-ouest",
+    "NW": "le nord-ouest"
+  },
+  "compass": {
+    "0": "le nord",
+    "1": "le nord-est",
+    "2": "l'est",
+    "3": "le sud-est",
+    "4": "le sud",
+    "5": "le sud-ouest",
+    "6": "l'ouest",
+    "7": "le nord-ouest"
+  },
+  "tod": {
+    "morning": "matin",
+    "afternoon": "après-midi",
+    "evening": "soir",
+    "night": "nuit"
+  },
+  "game": {
+    "resetDone": "Progression remise à zéro. Vous voilà de retour à la Ruche Maison.",
+    "mistTooThick": "La brume est trop épaisse pour s'y aventurer. Pas encore.",
+    "mistThatWay": "La brume est trop épaisse par là.",
+    "thatIsHive": "C'est la Ruche Maison. Cosy, mais pas le temps de faire la sieste.",
+    "noFlyDir": "Impossible de voler vers {dir} depuis ici.",
+    "flyingIn": "En vol vers la Ruche Maison.",
+    "flyingOut": "En vol vers la prairie.",
+    "insideDoorway": "Dans la Ruche Maison, au niveau de la porte d'entrée. Volez vers une alvéole pour construire, récolter ou désceller ; revenez à la porte pour sortir.",
+    "keepsakeFound": "Souvenir trouvé : {name} !",
+    "keepsakeFoundAnnounce": "Vous avez trouvé un souvenir : {name}. Portez-le depuis la page Souvenirs de votre journal.",
+    "newEntryToast": "Nouvelle entrée de journal : {title}",
+    "newEntryAnnounce": "Nouvelle entrée de journal : {title}. Appuyez sur J pour la lire."
+  },
+  "narration": {
+    "nowhere": "nulle part",
+    "unexplored": "un endroit inexploré",
+    "thickMist": "une brume épaisse",
+    "youAreAt": "Vous êtes {at}",
+    "flyingTo": "En vol vers {compass}, {n} hexagone vers {tile}. | En vol vers {compass}, {n} hexagones vers {tile}.",
+    "aroundEntry": "{dir} : {what}",
+    "aroundYou": "Autour de vous, {around}.",
+    "interesting": "Un lieu intéressant, {the}, se trouve à {n} hexagone vers {compass}. | Un lieu intéressant, {the}, se trouve à {n} hexagones vers {compass}.",
+    "gatherHere": "Vous pouvez récolter {some} ici, il en reste {left}.",
+    "gatheredBack": "Ici, tout a déjà été récolté ; ça repousse."
+  },
+  "journal": {
+    "title": "Mon journal",
+    "tabEntries": "Entrées",
+    "tabPlaces": "Lieux",
+    "tabKeepsakes": "Souvenirs",
+    "isNew": "(nouveau)",
+    "dayN": "Jour {n}",
+    "keepsakesHint": "Des petites choses à porter, trouvées un peu partout sur l'île. Une par emplacement : tête, face, cou, flanc, dos et queue.",
+    "takeOff": "Retirer",
+    "wear": "Porter",
+    "undiscovered": "Inexploré",
+    "visited": "Visité",
+    "spotted": "Repéré, pas encore visité",
+    "somewhere": "Quelque part, là-bas…",
+    "slots": {
+      "head": "Tête",
+      "face": "Face",
+      "neck": "Cou",
+      "side": "Flanc",
+      "back": "Dos",
+      "tail": "Queue"
+    },
+    "keepsake": {
+      "queenGift": "Un cadeau de la Reine, un jour.",
+      "waiting": "Se trouve {at}.",
+      "unfound": "un lieu que vous n'avez pas encore trouvé"
+    },
+    "intro": {
+      "title": "Et me voilà partie !",
+      "body": "La Reine dit que les abeilles vivaient jadis bien au-delà de notre prairie, il y a très longtemps. Personne ne se souvient où. Elle m'a confié un journal vide et une collation au miel en me disant : « Va voir. » Alors je vais voir."
+    },
+    "insideHive": {
+      "title": "À la maison, dedans",
+      "body": "Chaleureuse, dorée et bourdonnante. La Reine m'a fait un petit signe depuis son coussin. Il y a de la place pour construire, si je rapporte de quoi construire."
+    },
+    "firstGather": {
+      "title": "Les pattes collantes",
+      "body": "J'ai essayé ma première récolte. C'est plus difficile que ça en a l'air, et bien plus collant. Ma poche a encore un peu de place, ensuite je devrais la rapporter à la ruche."
+    },
+    "firstGolden": {
+      "title": "Quelque chose de doré",
+      "body": "Loin d'ici, certaines fleurs brillent. Leur pollen est chaud, scintillant, et fredonne une petite mélodie. Je l'ai soigneusement mis de côté pour la Reine."
+    },
+    "firstHoney": {
+      "title": "Notre tout premier miel",
+      "body": "Le pressoir a poussé un petit couinement joyeux et le miel est apparu. Du vrai miel ! J'ai léché la cuillère. Puis je l'ai reléchée, pour la science."
+    },
+    "firstNight": {
+      "title": "La prairie la nuit",
+      "body": "Le ciel est passé bleu profond et les fleurs se sont refermées comme de petites tentes. Quelque chose aux antennes lumineuses bourdonne au-dessus de l'herbe tendre. Une Abeille de Lune ? Je devrais aller lui dire bonjour."
+    },
+    "mistLifts": {
+      "title": "La brume se lève",
+      "body": "Ce matin, la brume au bord de la prairie était fine comme un rideau. Au-delà : des collines violettes, des arbres orangés, et le léger bourdonnement d'autres abeilles. La Reine dit que c'est à nous d'explorer."
+    },
+    "theEnd": {
+      "title": "La fin (pour l'instant)",
+      "body": "La prairie, les landes, le Bois d'Ambre, et une très grande famille. La Reine dit que les petits souhaits continueront d'arriver dès que j'aurai un moment, et je crois que j'aurai toujours un moment. Merci d'avoir volé avec moi."
+    },
+    "terrain": {
+      "meadow": {
+        "title": "Prairie ensoleillée",
+        "body": "L'herbe est plus haute ici et le soleil plus chaud. Tout sent déjà un peu le miel."
+      },
+      "flowers": {
+        "title": "Tant de fleurs",
+        "body": "Des roses, des blanches, des qui frétillent quand je me pose. Je devrais apporter un panier la prochaine fois. Est-ce que les abeilles ont des paniers ?"
+      },
+      "forest": {
+        "title": "Bois Murmurants",
+        "body": "De grands arbres ronds qui se balancent même sans vent. C'est ombragé et frais. J'ai volé un peu plus discrètement, par politesse."
+      },
+      "water": {
+        "title": "Eau aux nymphéas",
+        "body": "Un air frais monte de l'eau. Mon reflet avait l'air courageux. Je lui ai rendu son regard avec bravoure."
+      },
+      "lavender": {
+        "title": "Landes de lavande",
+        "body": "Du violet à perte de vue, et du bourdonnement. Le nectar ici est plus doux et il y en a plus. Je pourrais ne jamais partir. (Je vais partir. Mais lentement.)"
+      },
+      "amber": {
+        "title": "Le Bois d'Ambre",
+        "body": "Chaque arbre est orange et or, comme si l'automne vivait ici toute l'année. La résine coule le long de l'écorce comme du miel. Il fait chaud, et c'est très, très calme."
+      }
+    },
+    "sectionsAria": "Sections du journal",
+    "indexAria": "Entrées du journal"
+  },
+  "species": {
+    "bumble": {
+      "name": "Bourdon",
+      "blurb": "Rond, tout doux et jamais pressé. Bourdonne de plaisir au-dessus du nectar de la prairie.",
+      "wild": "Un Bourdon sauvage",
+      "the": "Le Bourdon",
+      "plural": "Bourdons",
+      "befriend": "Apprivoiser un Bourdon",
+      "befriendCount": "Apprivoiser un Bourdon | Apprivoiser {n} Bourdons",
+      "fled": "Le Bourdon s'est envolé, tout timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Un nouvel ami : le Bourdon",
+      "journalBody": "Rond, tout doux et jamais pressé. Bourdonne de plaisir au-dessus du nectar de la prairie. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    },
+    "mason": {
+      "name": "Maçonne",
+      "blurb": "Une petite abeille bien rangée, vert menthe, qui façonne le pollen en belles boules bien nettes.",
+      "wild": "Une Maçonne sauvage",
+      "the": "La Maçonne",
+      "plural": "Maçonnes",
+      "befriend": "Apprivoiser une Maçonne",
+      "befriendCount": "Apprivoiser une Maçonne | Apprivoiser {n} Maçonnes",
+      "fled": "La Maçonne s'est envolée, toute timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Une nouvelle amie : la Maçonne",
+      "journalBody": "Une petite abeille bien rangée, vert menthe, qui façonne le pollen en belles boules bien nettes. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    },
+    "dew": {
+      "name": "Abeille de Rosée",
+      "blurb": "Pâle comme le ciel du matin, avec des ailes qui scintillent. Sirote aux étangs et à l'eau aux nymphéas.",
+      "wild": "Une Abeille de Rosée sauvage",
+      "the": "L'Abeille de Rosée",
+      "plural": "Abeilles de Rosée",
+      "befriend": "Apprivoiser une Abeille de Rosée",
+      "befriendCount": "Apprivoiser une Abeille de Rosée | Apprivoiser {n} Abeilles de Rosée",
+      "fled": "L'Abeille de Rosée s'est envolée, toute timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Une nouvelle amie : l'Abeille de Rosée",
+      "journalBody": "Pâle comme le ciel du matin, avec des ailes qui scintillent. Sirote aux étangs et à l'eau aux nymphéas. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    },
+    "carpenter": {
+      "name": "Charpentière",
+      "blurb": "Sombre et lustrée, rayée d'or. Connaît chaque arbre collant du bois.",
+      "wild": "Une Charpentière sauvage",
+      "the": "La Charpentière",
+      "plural": "Charpentières",
+      "befriend": "Apprivoiser une Charpentière",
+      "befriendCount": "Apprivoiser une Charpentière | Apprivoiser {n} Charpentières",
+      "fled": "La Charpentière s'est envolée, toute timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Une nouvelle amie : la Charpentière",
+      "journalBody": "Sombre et lustrée, rayée d'or. Connaît chaque arbre collant du bois. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    },
+    "moon": {
+      "name": "Abeille de Lune",
+      "blurb": "Bleu profond, aux antennes lumineuses. Ne bourdonne que sur l'herbe tendre, la nuit, et vole plus vite que quiconque.",
+      "wild": "Une Abeille de Lune sauvage",
+      "the": "L'Abeille de Lune",
+      "plural": "Abeilles de Lune",
+      "befriend": "Apprivoiser une Abeille de Lune",
+      "befriendCount": "Apprivoiser une Abeille de Lune | Apprivoiser {n} Abeilles de Lune",
+      "fled": "L'Abeille de Lune s'est envolée, toute timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Une nouvelle amie : l'Abeille de Lune",
+      "journalBody": "Bleu profond, aux antennes lumineuses. Ne bourdonne que sur l'herbe tendre, la nuit, et vole plus vite que quiconque. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    },
+    "lavender": {
+      "name": "Abeille de Lavande",
+      "blurb": "Un doux lilas rayé de prune, avec ce léger parfum de landes qui ne la quitte jamais. L'abeille la plus paisible que vous rencontrerez.",
+      "wild": "Une Abeille de Lavande sauvage",
+      "the": "L'Abeille de Lavande",
+      "plural": "Abeilles de Lavande",
+      "befriend": "Apprivoiser une Abeille de Lavande",
+      "befriendCount": "Apprivoiser une Abeille de Lavande | Apprivoiser {n} Abeilles de Lavande",
+      "fled": "L'Abeille de Lavande s'est envolée, toute timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Une nouvelle amie : l'Abeille de Lavande",
+      "journalBody": "Un doux lilas rayé de prune, avec ce léger parfum de landes qui ne la quitte jamais. L'abeille la plus paisible que vous rencontrerez. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    },
+    "ember": {
+      "name": "Abeille de Braise",
+      "blurb": "Un orange chaud, avec une pointe lumineuse au bout de chaque antenne. Vit dans le Bois d'Ambre et porte la résine comme un trésor.",
+      "wild": "Une Abeille de Braise sauvage",
+      "the": "L'Abeille de Braise",
+      "plural": "Abeilles de Braise",
+      "befriend": "Apprivoiser une Abeille de Braise",
+      "befriendCount": "Apprivoiser une Abeille de Braise | Apprivoiser {n} Abeilles de Braise",
+      "fled": "L'Abeille de Braise s'est envolée, toute timide. Vous en rencontrerez d'autres.",
+      "journalTitle": "Une nouvelle amie : l'Abeille de Braise",
+      "journalBody": "Un orange chaud, avec une pointe lumineuse au bout de chaque antenne. Vit dans le Bois d'Ambre et porte la résine comme un trésor. {name} m'a suivie jusqu'à la ruche et a choisi un lit d'emblée."
+    }
+  },
+  "keepsakes": {
+    "specs": {
+      "name": "Lunettes d'Exploratrice",
+      "blurb": "Des lunettes rondes accrochées au vieux poteau. Tout paraît un peu plus facile à trouver."
+    },
+    "sunflower": {
+      "name": "Barrette Tournesol",
+      "blurb": "Un bébé tournesol détaché de la géante, à glisser près d'une antenne."
+    },
+    "lilypad": {
+      "name": "Chapeau Nymphéa",
+      "blurb": "Un petit nymphéa bien rebondi, fleuri sur le dessus. La grenouille a insisté."
+    },
+    "dandelion": {
+      "name": "Pissenlit Flottant",
+      "blurb": "Un pissenlit entier qui, par on ne sait quel miracle, ne s'envole jamais."
+    },
+    "acorn": {
+      "name": "Toque de Gland",
+      "blurb": "Laissée sur le seuil de la souche moussue. Elle va parfaitement."
+    },
+    "satchel": {
+      "name": "Besace Sauvage",
+      "blurb": "Un minuscule sac tissé par les abeilles sauvages, pour porter de belles pensées."
+    },
+    "oldcrown": {
+      "name": "Couronne Ancienne",
+      "blurb": "Exhumée de la vieille ruche. Celle ou celui qui la portait était tout petit et très important."
+    },
+    "mistscarf": {
+      "name": "Écharpe de Brume",
+      "blurb": "Tissée du scintillement au bord du monde. Fraîche et douce."
+    },
+    "ribbon": {
+      "name": "Ruban Royal",
+      "blurb": "Le noeud de remerciement de la Reine en personne, pour une abeille bien utile."
+    },
+    "sprig": {
+      "name": "Bouquet de Lavande",
+      "blurb": "Venu du bac à fleurs de la chaumière. Glissé derrière une antenne, il sent la sieste."
+    },
+    "leafcape": {
+      "name": "Cape de Feuille d'Ambre",
+      "blurb": "Une immense feuille lumineuse du Chêne Creux, portée comme une petite cape."
+    },
+    "locket": {
+      "name": "Médaillon de Lune",
+      "blurb": "Un tout petit médaillon d'argent venu du Puits de Lune. Il luit doucement après la tombée du jour."
+    },
+    "starpin": {
+      "name": "Épingle Étoile",
+      "blurb": "L'étoile de la Reine, pour l'abeille qui a volé plus loin que toutes les autres."
+    }
+  },
+  "pois": {
+    "signpost": {
+      "name": "Vieux Poteau",
+      "the": "le Vieux Poteau",
+      "at": "au Vieux Poteau",
+      "journalTitle": "Un vieux poteau",
+      "journalBody": "Trois flèches, pointant chacune dans une direction différente. L'une dit juste « MIEL ? », avec un point d'interrogation. Quelqu'un s'était perdu, ou avait beaucoup d'espoir."
+    },
+    "sunflower": {
+      "name": "Tournesol Géante",
+      "the": "la Tournesol Géante",
+      "at": "à la Tournesol Géante",
+      "journalTitle": "La plus haute des fleurs",
+      "journalBody": "Un tournesol si grand qu'il a son propre climat d'ombre. Le nectar sent le pain chaud. Je reviendrai avec plus de poches vides."
+    },
+    "pond": {
+      "name": "Étang Tranquille",
+      "the": "l'Étang Tranquille",
+      "at": "à l'Étang Tranquille",
+      "journalTitle": "Un étang tranquille",
+      "journalBody": "Des nymphéas assez grands pour y faire la sieste. Une grenouille m'a regardée très longtemps, puis n'a rien dit. Je crois que nous sommes amies maintenant."
+    },
+    "dandelion": {
+      "name": "Colline aux Pissenlits",
+      "the": "la Colline aux Pissenlits",
+      "at": "à la Colline aux Pissenlits",
+      "journalTitle": "La colline aux pissenlits",
+      "journalBody": "Chaque pas envoie des petits parachutes s'envoler. J'en ai compté quarante-deux avant de perdre le fil et de recommencer."
+    },
+    "stump": {
+      "name": "Souche Moussue",
+      "the": "la Souche Moussue",
+      "at": "à la Souche Moussue",
+      "journalTitle": "La souche moussue",
+      "journalBody": "Douce comme un oreiller, et qui bourdonne doucement. Quelque chose de petit vit à l'intérieur. Il a laissé une miette de cire sur le seuil, comme un bonjour."
+    },
+    "nest": {
+      "name": "Nid Sauvage",
+      "the": "le Nid Sauvage",
+      "at": "au Nid Sauvage",
+      "journalTitle": "Un nid sauvage !",
+      "journalBody": "Une autre ruche, toute seule ici. Les abeilles dedans ont des rayures que je n'ai jamais vues. Elles ont bourdonné bonjour avec un drôle d'accent."
+    },
+    "honeycomb": {
+      "name": "Rayon de Miel Brisé",
+      "the": "le Rayon de Miel Brisé",
+      "at": "au Rayon de Miel Brisé",
+      "journalTitle": "Le vieux rayon de miel",
+      "journalBody": "Des morceaux de rayon de miel, très très vieux, à moitié enfouis dans l'herbe. Les alvéoles sont plus grandes que les nôtres. Qui a construit ça ?"
+    },
+    "mist": {
+      "name": "Lisière de la Brume",
+      "the": "la Lisière de la Brume",
+      "at": "à la Lisière de la Brume",
+      "journalTitle": "Le bord de la brume",
+      "journalBody": "La prairie s'arrête… juste comme ça. Au-delà, une brume tiède et scintillante. Mes ailes me semblent trop frêles pour aller plus loin. Pas encore, en tout cas."
+    },
+    "cottage": {
+      "name": "Chaumière à la Lavande",
+      "the": "la Chaumière à la Lavande",
+      "at": "à la Chaumière à la Lavande",
+      "journalTitle": "Une chaumière dans les bruyères",
+      "journalBody": "Une minuscule maison ronde au toit de lavande, et personne à la maison. Le paillasson dit BIENVENUE, ABEILLES en très vieilles lettres. Quelqu'un nous attendait donc."
+    },
+    "hollowoak": {
+      "name": "Le Chêne Creux",
+      "the": "le Chêne Creux",
+      "at": "au Chêne Creux",
+      "journalTitle": "Le Chêne Creux",
+      "journalBody": "Le plus grand arbre que j'aie jamais vu, orangé jusqu'en haut. À l'intérieur, il fait chaud et ça bourdonne comme chez nous. De vieilles abeilles ont vécu ici. J'en suis sûre."
+    },
+    "moonwell": {
+      "name": "Le Puits de Lune",
+      "the": "le Puits de Lune",
+      "at": "au Puits de Lune",
+      "journalTitle": "Le Puits de Lune",
+      "journalBody": "Un puits de pierre rond, rempli d'une eau si immobile qu'elle contient tout le ciel. La nuit, dit-on, il garde un petit morceau de lune."
+    }
+  },
+  "terrain": {
+    "hive": {
+      "label": "Ruche Maison",
+      "at": "à la Ruche Maison"
+    },
+    "clearing": {
+      "label": "Clairière Maison",
+      "at": "à la Clairière Maison"
+    },
+    "grass": {
+      "label": "Herbe Tendre",
+      "at": "sur l'Herbe Tendre"
+    },
+    "meadow": {
+      "label": "Prairie Ensoleillée",
+      "at": "sur la Prairie Ensoleillée"
+    },
+    "flowers": {
+      "label": "Parterre de Fleurs",
+      "at": "au Parterre de Fleurs"
+    },
+    "forest": {
+      "label": "Bois Murmurants",
+      "at": "dans les Bois Murmurants"
+    },
+    "water": {
+      "label": "Eau aux Nymphéas",
+      "at": "sur l'Eau aux Nymphéas"
+    },
+    "edge": {
+      "label": "La Brume",
+      "at": "à la Brume"
+    },
+    "lavender": {
+      "label": "Landes de Lavande",
+      "at": "dans les Landes de Lavande"
+    },
+    "amber": {
+      "label": "Bois d'Ambre",
+      "at": "dans le Bois d'Ambre"
+    }
+  },
+  "resources": {
+    "nectar": {
+      "name": "Nectar",
+      "blurb": "Doux et coulant, des fleurs de la prairie.",
+      "lower": "nectar",
+      "some": "du nectar",
+      "the": "Le nectar"
+    },
+    "pollen": {
+      "name": "Pollen",
+      "blurb": "Poussière dorée des parterres de fleurs.",
+      "lower": "pollen",
+      "some": "du pollen",
+      "the": "Le pollen"
+    },
+    "water": {
+      "name": "Eau",
+      "blurb": "Gouttes fraîches des étangs et de l'eau aux nymphéas.",
+      "lower": "eau",
+      "some": "de l'eau",
+      "the": "L'eau"
+    },
+    "resin": {
+      "name": "Résine",
+      "blurb": "Résine collante des arbres du bois.",
+      "lower": "résine",
+      "some": "de la résine",
+      "the": "La résine"
+    },
+    "honey": {
+      "name": "Miel",
+      "blurb": "Fait à partir de nectar, au Pressoir à Miel.",
+      "lower": "miel",
+      "some": "du miel",
+      "the": "Le miel"
+    },
+    "beebread": {
+      "name": "Pain d'Abeille",
+      "blurb": "Pollen et eau, cuits en douceur.",
+      "lower": "pain d'abeille",
+      "some": "du pain d'abeille",
+      "the": "Le pain d'abeille"
+    },
+    "wax": {
+      "name": "Cire",
+      "blurb": "Pour construire et agrandir la ruche.",
+      "lower": "cire",
+      "some": "de la cire",
+      "the": "La cire"
+    },
+    "golden": {
+      "name": "Pollen Doré",
+      "blurb": "Pollen scintillant de fleurs très lointaines. Vous seule pouvez le trouver.",
+      "lower": "pollen doré",
+      "some": "du pollen doré",
+      "the": "Le pollen doré"
+    }
+  },
+  "buildings": {
+    "press": {
+      "name": "Pressoir à Miel",
+      "blurb": "Presse lentement le nectar en miel doré.",
+      "the": "le Pressoir à Miel",
+      "at": "au Pressoir à Miel",
+      "of": "du Pressoir à Miel"
+    },
+    "kitchen": {
+      "name": "Cuisine du Pain d'Abeille",
+      "blurb": "Fait cuire pollen et eau en pain d'abeille tout moelleux.",
+      "the": "la Cuisine du Pain d'Abeille",
+      "at": "à la Cuisine du Pain d'Abeille",
+      "of": "de la Cuisine du Pain d'Abeille"
+    },
+    "waxworks": {
+      "name": "Cirerie",
+      "blurb": "Fait fondre résine et un peu de miel en cire à construire.",
+      "the": "la Cirerie",
+      "at": "à la Cirerie",
+      "of": "de la Cirerie"
+    },
+    "larder": {
+      "name": "Garde-Manger",
+      "blurb": "Une alvéole en plus pour ranger davantage de tout.",
+      "the": "le Garde-Manger",
+      "at": "au Garde-Manger",
+      "of": "du Garde-Manger"
+    },
+    "room": {
+      "name": "Chambre aux Abeilles",
+      "blurb": "Quatre petits lits bien douillets pour les abeilles aidantes.",
+      "the": "la Chambre aux Abeilles",
+      "at": "à la Chambre aux Abeilles",
+      "of": "de la Chambre aux Abeilles"
+    }
+  },
+  "upgrades": {
+    "pouch": {
+      "name": "Plus grande poche",
+      "describe": "Transporter {v}"
+    },
+    "wings": {
+      "name": "Ailes plus fortes",
+      "describe": "{pct} % de vitesse de vol"
+    },
+    "gathering": {
+      "name": "Récolte rapide",
+      "describe": "{v} s par unité"
+    }
+  },
+  "requests": {
+    "sweet-start": {
+      "title": "Un doux départ",
+      "ask": "Tu irais me chercher un peu de nectar pour le Pressoir à Miel ? Récolte six gouttes sur une prairie ensoleillée et rapporte-les à la maison.",
+      "thanks": "Mmm, du nectar de prairie. Tu as le bon nez pour les fleurs, petite. Le pressoir couine déjà. Tiens, deux pots de miel pour la route.",
+      "thanksBody": "La Reine a dit : « Mmm, du nectar de prairie. Tu as le bon nez pour les fleurs, petite. Le pressoir couine déjà. Tiens, deux pots de miel pour la route. »"
+    },
+    "first-honey": {
+      "title": "Notre premier miel",
+      "ask": "Le Pressoir à Miel presse le nectar en miel. Garde-le bien alimenté et rapporte-moi trois pots.",
+      "thanks": "Du vrai miel, de notre propre pressoir ! J'ai fait élargir le garde-manger, il y a de la place pour plus.",
+      "thanksBody": "La Reine a dit : « Du vrai miel, de notre propre pressoir ! J'ai fait élargir le garde-manger, il y a de la place pour plus. »"
+    },
+    "first-friend": {
+      "title": "Une amie pour la ruche",
+      "ask": "Une ruche a besoin de plus d'une abeille. Il y a des abeilles sauvages dehors, des timides. J'ai marqué le Nid Sauvage sur ta carte : danse avec l'une d'elles et ramène-la.",
+      "thanks": "Une nouvelle amie ! Donne-lui une tâche dans l'onglet Colonie. Et voici de la cire, pour construire.",
+      "thanksBody": "La Reine a dit : « Une nouvelle amie ! Donne-lui une tâche dans l'onglet Colonie. Et voici de la cire, pour construire. »"
+    },
+    "bee-bread": {
+      "title": "Du pain d'abeille pour tous",
+      "ask": "Construis une Cuisine du Pain d'Abeille et fais-moi cuire deux miches. Du pollen des parterres, de l'eau des étangs.",
+      "thanks": "Du pain d'abeille tout chaud ! Toute la ruche sent bon. J'ai encore agrandi un peu le garde-manger.",
+      "thanksBody": "La Reine a dit : « Du pain d'abeille tout chaud ! Toute la ruche sent bon. J'ai encore agrandi un peu le garde-manger. »"
+    },
+    "wax-walls": {
+      "title": "De la cire pour les parois",
+      "ask": "Une Cirerie transforme résine d'arbre et miel en cire. Construis-en une et rapporte-moi quatre cires. (Tu peux la mettre en pause dans son panneau si tu préfères garder ton miel.)",
+      "thanks": "De la belle cire, lisse comme un galet. Garde-en un peu pour désceller les vieilles alvéoles, et prends ce miel.",
+      "thanksBody": "La Reine a dit : « De la belle cire, lisse comme un galet. Garde-en un peu pour désceller les vieilles alvéoles, et prends ce miel. »"
+    },
+    "room-to-grow": {
+      "title": "De la place pour grandir",
+      "ask": "Nos amies ont besoin d'un endroit où dormir. Construis une Chambre aux Abeilles : quatre lits bien douillets.",
+      "thanks": "Quels lits douillets. Il y a maintenant de la place pour plus d'amies, et j'ai élargi le garde-manger aussi.",
+      "thanksBody": "La Reine a dit : « Quels lits douillets. Il y a maintenant de la place pour plus d'amies, et j'ai élargi le garde-manger aussi. »"
+    },
+    "more-friends": {
+      "title": "Une ruche plus animée",
+      "ask": "Trois amies et la ruche ressemblerait vraiment à une maison. Les collines aux pissenlits, les étangs et les bois ont chacun leurs abeilles.",
+      "thanks": "Écoute ce bourdonnement joyeux ! Une petite gâterie pour toi, de la part de nous toutes.",
+      "thanksBody": "La Reine a dit : « Écoute ce bourdonnement joyeux ! Une petite gâterie pour toi, de la part de nous toutes. »"
+    },
+    "golden": {
+      "title": "Quelque chose de doré",
+      "ask": "Loin de la maison, certaines fleurs brillent de pollen doré, et toi seule peux le porter. J'en ai marqué une sur ta carte. Rapporte-moi un grain.",
+      "thanks": "Du pollen doré ! Je n'en avais pas vu depuis que j'étais une toute petite abeille. Ce ruban est à toi : mon noeud de remerciement.",
+      "thanksBody": "La Reine a dit : « Du pollen doré ! Je n'en avais pas vu depuis que j'étais une toute petite abeille. Ce ruban est à toi : mon noeud de remerciement. »"
+    },
+    "old-stories": {
+      "title": "De vieilles histoires",
+      "ask": "Ma grand-mère parlait d'un très vieux rayon de miel, au-delà du bois. J'ai marqué où je pense qu'il se trouve. Tu iras voir ?",
+      "thanks": "Des alvéoles plus grandes que les nôtres, tu dis ? Alors des abeilles ont vraiment vécu bien au-delà de la prairie, autrefois. Comme c'est merveilleux.",
+      "thanksBody": "La Reine a dit : « Des alvéoles plus grandes que les nôtres, tu dis ? Alors des abeilles ont vraiment vécu bien au-delà de la prairie, autrefois. Comme c'est merveilleux. »"
+    },
+    "feast": {
+      "title": "Un festin pour la ruche",
+      "ask": "Célébrons tout ce que tu as accompli. Douze miels, quatre pains d'abeille et trois pollens dorés pour un festin !",
+      "thanks": "Quel festin ! Tout le monde a dansé jusqu'à ce que les lampes faiblissent. Et écoute : la brume au bord de la prairie s'amincit. Quelque chose t'attend là-bas, petite exploratrice.",
+      "thanksBody": "La Reine a dit : « Quel festin ! Tout le monde a dansé jusqu'à ce que les lampes faiblissent. Et écoute : la brume au bord de la prairie s'amincit. Quelque chose t'attend là-bas, petite exploratrice. »"
+    },
+    "past-the-mist": {
+      "title": "Au-delà de la brume",
+      "ask": "La brume s'est assez amincie pour la traverser ! Les vieilles histoires parlent d'une petite chaumière dans la lavande, là-bas. J'ai marqué où je pense qu'elle est.",
+      "thanks": "Une chaumière qui dit BIENVENUE, ABEILLES ? Alors ces terres ont été les nôtres, aussi, autrefois. Comme c'est agréable d'être attendues.",
+      "thanksBody": "La Reine a dit : « Une chaumière qui dit BIENVENUE, ABEILLES ? Alors ces terres ont été les nôtres, aussi, autrefois. Comme c'est agréable d'être attendues. »"
+    },
+    "lavender-friend": {
+      "title": "Une amie en violet",
+      "ask": "Des Abeilles de Lavande bourdonnent dans les landes, là-bas. Tu danserais avec l'une d'elles pour la ramener ?",
+      "thanks": "Quelle amie paisible et qui sent si bon. La nurserie a déjà l'air plus endormie.",
+      "thanksBody": "La Reine a dit : « Quelle amie paisible et qui sent si bon. La nurserie a déjà l'air plus endormie. »"
+    },
+    "amber-resin": {
+      "title": "Résine d'ambre",
+      "ask": "Le Bois d'Ambre dégoutte de la meilleure résine. Rapporte-en dix, et la Cirerie chantera.",
+      "thanks": "Cela brille comme des petits soleils ! Cette cire sera la meilleure que nous ayons jamais faite.",
+      "thanksBody": "La Reine a dit : « Cela brille comme des petits soleils ! Cette cire sera la meilleure que nous ayons jamais faite. »"
+    },
+    "hollow-oak": {
+      "title": "Le Chêne Creux",
+      "ask": "Au fond du Bois d'Ambre, il y a un arbre si grand qu'une ruche entière pourrait vivre dedans. Je l'ai marqué. Tu iras voir ?",
+      "thanks": "Une ruche dans un arbre, qui bourdonne toute seule ? Alors nous n'avons jamais été vraiment seules ici.",
+      "thanksBody": "La Reine a dit : « Une ruche dans un arbre, qui bourdonne toute seule ? Alors nous n'avons jamais été vraiment seules ici. »"
+    },
+    "moonwell": {
+      "title": "Le Puits de Lune",
+      "ask": "On dit que le Puits de Lune garde un morceau de lune. Va le voir, et rapporte-moi trois grains de pollen doré pour faire un voeu.",
+      "thanks": "J'ai fait mon voeu. Je ne peux pas te dire lequel, mais je crois qu'il va te plaire.",
+      "thanksBody": "La Reine a dit : « J'ai fait mon voeu. Je ne peux pas te dire lequel, mais je crois qu'il va te plaire. »"
+    },
+    "big-family": {
+      "title": "Une seule grande famille",
+      "ask": "Notre ruche, les abeilles sauvages, la vieille ruche du chêne. Réunissons tout le monde : huit aidantes, et un festin de vingt miels et dix cires.",
+      "thanks": "Regarde-nous toutes ! Tu as volé plus loin qu'aucune abeille en cent étés. Porte cette étoile, petite exploratrice. Tu l'as méritée. Les petits souhaits continueront d'arriver, quand tu voudras.",
+      "thanksBody": "La Reine a dit : « Regarde-nous toutes ! Tu as volé plus loin qu'aucune abeille en cent étés. Porte cette étoile, petite exploratrice. Tu l'as méritée. Les petits souhaits continueront d'arriver, quand tu voudras. »"
+    },
+    "wishes": {
+      "thanks": "Merci, chérie. La ruche bourdonne."
+    }
+  },
+  "save": {
+    "errors": {
+      "paste": "Collez d'abord un code de sauvegarde.",
+      "notCode": "Ça ne ressemble pas à un code de sauvegarde Hivebound. Il devrait commencer par HIVEBOUND1:",
+      "cutShort": "Ce code de sauvegarde semble tronqué ou mélangé. Recopiez-le.",
+      "newer": "Cette sauvegarde vient d'une version plus récente de Hivebound. Rafraîchissez la page et réessayez.",
+      "damaged": "Une partie de cette sauvegarde est endommagée, elle ne peut pas être chargée.",
+      "empty": "Ce code de sauvegarde est vide. Il n'y a pas encore d'aventure dedans.",
+      "storage": "Votre navigateur ne nous laisse pas écrire ici (mode privé ou stockage plein ?)."
+    }
+  },
+  "queen": {
+    "talk": "La Reine : « {ask} » Il manque encore : {missing}.",
+    "stillNeeded": "Il manque encore : {missing}",
+    "delighted": "La Reine est ravie !",
+    "delightedGifts": "La Reine est ravie ! {gifts}.",
+    "announceThanks": "La Reine dit : « {thanks} »",
+    "announceThanksGifts": "La Reine dit : « {thanks} » Vous avez reçu {gifts}.",
+    "giftStorage": "{n} de place en plus dans le garde-manger",
+    "mistLiftedToast": "La brume s'est levée ! De nouvelles terres attendent au-delà.",
+    "mistLiftedAnnounce": "La brume au bord de la prairie s'est levée. Vous pouvez la traverser pour rejoindre les nouvelles terres.",
+    "done": "fait",
+    "notYet": "pas encore",
+    "readyGo": "Prêt ! Allez voir la Reine dans la ruche.",
+    "roomMax": "Tous les lits sont pris. Renvoyez une aidante depuis la page Colonie pour faire de la place à une nouvelle amie.",
+    "room": "La ruche est pleine. Construisez une Chambre aux Abeilles, ou renvoyez une aidante depuis la page Colonie, pour faire de la place à une nouvelle amie.",
+    "goals": {
+      "bring": {
+        "nectar": "Rapporter du nectar",
+        "pollen": "Rapporter du pollen",
+        "water": "Rapporter de l'eau",
+        "resin": "Rapporter de la résine",
+        "honey": "Rapporter du miel",
+        "beebread": "Rapporter du pain d'abeille",
+        "wax": "Rapporter de la cire",
+        "golden": "Rapporter du pollen doré"
+      },
+      "build": {
+        "press": "Construire le Pressoir à Miel",
+        "kitchen": "Construire la Cuisine du Pain d'Abeille",
+        "waxworks": "Construire la Cirerie",
+        "larder": "Construire le Garde-Manger",
+        "room": "Construire la Chambre aux Abeilles"
+      },
+      "friends": "Apprivoiser une abeille sauvage | Apprivoiser {n} abeilles",
+      "visit": "Aller voir {the}"
+    },
+    "missing": {
+      "res": "{n} {name}",
+      "build": "construire {the}",
+      "visit": "aller voir {the}"
+    }
+  },
+  "colony": {
+    "noRoomMax": "Tous les lits de la ruche sont pris. Pour faire de la place, renvoyez une aidante depuis la page Colonie (C dans la ruche).",
+    "noRoom": "Il n'y a pas encore de place à la maison. Construisez une Chambre aux Abeilles dans la ruche, ou renvoyez une aidante depuis la page Colonie.",
+    "wildAnnounce": "{wild} ! Appuyez sur F quand le curseur est dans le vert.",
+    "almost": "Presque ! {n} essai restant. | Presque ! {n} essais restants.",
+    "cameBack": "{name} {the} est de retour !",
+    "newFriend": "{name} {the} fait maintenant partie de la colonie ! À deux, vous récolterez {some}.",
+    "renamed": "Nouveau nom : {name}.",
+    "needOne": "Il faut au moins une abeille à la maison.",
+    "noSpot": "Aucune prairie libre près de la ruche pour l'instant.",
+    "dismissed": "{name} {the} regagne la prairie.",
+    "lostCargo": " Il n'y avait plus de place pour {some}, une partie est restée derrière.",
+    "nowWorkingAt": "{name} travaille désormais {at}.",
+    "st": {
+      "flyingOut": "En route pour récolter {some}",
+      "gathering": "En pleine récolte de {some}",
+      "bringingHome": "Rentre avec {n} {name} · {left} s",
+      "restingHive": "Se repose dans la ruche",
+      "workingAt": "Travaille {at} · {n} s",
+      "storeFullPause": "{name} en pause : les réserves sont pleines",
+      "restingPause": "Se repose : {the} est en pause",
+      "waitingFor": "Attend {list} {at}",
+      "tending": "Prend soin {of}",
+      "littleRest": "Fait une petite pause",
+      "waitingRoom": "Attend de la place dans les réserves",
+      "noneNearby": "Pas {some} à proximité pour l'instant",
+      "gettingReady": "Se prépare à décoller"
+    }
+  },
+  "hive": {
+    "noRoomGolden": "Les réserves n'ont plus de place pour le pollen doré.",
+    "goldenToast": "Du pollen doré ! Il est parti directement dans les réserves.",
+    "goldenAnnounce": "Vous avez trouvé du pollen doré. Il est parti directement dans les réserves.",
+    "unloaded": "Déchargé dans la ruche : {amounts}.",
+    "overflow": "Les réserves étant pleines, {amounts} ont rejoint la nurserie.",
+    "paused": "En pause : {the}, qui n'utilisera plus les réserves.",
+    "resumed": "De retour au travail : {the}.",
+    "noRoomProduct": "Plus de place dans les réserves pour {some}.",
+    "collected": "Récolté : {n} {name}.",
+    "built": "Vous avez construit {the}.",
+    "unsealed": "Nouvelle alvéole descellée. De la place pour construire !",
+    "upgraded": "{name} : {desc}."
+  },
+  "hivePanel": {
+    "store": "Garde-manger",
+    "upToEach": "jusqu'à {n} de chaque",
+    "doorway": "Porte d'entrée",
+    "doorwayBlurb": "Le chemin du retour vers la prairie.",
+    "theQueen": "La Reine",
+    "hiveLevel": "Niveau de ruche {n}",
+    "notReady": "Pas encore prêt",
+    "sealedCell": "Alvéole scellée",
+    "sealedBlurb": "Vieille alvéole, obturée à la cire. Déscellez-la pour faire de la place à une nouvelle construction.",
+    "unsealNext": "Déscellez d'abord une alvéole adjacente.",
+    "missingWax": "{missing}. La cire vient de la Cirerie.",
+    "emptyCell": "Alvéole vide",
+    "emptyBlurb": "De la place pour une nouvelle construction.",
+    "buildDots": "Construire…",
+    "makes": "donne",
+    "secsEach": "· {n} s chacune",
+    "helpers": "Aides",
+    "helpersAtAria": "Aides {at}",
+    "sendToRest": "Envoyer {name} se reposer",
+    "addHelper": "+ Ajouter une aide",
+    "addHelperAt": "Ajouter une aide {at}",
+    "befriendToHelp": "Apprivoisez une abeille sauvage pour aider ici.",
+    "helpersNote": "Les aides accélèrent le travail et portent chaque fournée aux réserves pour vous.",
+    "tray": "Plateau :",
+    "trayReady": ", {n} à récupérer",
+    "resume": "Reprendre",
+    "pause": "Pause",
+    "collect": "Récolter",
+    "housing": "Un foyer pour {n} abeilles aidantes. La colonie remplit {filled} lits sur {cap}.",
+    "storage": "Ajoute de la place pour {n} de plus de chaque ressource.",
+    "need": "Il manque {amounts}",
+    "st": {
+      "queen": "se repose sur son coussin",
+      "locked": "scellée à la cire",
+      "empty": "prête à accueillir une construction",
+      "storage": "offre du rangement en plus",
+      "working": "en cours, {n} s restantes",
+      "finishing": "sur le point de finir",
+      "waiting": "attend {amounts}",
+      "room": "de la place",
+      "fullReady": "plateau plein, {n} à récupérer",
+      "full": "plateau plein, récupérez pour continuer",
+      "paused": "en pause"
+    }
+  },
+  "sheet": {
+    "colonyTitle": "Colonie",
+    "upgradesTitle": "Améliorations",
+    "bedsFilled": "{filled} / {cap} lits remplis",
+    "close": "Fermer {sheet}",
+    "noRoomMax": "Tous les lits sont pris. Pour faire de la place à une nouvelle amie, vous pouvez renvoyer une aidante : elle regagnera la prairie toute proche.",
+    "noRoom": "Tous les lits sont occupés. Construisez une Chambre aux Abeilles pour en avoir plus, ou renvoyez une aidante vers la prairie.",
+    "noHelpers": "Pas encore d'aidantes. Des abeilles sauvages planent au-dessus des prairies, des parterres de fleurs, de l'eau et des bois : posez-vous sur l'une d'elles et appuyez sur F pour tenter la danse d'apprivoisement. Il y a toujours un Bourdon aimable au Nid Sauvage.",
+    "dismiss": "Renvoyer",
+    "dismissAria": "Renvoyer {name}",
+    "dismissQ": "Renvoyer {name} ?",
+    "dismissBlurb": "Renvoyer {name} dans la prairie ? Vous pourrez la retrouver près de la ruche et vous lier d'amitié à nouveau.",
+    "nightOnly": "Les {plural} ne sortent que la nuit.",
+    "keep": "Garder {name}",
+    "newNameFor": "Nouveau nom pour {name}",
+    "whoAria": "{name}, {species}. Renommer",
+    "jobAria": "Le travail de {name}",
+    "rest": "Repos",
+    "favourite": "préférée",
+    "favouriteTitle": "{label} (préférée : la récolte plus vite)",
+    "workPlaceholder": "Travailler à un bâtiment…",
+    "workLabel": "Là où {name} travaille dans la ruche",
+    "levelOf": "Niveau {n} sur {total}",
+    "upgrade": "Améliorer",
+    "upgradeAria": "Améliorer : {name}",
+    "fullyUpgraded": "Amélioré au maximum.",
+    "or": "ou",
+    "toClose": "pour fermer"
+  },
+  "hud": {
+    "dayLine": "Jour {day} · {n} hexagone parcouru | Jour {day} · {n} hexagones parcourus",
+    "morningIn": "Le matin dans environ {n} min",
+    "nightIn": "La nuit tombe dans environ {n} min",
+    "journal": "Journal",
+    "journalNew": "Journal, {n} nouveaux",
+    "look": "Regarder",
+    "lookAround": "Regarder autour",
+    "home": "Ruche",
+    "flyHome": "Rentrer à la ruche",
+    "build": "Construire",
+    "buildSelected": "Construire sur l'alvéole sélectionnée",
+    "colony": "Colonie",
+    "colonyAria": "Colonie, {n} aidantes",
+    "upgrades": "Améliorations",
+    "settings": "Réglages",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "gameActions": "Actions du jeu",
+    "tip": "Astuce",
+    "tipTap": "Touchez une case",
+    "tipFly": "pour y voler",
+    "tipKeys": ", ou utilisez",
+    "tipSparklesA": "Suivez les",
+    "tipSparklesB": "étincelles pour trouver de nouveaux lieux.",
+    "gotIt": "Compris",
+    "plusOneIn": "· +1 dans {n} s"
+  },
+  "build": {
+    "title": "Construire ici",
+    "close": "Fermer le menu de construction",
+    "need": "Il manque {amounts}",
+    "needAnnounce": "{name} : {missing}.",
+    "pickCell": "Choisissez une alvéole vide pour construire.",
+    "pickCellFirst": "Choisissez d'abord une alvéole vide pour construire.",
+    "menuAnnounce": "Menu de construction. Haut et bas pour choisir, Entrée pour construire, Échap pour fermer.",
+    "choose": "choisir",
+    "build": "construire",
+    "closeKey": "fermer"
+  },
+  "dance": {
+    "hit": "Amies !",
+    "fled": "Trop timide cette fois…",
+    "miss": "Presque ! Réessayez",
+    "press": "Appuyez sur F dans le vert",
+    "ringAria": "Apprivoiser {the} : appuyez pendant que le curseur est dans le vert",
+    "triesLeft": "{n} essai restant | {n} essais restants",
+    "catch": "attraper",
+    "backAway": "battre en retraite"
+  },
+  "pad": {
+    "group": "Pad de déplacement",
+    "fly": "Voler vers {dir}"
+  },
+  "pouch": {
+    "name": "Poche",
+    "labelFull": "Poche {n} sur {cap} : {list}",
+    "labelEmpty": "Poche {n} sur {cap}, vide"
+  },
+  "minimap": {
+    "aria": "Mini-carte",
+    "summary": "Carte. {pct} % de la prairie explorés. {found} lieux trouvés sur {total}, {visited} visités.",
+    "placesVisited": "lieux visités",
+    "smaller": "Réduire la carte",
+    "bigger": "Agrandir la carte",
+    "clickToFly": "Cliquez pour y voler",
+    "unvisited": "Non visité :"
+  },
+  "wb": {
+    "title": "Bon retour !",
+    "lead": "Vous avez été absente pendant {away}. Pendant ce temps :",
+    "min": "{n} minute | {n} minutes",
+    "hour": "{n} heure | {n} heures",
+    "oneBusy": "{name} a bien occupé le temps.",
+    "fewBusy": "{names} ont bien occupé le temps.",
+    "manyBusy": "{names} et {n} autres amies ont bien occupé le temps.",
+    "capped": "Tout le monde a fait une sieste après 8 heures.",
+    "lovely": "Parfait"
+  },
+  "thanks": {
+    "title": "Merci d'avoir joué !",
+    "quote": "Tu as volé plus loin qu'aucune abeille en cent étés, et tu as rapporté toute une prairie avec toi. La ruche en bourdonnera encore très, très longtemps.",
+    "theQueen": "La Reine",
+    "statsAria": "Votre aventure",
+    "day": "jour | jours",
+    "hexesFlown": "hexagones parcourus",
+    "friend": "amie | amies",
+    "places": "lieux",
+    "keepsakes": "souvenirs",
+    "hiveLevel": "niveau de ruche",
+    "note": "C'est toute l'histoire pour l'instant. Merci du fond du coeur d'avoir joué à Hivebound : il a été fait avec beaucoup d'amour, et j'espère qu'il vous a offert quelques moments calmes et heureux. La suite viendra.",
+    "noteSoft": "La ruche continue : les petits souhaits de la Reine suivent leur cours, vos aidantes continuent de travailler, et chaque lieu et chaque souvenir reste là à savourer.",
+    "keepPlaying": "Continuer à jouer"
+  },
+  "gs": {
+    "pouchFullToast": "Votre poche est pleine. Rentrez à la ruche (H) pour la vider.",
+    "pouchFullAnnounce": "Votre poche est pleine. Rentrez à la ruche pour la vider.",
+    "gathering": "Vous récoltez {some}.",
+    "pouchFullWith": "Poche pleine avec {n}. Rentrez à la ruche pour la vider.",
+    "allGathered": "{the} d'ici est épuisé pour le moment. Ça va repousser.",
+    "notYet": "Pas encore {some} ici. Ça repousse dans environ {n} secondes."
+  }
+}

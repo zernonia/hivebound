@@ -9,16 +9,25 @@ import {
   type BuildingId,
   OFFLINE_CAP_MS,
   RAW_RESOURCES,
-  RESOURCE_INFO,
   type RawResource,
   type Resource,
   TRAY_CAP,
   UNLOCK_CELL_COST,
   UPGRADES,
   type UpgradeId,
+  buildingAt,
+  buildingName,
+  buildingThe,
   formatAmounts,
+  resourceLower,
+  resourceName,
+  resourceSome,
+  resourceThe,
   tileSource,
+  upgradeDescribe,
+  upgradeName,
 } from '~/utils/resources'
+import { appI18n } from '~/utils/i18n'
 import { GOLDEN_REGROW_MS, isGoldenSpot } from '~/utils/golden'
 import type { Tile } from '~/utils/world'
 import { useColony } from './colony'
@@ -265,8 +274,8 @@ export const useHive = defineStore('hive', {
       if (this.first('gather')) {
         useGame().addJournal({
           id: 'first-gather',
-          title: 'Sticky feet',
-          body: 'I tried my first bit of gathering. It is harder than it looks and much stickier. My pouch has room for a little more, then I should fly it home.',
+          titleKey: 'journal.firstGather.title',
+          bodyKey: 'journal.firstGather.body',
           icon: 'hive',
           subject: 'hive',
         })
@@ -286,19 +295,19 @@ export const useHive = defineStore('hive', {
     pickGolden(tile: Tile, now = Date.now()) {
       if (!this.goldenHere(tile, now)) return false
       if (this.stock.golden >= this.storageCap) {
-        useGame().announce('The store has no room for more golden pollen.')
+        useGame().announce(appI18n().t('hive.noRoomGolden'))
         return false
       }
       this.golden[tile.key] = now
       this.stock.golden++
       const game = useGame()
-      game.toast('Golden pollen! It went straight to the store.')
-      game.announce('You found golden pollen. It went straight to the store.')
+      game.toast(appI18n().t('hive.goldenToast'))
+      game.announce(appI18n().t('hive.goldenAnnounce'))
       if (this.first('golden')) {
         game.addJournal({
           id: 'first-golden',
-          title: 'Something golden',
-          body: 'Out here, far from home, some flowers sparkle. Their pollen is warm and glittery and hums a tiny tune. I tucked it safely away for the Queen.',
+          titleKey: 'journal.firstGolden.title',
+          bodyKey: 'journal.firstGolden.body',
           icon: 'hive',
           subject: 'hive',
         }, false)
@@ -356,9 +365,10 @@ export const useHive = defineStore('hive', {
         for (const r of RAW_RESOURCES) if (shared[r]) brought[r] = (brought[r] ?? 0) + shared[r]!
         useQueen().noteBrought(brought)
         const game = useGame()
+        const t = appI18n().t
         const parts = []
-        if (Object.keys(moved).length) parts.push(`Unloaded ${formatAmounts(moved)} into the hive.`)
-        if (Object.keys(shared).length) parts.push(`The store was full, so ${formatAmounts(shared)} went to the nursery.`)
+        if (Object.keys(moved).length) parts.push(t('hive.unloaded', { amounts: formatAmounts(moved) }))
+        if (Object.keys(shared).length) parts.push(t('hive.overflow', { amounts: formatAmounts(shared) }))
         const msg = parts.join(' ')
         game.toast(msg)
         game.announce(msg)
@@ -445,8 +455,8 @@ export const useHive = defineStore('hive', {
       if (product === 'honey' && this.first('honey')) {
         useGame().addJournal({
           id: 'first-honey',
-          title: 'Our very first honey',
-          body: 'The press gave a happy little squeak and out came honey. Real honey! I licked the spoon. Then I licked it again, for science.',
+          titleKey: 'journal.firstHoney.title',
+          bodyKey: 'journal.firstHoney.body',
           icon: 'hive',
           subject: 'hive',
         })
@@ -459,8 +469,7 @@ export const useHive = defineStore('hive', {
       const c = this.cells[key]
       if (!c?.building || !BUILDINGS[c.building].recipe) return
       c.paused = !c.paused
-      const name = BUILDINGS[c.building].name
-      useGame().announce(c.paused ? `${name} paused. It won't use any more of the store.` : `${name} is working again.`)
+      useGame().announce(appI18n().t(c.paused ? 'hive.paused' : 'hive.resumed', { name: buildingName(c.building!), the: buildingThe(c.building!) }))
       this.tick()
       this.changed()
     },
@@ -472,11 +481,12 @@ export const useHive = defineStore('hive', {
       if (!c || !recipe || c.output <= 0) return 0
       const product = Object.keys(recipe.out)[0] as Resource
       const n = this.storeOutput(c, product)
+      const t = appI18n().t
       if (n <= 0) {
-        useGame().announce(`The store has no room for more ${RESOURCE_INFO[product].name}.`)
+        useGame().announce(t('hive.noRoomProduct', { some: resourceSome(product), name: resourceLower(product) }))
         return 0
       }
-      useGame().announce(`Collected ${n} ${RESOURCE_INFO[product].name}.`)
+      useGame().announce(t('hive.collected', { n, name: resourceName(product) }))
       this.tick()
       this.changed()
       return n
@@ -495,7 +505,7 @@ export const useHive = defineStore('hive', {
       this.pay(def.cost)
       this.cells[key] = { building: id, startedAt: null, output: 0 }
       track('building_built', { building: id })
-      useGame().announce(`Built a ${def.name}.`)
+      useGame().announce(appI18n().t('hive.built', { name: buildingName(id), the: buildingThe(id) }))
       this.tick()
       this.changed()
       return true
@@ -509,7 +519,7 @@ export const useHive = defineStore('hive', {
       if (!touching || !this.has(UNLOCK_CELL_COST)) return false
       this.pay(UNLOCK_CELL_COST)
       this.unlocked.push(key)
-      useGame().announce('Unsealed a new cell. Room to build!')
+      useGame().announce(appI18n().t('hive.unsealed'))
       this.changed()
       return true
     },
@@ -527,7 +537,7 @@ export const useHive = defineStore('hive', {
       if (!cost || !this.has(cost)) return false
       this.pay(cost)
       this.upgrades[id] = lvl + 1
-      useGame().announce(`${def.name}: ${def.describe(def.values[lvl + 1]!)}.`)
+      useGame().announce(appI18n().t('hive.upgraded', { name: upgradeName(id), desc: upgradeDescribe(id, def.values[lvl + 1]!) }))
       this.changed()
       return true
     },

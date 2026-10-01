@@ -12,14 +12,15 @@ import { POIS } from '~/utils/world'
 const queen = useQueen()
 const game = useGame()
 const colony = useColony()
+const { t } = useI18n()
 
 const stats = computed(() => [
-  { n: game.day, label: game.day === 1 ? 'day' : 'days' },
-  { n: game.steps, label: 'hexes flown' },
-  { n: colony.bees.length, label: colony.bees.length === 1 ? 'friend' : 'friends' },
-  { n: `${game.visitedPois.length}/${POIS.length}`, label: 'places' },
-  { n: `${game.keepsakes.length}/${KEEPSAKE_LIST.length}`, label: 'keepsakes' },
-  { n: queen.hiveLevel, label: 'hive level' },
+  { n: game.day, label: t('thanks.day', game.day) },
+  { n: game.steps, label: t('thanks.hexesFlown') },
+  { n: colony.bees.length, label: t('thanks.friend', colony.bees.length) },
+  { n: `${game.visitedPois.length}/${POIS.length}`, label: t('thanks.places') },
+  { n: `${game.keepsakes.length}/${KEEPSAKE_LIST.length}`, label: t('thanks.keepsakes') },
+  { n: queen.hiveLevel, label: t('thanks.hiveLevel') },
 ])
 
 function close() {
@@ -28,27 +29,27 @@ function close() {
 </script>
 
 <template>
-  <UiDialog :open="queen.showThanks" title="Thank you for playing!" @close="close">
+  <UiDialog :open="queen.showThanks" :title="t('thanks.title')" @close="close">
     <div class="thanks">
       <img class="art" src="/icon.svg" alt="" width="140" height="140">
       <p class="queen">
-        “You flew further than any bee in a hundred summers, and brought a whole meadow home with you. The hive will hum about this for a very long time.”
-        <span class="who">The Queen</span>
+        “{{ t('thanks.quote') }}”
+        <span class="who">{{ t('thanks.theQueen') }}</span>
       </p>
-      <ul class="stats" aria-label="Your journey">
+      <ul class="stats" :aria-label="t('thanks.statsAria')">
         <li v-for="s in stats" :key="s.label">
           <strong>{{ s.n }}</strong>
           <span>{{ s.label }}</span>
         </li>
       </ul>
       <p class="note">
-        That's the whole story so far. Thank you so much for playing Hivebound: it was made with a lot of love, and I hope it gave you a few calm, happy moments. There's more to come.
+        {{ t('thanks.note') }}
       </p>
       <p class="note soft">
-        The hive keeps going: the Queen's little wishes carry on, your helpers keep working, and every place and keepsake is still out there to enjoy.
+        {{ t('thanks.noteSoft') }}
       </p>
       <button class="chip-btn primary ok" autofocus @click="close">
-        Keep playing
+        {{ t('thanks.keepPlaying') }}
       </button>
     </div>
   </UiDialog>

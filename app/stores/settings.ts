@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 
 export type TextScale = 1 | 1.2 | 1.4
 export type FlightSpeed = 'relaxed' | 'normal' | 'brisk'
+export type Lang = 'en' | 'fr'
 
 export interface SettingsState {
+  lang: Lang
   reducedMotion: boolean
   textScale: TextScale
   highContrast: boolean
@@ -43,11 +45,18 @@ function systemIsTouch() {
   return window.matchMedia('(pointer: coarse)').matches
 }
 
+/** French browser on first visit? Start in French. A saved choice always wins. */
+function systemLang(): Lang {
+  if (typeof window === 'undefined' || !navigator.language) return 'en'
+  return navigator.language.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+}
+
 export const ZOOM_MIN = 0.6
 export const ZOOM_MAX = 1.7
 
 export const useSettings = defineStore('settings', {
   state: (): SettingsState => ({
+    lang: systemLang(),
     reducedMotion: systemPrefersReducedMotion(),
     textScale: 1,
     highContrast: systemPrefersContrast(),

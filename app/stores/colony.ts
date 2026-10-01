@@ -2,13 +2,14 @@ import { defineStore } from 'pinia'
 import { track } from '~/utils/analytics'
 import { type Hex, hexDistance, hexKey, hexesInRange, parseKey } from '~/utils/hex'
 import { hash2 } from '~/utils/noise'
-import { BUILDINGS, OFFLINE_CAP_MS, RESOURCE_INFO, type RawResource, tileSource } from '~/utils/resources'
-import { SPECIES, SPECIES_BY_HABITAT, type SpeciesId, pickName } from '~/utils/species'
+import { BUILDINGS, OFFLINE_CAP_MS, type RawResource, buildingAt, buildingName, buildingOf, buildingThe, resourceLower, resourceSome, tileSource } from '~/utils/resources'
+import { SPECIES, SPECIES_BY_HABITAT, type SpeciesId, pickName, speciesFled, speciesThe, speciesWild } from '~/utils/species'
 import { DOORSTEP, HOME, type Tile, WORLD_SEED, useWorldData } from '~/utils/world'
 import { useGame } from './game'
 import { useHive } from './hive'
 import { useSettings } from './settings'
 import { isNight } from '~/utils/daylight'
+import { appI18n, joinList } from '~/utils/i18n'
 
 /*
  * Helper bees: meeting wild bees, befriending them with a little timing dance, giving them a
@@ -199,9 +200,7 @@ export const useColony = defineStore('colony', {
       const species = this.wildBeeAt(tile)
       if (!species || this.dance) return false
       if (!this.hasRoom) {
-        const msg = this.capacity >= MAX_COLONY
-          ? 'Every bed in the hive is taken. To make room for someone new, dismiss a helper from the Colony page (C in the hive).'
-          : 'There is no room at home yet. Build a Bee Room in the hive, or dismiss a helper from the Colony page.'
+        const msg = appI18n().t(this.capacity >= MAX_COLONY ? 'colony.noRoomMax' : 'colony.noRoom')
         game.toast(msg)
         game.announce(msg)
         return false
@@ -218,7 +217,7 @@ export const useColony = defineStore('colony', {
         misses: 0,
         result: null,
       }
-      game.announce(`A wild ${SPECIES[species].name}! Press F when the marker is in the green.`)
+      game.announce(appI18n().t('colony.wildAnnounce', { wild: speciesWild(species) }))
       return true
     },
 
@@ -241,7 +240,6 @@ export const useColony = defineStore('colony', {
       const d = this.dance
       if (!d || d.result === 'hit' || d.result === 'fled') return
       const game = useGame()
-      const name = SPECIES[d.species].name
       if (this.inZone(this.danceAngle(at))) {
         d.result = 'hit'
         this.befriend(d.species, d.tileKey)
@@ -251,14 +249,14 @@ export const useColony = defineStore('colony', {
       if (d.misses >= DANCE_TRIES) {
         d.result = 'fled'
         this.used.push(encounterKey(d.tileKey, Date.now()))
-        game.announce(`The ${name} got shy and flew off. You'll meet another one.`)
+        game.announce(speciesFled(d.species))
         this.changed()
         return
       }
       d.result = 'miss'
       // New spot for the green arc, same rhythm.
       d.zoneStart = (d.zoneStart + 110 + Math.random() * 140) % 360
-      game.announce(`Almost! ${DANCE_TRIES - d.misses} ${DANCE_TRIES - d.misses === 1 ? 'try' : 'tries'} left.`)
+      game.announce(appI18n().t('colony.almost', DANCE_TRIES - d.misses))
     },
 
     endDance() {
@@ -292,15 +290,18 @@ export const useColony = defineStore('colony', {
       // Forget encounters from old windows so the list stays small.
       const current = Math.floor(now / ENCOUNTER_WINDOW_MS)
       this.used = this.used.filter(k => Number(k.split(':')[0]) >= current - 1)
+      const t = appI18n().t
+      const the = speciesThe(species)
       const msg = back
-        ? `${name} the ${def.name} came back!`
-        : `${name} the ${def.name} is your friend! They'll help gather ${RESOURCE_INFO[def.favourite].name.toLowerCase()}.`
+        ? t('colony.cameBack', { name, the })
+        : t('colony.newFriend', { name, the, some: resourceSome(def.favourite) })
       game.toast(msg)
       game.announce(msg)
       game.addJournal({
         id: `bee:${species}`,
-        title: `A new friend: ${def.name}`,
-        body: `${def.blurb} ${name} followed me home and picked a bed straight away.`,
+        titleKey: `species.${species}.journalTitle`,
+        bodyKey: `species.${species}.journalBody`,
+        params: { name },
         icon: 'hive',
         subject: 'hive',
       }, false)
@@ -314,7 +315,7 @@ export const useColony = defineStore('colony', {
       const clean = name.replace(/\s+/g, ' ').trim().slice(0, BEE_NAME_MAX)
       if (!clean || clean === bee.name) return false
       bee.name = clean
-      useGame().announce(`Renamed to ${clean}.`)
+      useGame().announce(appI18n().t('colony.renamed', { name: clean }))
       this.changed()
       return true
     },
@@ -333,7 +334,7 @@ export const useColony = defineStore('colony', {
       if (!bee.trip) bee.retryAt = gatherJob(job) ? Date.now() : null
       if (cell) {
         const b = hive.cells[cell]?.building
-        if (b) useGame().announce(`${bee.name} is now working at the ${BUILDINGS[b].name}.`)
+        if (b) useGame().announce(appI18n().t('colony.nowWorkingAt', { name: bee.name, at: buildingAt(b) }))
       }
       hive.changed()
       this.changed()
@@ -374,7 +375,7 @@ export const useColony = defineStore('colony', {
         return false
       }
       if (!this.bees.some(b => b.id === id)) return false
-      if (this.bees.length <= 1) return refuse('You need at least one bee at home.')
+      if (this.bees.length <= 1) return refuse(appI18n().t('colony.needOne'))
       const hive = useHive()
       // Settle finished trips and the buildings at their old pace before this bee stops working.
       hive.tick()
@@ -382,14 +383,15 @@ export const useColony = defineStore('colony', {
       const bee = this.bees.find(b => b.id === id)
       if (!bee) return false
       const tileKey = this.releaseSpot(bee.species)
-      if (!tileKey) return refuse(`There's no free meadow near the hive right now.`)
+      if (!tileKey) return refuse(appI18n().t('colony.noSpot'))
       const cargo = [{ res: bee.holdingRes, n: bee.holding }]
       if (bee.trip) cargo.push({ res: bee.trip.resource, n: bee.trip.carry })
       const lostRes = cargo.filter(c => c.res && c.n > hive.addStock(c.res, c.n)).map(c => c.res!)
       this.bees = this.bees.filter(b => b !== bee)
       this.released.push({ tileKey, species: bee.species, name: bee.name })
-      let msg = `${bee.name} the ${SPECIES[bee.species].name} flew back to the meadow.`
-      if (lostRes[0]) msg += ` Some ${RESOURCE_INFO[lostRes[0]].name.toLowerCase()} had no room and was left behind.`
+      const t = appI18n().t
+      let msg = t('colony.dismissed', { name: bee.name, the: speciesThe(bee.species) })
+      if (lostRes[0]) msg += t('colony.lostCargo', { some: resourceSome(lostRes[0]) })
       game.toast(msg)
       game.announce(msg)
       hive.changed()
@@ -528,35 +530,37 @@ export const useColony = defineStore('colony', {
 
     /** Short status for the colony list. */
     statusText(bee: ColonyBee, now = Date.now()) {
+      const t = appI18n().t
       const phase = this.tripPhase(bee, now)
       if (phase && bee.trip) {
-        const what = RESOURCE_INFO[bee.trip.resource].name.toLowerCase()
-        if (phase.leg === 'out') return `Flying out for ${what}`
-        if (phase.leg === 'gather') return `Gathering ${what}`
+        const some = resourceSome(bee.trip.resource)
+        const name = resourceLower(bee.trip.resource)
+        if (phase.leg === 'out') return t('colony.st.flyingOut', { some, name })
+        if (phase.leg === 'gather') return t('colony.st.gathering', { some, name })
         const left = Math.max(1, Math.ceil(((1 - phase.u) * bee.trip.backMs) / 1000))
-        return `Bringing home ${bee.trip.carry} ${what} · ${left}s`
+        return t('colony.st.bringingHome', { n: bee.trip.carry, name, left })
       }
-      if (!bee.job) return 'Resting in the hive'
+      if (!bee.job) return t('colony.st.restingHive')
       const cell = workCell(bee.job)
       if (cell) {
         const hive = useHive()
         const b = hive.cells[cell]?.building
-        if (!b) return 'Resting in the hive'
-        const where = BUILDINGS[b].name
+        if (!b) return t('colony.st.restingHive')
+        const at = buildingAt(b)
         const st = hive.status(cell, now)
-        if (st.kind === 'working') return `Working the ${where} · ${st.remaining}s`
-        if (st.kind === 'full') return `${where} paused: the store is full`
-        if (st.kind === 'paused') return `Resting: the ${where} is paused`
+        if (st.kind === 'working') return t('colony.st.workingAt', { at, n: st.remaining })
+        if (st.kind === 'full') return t('colony.st.storeFullPause', { name: buildingName(b) })
+        if (st.kind === 'paused') return t('colony.st.restingPause', { the: buildingThe(b) })
         if (st.kind === 'waiting') {
-          const need = Object.keys(st.missing).map(r => RESOURCE_INFO[r as keyof typeof RESOURCE_INFO].name.toLowerCase())
-          return `Waiting for ${need.join(' and ')} at the ${where}`
+          const need = Object.keys(st.missing).map(r => appI18n().locale.value === 'fr' ? resourceSome(r as RawResource) : resourceLower(r as RawResource))
+          return t('colony.st.waitingFor', { list: joinList(need), at })
         }
-        return `Tending the ${where}`
+        return t('colony.st.tending', { the: buildingThe(b), of: buildingOf(b) })
       }
-      if (bee.retryAt && !bee.blocked) return 'Having a little rest'
-      if (bee.blocked === 'store-full') return 'Waiting for room in the store'
-      if (bee.blocked === 'no-tiles') return `No ${RESOURCE_INFO[gatherJob(bee.job)!].name.toLowerCase()} nearby right now`
-      return 'Getting ready to fly'
+      if (bee.retryAt && !bee.blocked) return t('colony.st.littleRest')
+      if (bee.blocked === 'store-full') return t('colony.st.waitingRoom')
+      if (bee.blocked === 'no-tiles') return t('colony.st.noneNearby', { some: resourceSome(gatherJob(bee.job)!), name: resourceLower(gatherJob(bee.job)!) })
+      return t('colony.st.gettingReady')
     },
   },
 })

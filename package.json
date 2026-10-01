@@ -13,6 +13,7 @@
     "deploy": "nuxt generate && wrangler deploy"
   },
   "dependencies": {
+    "@nuxtjs/i18n": "^10.6.0",
     "@pinia/nuxt": "^1.0.2",
     "@tresjs/cientos": "^5.9.0",
     "@tresjs/core": "^5.9.0",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { hexKey, hexToWorld, worldToHex } from '~/utils/hex'
 import { PALETTE_CVD, PALETTE_DEFAULT } from '~/utils/palette'
-import { OUTER_RADIUS, POIS, POI_BY_ID, WORLD_RADIUS, useWorldData } from '~/utils/world'
+import { OUTER_RADIUS, POIS, poiName, WORLD_RADIUS, useWorldData } from '~/utils/world'
 import { useQueen } from '~/stores/queen'
 import { useGame } from '~/stores/game'
 import { useSettings } from '~/stores/settings'
@@ -9,6 +9,7 @@ import { useSettings } from '~/stores/settings'
 const game = useGame()
 const settings = useSettings()
 const world = useWorldData()
+const { t } = useI18n()
 
 const canvas = ref<HTMLCanvasElement>()
 const size = computed(() => (settings.largeMinimap ? 260 : 156))
@@ -30,7 +31,7 @@ const summary = computed(() => {
   const walkable = open.length
   const seen = open.filter(t => game.discovered.has(t.key)).length
   const found = world.pois.filter(p => game.discovered.has(hexKey(p.hex))).length
-  return `Map. Explored ${Math.round((seen / walkable) * 100)} percent of the meadow. ${found} of ${POIS.length} places found, ${game.visitedPois.length} visited.`
+  return t('minimap.summary', { pct: Math.round((seen / walkable) * 100), found, total: POIS.length, visited: game.visitedPois.length })
 })
 
 function draw() {
@@ -171,29 +172,29 @@ function onClick(ev: MouseEvent) {
 const nextPlace = computed(() => {
   void game.revealTick
   const p = world.pois.find(p => game.discovered.has(hexKey(p.hex)) && !game.visitedPois.includes(p.id))
-  return p ? POI_BY_ID[p.id].name : null
+  return p ? poiName(p.id) : null
 })
 </script>
 
 <template>
-  <section class="minimap panel" :class="{ large: settings.largeMinimap }" aria-label="Minimap">
+  <section class="minimap panel" :class="{ large: settings.largeMinimap }" :aria-label="t('minimap.aria')">
     <canvas
       ref="canvas"
       :style="{ width: `${size}px`, height: `${size}px` }"
       role="img"
       :aria-label="summary"
-      title="Click to fly there"
+      :title="t('minimap.clickToFly')"
       @click="onClick"
     />
     <div class="row">
       <span class="label">
         <span aria-hidden="true">★</span>
         {{ game.visitedPois.length }}/{{ POIS.length }}
-        <span class="sr-only">places visited</span>
+        <span class="sr-only">{{ t('minimap.placesVisited') }}</span>
       </span>
       <button
         class="mini-btn"
-        :aria-label="settings.largeMinimap ? 'Make map smaller' : 'Make map bigger'"
+        :aria-label="t(settings.largeMinimap ? 'minimap.smaller' : 'minimap.bigger')"
         :aria-pressed="settings.largeMinimap"
         @click="settings.largeMinimap = !settings.largeMinimap"
       >
@@ -202,7 +203,7 @@ const nextPlace = computed(() => {
       </button>
     </div>
     <p v-if="nextPlace && settings.largeMinimap" class="hint">
-      Unvisited: {{ nextPlace }}
+      {{ t('minimap.unvisited') }} {{ nextPlace }}
     </p>
   </section>
 </template>

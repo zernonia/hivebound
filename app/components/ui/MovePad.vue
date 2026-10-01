@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { DIRECTION_NAMES, type Direction } from '~/utils/hex'
+import { directionName, type Direction } from '~/utils/hex'
 import { useGame } from '~/stores/game'
 
 const game = useGame()
 const held = useHeldDirection()
+const { t } = useI18n()
 
 // Flat-top hex neighbours laid out around the centre (angles in degrees, 0 = up).
 const buttons: { d: Direction, angle: number }[] = [
@@ -30,13 +31,13 @@ function click(d: Direction, ev: MouseEvent) {
 </script>
 
 <template>
-  <div class="pad" role="group" aria-label="Movement pad">
+  <div class="pad" role="group" :aria-label="t('pad.group')">
     <button
       v-for="b in buttons"
       :key="b.d"
       class="dir"
       :style="{ '--a': `${b.angle}deg` }"
-      :aria-label="`Fly ${DIRECTION_NAMES[b.d]}`"
+      :aria-label="t('pad.fly', { dir: directionName(b.d) })"
       @pointerdown.prevent="down(b.d, $event)"
       @pointerup="up(b.d)"
       @pointercancel="up(b.d)"
