@@ -21,7 +21,7 @@ import { useQueen } from './queen'
 import { useSettings } from './settings'
 import { UNLOCK_CELL_COST, resourceLower, resourceSome, tileSource } from '~/utils/resources'
 import { KEEPSAKE_BY_POI, keepsakeName, type KeepsakeId, type KeepsakeSlot } from '~/utils/keepsakes'
-import { speciesBefriend } from '~/utils/species'
+import { SPECIES, speciesBefriend, type SpeciesId } from '~/utils/species'
 import { DOORSTEP, HOME, type PoiId, REVEAL_RADIUS, type Terrain, poiAt, poiName, poiThe, terrainAt, terrainLabel, useWorldData } from '~/utils/world'
 
 export type JournalIcon = 'hive' | 'poi' | 'terrain'
@@ -37,7 +37,8 @@ export interface JournalEntry {
   params?: Record<string, string | number>
   /**
    * Raw text, kept only so entries written by saves made before translations still show.
-   * They have no keys, so they stay in the language they were written in.
+   * Their keys are re-derived from the id at render time (see journalKeysFor), so even
+   * they follow the language; this is the last resort if the id isn't one we know.
    */
   title?: string
   body?: string
@@ -48,15 +49,66 @@ export interface JournalEntry {
   unread: boolean
 }
 
-/** An entry's title, translated now: keyed entries re-render, legacy ones keep their text. */
-/** Copy the params: vue-i18n writes the plural number into the named values, and the
- *  entry's own params are saved state that must stay untouched. */
+/**
+ * Every journal entry ever written has one of a handful of stable ids, so the keys an
+ * entry would have been written with can be re-derived from its id — which un-translates
+ * entries from saves made before translations existed, whatever the language being played.
+ */
+function journalKeysFor(e: JournalEntry): { title: string, body: string, params?: Record<string, string | number> } | null {
+  if (e.id.startsWith('poi:')) {
+    const id = e.id.slice(4)
+    return { title: `pois.${id}.journalTitle`, body: `pois.${id}.journalBody` }
+  }
+  if (e.id.startsWith('terrain:')) {
+    const t = e.id.slice(8)
+    return { title: `journal.terrain.${t}.title`, body: `journal.terrain.${t}.body` }
+  }
+  if (e.id.startsWith('bee:')) {
+    const species = e.id.slice(4)
+    if (!Object.hasOwn(SPECIES, species)) return null
+    return { title: `species.${species}.journalTitle`, body: `species.${species}.journalBody`, params: { name: beeNameFor(species as SpeciesId) } }
+  }
+  if (e.id.startsWith('queen:')) {
+    const id = e.id.slice(6)
+    return { title: `requests.${id}.title`, body: `requests.${id}.thanksBody` }
+  }
+  switch (e.id) {
+    case 'intro': return { title: 'journal.intro.title', body: 'journal.intro.body' }
+    case 'inside-hive': return { title: 'journal.insideHive.title', body: 'journal.insideHive.body' }
+    case 'first-gather': return { title: 'journal.firstGather.title', body: 'journal.firstGather.body' }
+    case 'first-golden': return { title: 'journal.firstGolden.title', body: 'journal.firstGolden.body' }
+    case 'first-honey': return { title: 'journal.firstHoney.title', body: 'journal.firstHoney.body' }
+    case 'first-night': return { title: 'journal.firstNight.title', body: 'journal.firstNight.body' }
+    case 'mist-lifts': return { title: 'journal.mistLifts.title', body: 'journal.mistLifts.body' }
+    case 'the-end': return { title: 'journal.theEnd.title', body: 'journal.theEnd.body' }
+    default: return null
+  }
+}
+
+/** The name of the first bee of a species (home or released), for legacy bee entries. */
+function beeNameFor(species: SpeciesId): string {
+  const colony = useColony()
+  return colony.bees.find(b => b.species === species)?.name
+    ?? colony.released.find(r => r.species === species)?.name
+    ?? ''
+}
+
+/**
+ * An entry's title, translated now: keyed entries re-render, legacy ones get their keys
+ * re-derived from the id, and only a truly unknown id keeps its raw text.
+ */
 export function journalTitle(e: JournalEntry): string {
-  return e.titleKey ? appI18n().t(e.titleKey, { ...e.params }) : e.title ?? ''
+  if (e.titleKey) return appI18n().t(e.titleKey, { ...e.params })
+  const keys = journalKeysFor(e)
+  if (keys) return appI18n().t(keys.title, { ...keys.params })
+  return e.title ?? ''
 }
 
 export function journalBody(e: JournalEntry): string {
-  return e.bodyKey ? appI18n().t(e.bodyKey, { ...e.params }) : e.body ?? ''
+  if (e.bodyKey) return appI18n().t(e.bodyKey, { ...e.params })
+  const keys = journalKeysFor(e)
+  if (keys) return appI18n().t(keys.body, { ...keys.params })
+  return e.body ?? ''
 }
 
 export type ActionId = 'enter' | 'leave' | 'collect' | 'unseal' | 'befriend' | 'queen'
