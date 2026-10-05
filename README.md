@@ -173,6 +173,7 @@ Hivebound is installable: use your browser's **Install app** or **Add to Home Sc
 ## Accessibility built in
 - **Reduce motion** (follows the OS setting by default): no bob, squash, pop-ins or springy UI, and a calmer camera.
 - **High contrast** (follows `prefers-contrast`), **text size** (100 / 120 / 140%), and a **colour-vision-friendly palette**. Terrain and minimap markers differ by shape and brightness as well as hue.
+- An **OpenDyslexic font** option switches all UI text to [OpenDyslexic](https://opendyslexic.org/) (SIL Open Font License, bundled in `app/assets/fonts/`).
 - **Screen reader narration**: a polite live region announces routes, arrivals, new journal entries and a full **Look around** description (what's in each hex direction, plus the nearest unvisited place).
 - Everything is playable with the **keyboard alone**. Dialogs are native `<dialog>` elements, so focus is trapped and `Esc` closes them. Touch targets are at least 44–56px.
 - The **on-screen hex pad** is on by default for touch screens, and anyone can turn it on for motor accessibility.

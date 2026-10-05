@@ -7,6 +7,7 @@ export interface SettingsState {
   reducedMotion: boolean
   textScale: TextScale
   highContrast: boolean
+  dyslexicFont: boolean
   colorVisionFriendly: boolean
   narration: boolean
   /** Set once narration's default became off, so a saved value is a real choice. */
@@ -51,6 +52,7 @@ export const useSettings = defineStore('settings', {
     reducedMotion: systemPrefersReducedMotion(),
     textScale: 1,
     highContrast: systemPrefersContrast(),
+    dyslexicFont: false,
     colorVisionFriendly: false,
     /** Extra spoken detail, plus the Look around button. Off by default: turned on by those who want it. */
     narration: false,

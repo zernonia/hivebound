@@ -33,6 +33,29 @@ html.hc {
   --focus: 0 0 0 3px #ffffff, 0 0 0 7px #000000;
 }
 
+/* OpenDyslexic (SIL OFL, see assets/fonts/OFL.txt). Only downloaded once the setting is on. */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('~/assets/fonts/OpenDyslexic-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('~/assets/fonts/OpenDyslexic-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+html.dys {
+  --font-ui: 'OpenDyslexic', 'Fredoka', system-ui, sans-serif;
+  --font-hand: 'OpenDyslexic', 'Fredoka', system-ui, sans-serif;
+}
+/* OpenDyslexic runs wide, so it sits a little smaller to keep panels their usual size. */
+html.dys,
+html.dys body {
+  font-size: calc(14px * var(--text-scale));
+}
+
 /* Reduced motion: no transitions or springy easing anywhere in the UI. */
 html.rm *,
 html.rm *::before,
