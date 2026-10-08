@@ -24,6 +24,8 @@ export interface SettingsState {
   /** Slower marker and a wider green arc in the befriending dance. */
   easyBefriend: boolean
   dayNight: boolean
+  /** Floating name labels over helper bees. */
+  showBeeNames: boolean
 }
 
 const STORAGE_KEY = 'hivebound:settings:v1'
@@ -66,6 +68,7 @@ export const useSettings = defineStore('settings', {
     easyBefriend: false,
     /** Slow day and night cycle (off = always day). */
     dayNight: true,
+    showBeeNames: false,
   }),
   getters: {
     /** Seconds to fly one hex. */

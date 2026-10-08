@@ -326,7 +326,7 @@ export class HiveView {
    * round it while it runs; resting bees (no job) settle onto Bee Room beds when there are any;
    * everyone else drifts from cell to cell, pausing now and then.
    */
-  updateColony(bees: { id: number, species: SpeciesId, resting: boolean, work: string | null }[], dt: number, time: number) {
+  updateColony(bees: { id: number, species: SpeciesId, resting: boolean, work: string | null }[], dt: number, time: number, onDrawn?: (id: number, pos: THREE.Vector3) => void) {
     const rm = this.reducedMotion
     const beds: THREE.Vector3[] = []
     for (const c of this.cells.values()) {
@@ -382,6 +382,7 @@ export class HiveView {
       rig.root.position.copy(w.pos)
       if (!sleeping && !rm) rig.root.position.y += Math.sin(time * 2.2 + b.id) * 0.05
       rig.root.rotation.y = w.yaw
+      onDrawn?.(b.id, rig.root.position)
       animateBee(rig, time, b.id * 0.37, sleeping ? 0 : moving, rm)
       if (sleeping && w.pos.distanceTo(w.target) < 0.05) {
         // Asleep: wings folded down, eyes closed.

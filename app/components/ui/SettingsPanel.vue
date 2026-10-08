@@ -12,7 +12,7 @@ const settings = useSettings()
 const compact = useCompactScreen()
 const pct = (v: number) => (v <= 0 ? 'Off' : `${Math.round(v * 100)}%`)
 
-type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight'
+type BoolKey = 'reducedMotion' | 'highContrast' | 'colorVisionFriendly' | 'narration' | 'showMinimap' | 'showPad' | 'showHints' | 'easyBefriend' | 'dayNight' | 'showBeeNames'
 const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'reducedMotion', label: 'Reduce motion', hint: 'Calmer camera, no bouncing or pop-ins.' },
   { key: 'highContrast', label: 'High contrast', hint: 'Stronger text and outlines on panels.' },
@@ -22,6 +22,7 @@ const toggles: { key: BoolKey, label: string, hint: string }[] = [
   { key: 'showPad', label: 'On-screen movement pad', hint: 'Six big buttons for hex directions.' },
   { key: 'easyBefriend', label: 'Easier befriending', hint: 'Slower marker and a wider green area in the dance.' },
   { key: 'dayNight', label: 'Day and night', hint: 'A slow day and night every 24 minutes. Off keeps it always day (Moon Bees still visit).' },
+  { key: 'showBeeNames', label: 'Show bee names', hint: 'Name labels over your helpers. Hovering a bee always shows its details.' },
   { key: 'showHints', label: 'Show tips', hint: '' },
 ]
 const shownToggles = computed(() => (compact.value ? toggles.filter(t => t.key !== 'showMinimap') : toggles))
