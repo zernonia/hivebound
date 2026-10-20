@@ -2,7 +2,7 @@
 
 A cozy, relaxing 3D bee game for the browser. Fly hex to hex across a soft diorama island, gather nectar, befriend wild bees, build a humming hive for the Queen, and find out what's past the mist.
 
-**▶ Play free: [hivebound.zernonia.workers.dev](https://hivebound.zernonia.workers.dev)** (no install, no account; your save stays in your browser)
+**▶ Play free: [hivebound.zernonia.workers.dev](https://hivebound.zernonia.workers.dev)** or on [itch.io](https://zernonia.itch.io/hivebound) (no install, no account; your save stays in your browser)
 
 Built with [Nuxt](https://nuxt.com) and [TresJS](https://tresjs.org). Everything you see and hear is made in code: procedural models, synthesised music, no asset files.
 
@@ -23,6 +23,7 @@ Other scripts:
 npm run typecheck  # vue-tsc over the whole app
 npm run generate   # static build into .output/public (what production serves)
 npm run build      # production build (.output/)
+npm run build:itch # itch.io upload: .output/hivebound-itch.zip (relative paths, hash routing, no service worker)
 ```
 
 In dev, `window.__hivebound` exposes the game's stores and renderer for poking around from the console, and `?bee=queen` (or another variant) previews a bee look.
