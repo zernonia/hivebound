@@ -12,6 +12,9 @@ import { POIS } from '~/utils/world'
 const queen = useQueen()
 const game = useGame()
 const colony = useColony()
+// From the site root, or beside index.html in the itch.io build.
+const { app } = useRuntimeConfig()
+const iconSrc = `${app.cdnURL || app.baseURL}icon.svg`
 
 const stats = computed(() => [
   { n: game.day, label: game.day === 1 ? 'day' : 'days' },
@@ -30,7 +33,7 @@ function close() {
 <template>
   <UiDialog :open="queen.showThanks" title="Thank you for playing!" @close="close">
     <div class="thanks">
-      <img class="art" src="/icon.svg" alt="" width="140" height="140">
+      <img class="art" :src="iconSrc" alt="" width="140" height="140">
       <p class="queen">
         “You flew further than any bee in a hundred summers, and brought a whole meadow home with you. The hive will hum about this for a very long time.”
         <span class="who">The Queen</span>
